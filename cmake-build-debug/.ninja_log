@@ -1,0 +1,11 @@
+# ninja log v6
+2	63	1740328071852695282	CMakeFiles/GLPS.dir/src/glps_egl_context.c.o	9ceba82e8955e0b5
+3	125	1740328071853695291	CMakeFiles/GLPS.dir/src/utils/logger/pico_logger.c.o	9d6d0ccd0e8a7c46
+3	198	1740328071853695291	CMakeFiles/GLPS.dir/src/glps_window_manager.c.o	6ba5421ee493a768
+2	216	1740328071852695282	CMakeFiles/GLPS.dir/src/glps_x11.c.o	7ba6088e09a1b7a9
+217	264	1740328072067697318	lib/libGLPS.so	d5e82efba4a1f34f
+3	38	1740943438460896329	CMakeFiles/GLPS.dir/src/glps_egl_context.c.o	9e6accebced3dd32
+5	84	1740943438462896359	CMakeFiles/GLPS.dir/src/utils/logger/pico_logger.c.o	2a2b237f5a4ec6c1
+4	130	1740943438461896344	CMakeFiles/GLPS.dir/src/glps_window_manager.c.o	423791a1f36cd5a
+4	155	1740943438461896344	CMakeFiles/GLPS.dir/src/glps_x11.c.o	186947b668e1025a
+155	196	1740943438612898603	lib/libGLPS.so	d5e82efba4a1f34f
