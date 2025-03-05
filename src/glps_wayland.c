@@ -36,9 +36,7 @@ ssize_t __get_window_id_from_surface(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
-    if(wm->windows[i] == NULL) continue;
-    LOG_INFO("%ld test", i);
-    
+    if(wm->windows[i] == NULL) continue;    
     if (surface == wm->windows[i]->wl_surface)
       return i;
   }
@@ -110,8 +108,7 @@ void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
   glps_WindowManager *context = (glps_WindowManager *)data;
 
   ssize_t window_id = __get_window_id_from_surface(context, surface);
-  LOG_INFO("window id %ld", window_id);
-
+  
   if (window_id < 0)
   {
     LOG_ERROR("Origin window id is invalid.");
