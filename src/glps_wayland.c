@@ -36,6 +36,9 @@ ssize_t __get_window_id_from_surface(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
+    if(wm->windows[i] == NULL) continue;
+    LOG_INFO("%ld test", i);
+    
     if (surface == wm->windows[i]->wl_surface)
       return i;
   }
@@ -56,6 +59,7 @@ ssize_t __get_window_id_from_xdg_surface(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
+    if(wm->windows[i] == NULL) continue;
     if (surface == wm->windows[i]->xdg_surface)
       return i;
   }
@@ -89,6 +93,8 @@ ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
+    if(wm->windows[i] == NULL) continue;
+
     if (toplevel == wm->windows[i]->xdg_toplevel)
       return i;
   }
@@ -104,13 +110,14 @@ void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
   glps_WindowManager *context = (glps_WindowManager *)data;
 
   ssize_t window_id = __get_window_id_from_surface(context, surface);
+  LOG_INFO("window id %ld", window_id);
+
   if (window_id < 0)
   {
     LOG_ERROR("Origin window id is invalid.");
     return;
   }
 
-  LOG_INFO("window id %ld", window_id);
   context->pointer_event.event_mask |= POINTER_EVENT_ENTER;
   context->pointer_event.serial = serial;
   context->pointer_event.surface_x = surface_x,
@@ -1566,12 +1573,10 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
   } 
   */
  
-  if (wm->window_count > 0)
-    wm->window_count--;
-
-  if (wm->window_count == 0)
+  if (window_id == 0)
   {
     LOG_INFO("All windows destroyed. Exiting program.");
+
   }
 }
 
