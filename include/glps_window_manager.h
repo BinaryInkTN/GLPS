@@ -105,6 +105,13 @@ void glps_wm_window_destroy(glps_WindowManager *wm, size_t window_id);
  */
 void glps_wm_destroy(glps_WindowManager *wm);
 
+/**
+ * @brief Returns the total window count.
+ * @param wm Pointer to the GLPS Window Manager.
+ */
+void glps_wm_get_window_count(glps_WindowManager *wm);
+
+
 bool glps_wm_should_close(glps_WindowManager *wm);
 
 /* ======= Events: I/O Devices ======= */

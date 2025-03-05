@@ -421,7 +421,7 @@ void *glps_get_proc_addr(const char *name)
   return glps_wgl_get_proc_addr(name);
 #endif
 
-return NULL;
+  return NULL;
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
@@ -573,4 +573,9 @@ void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
 #ifdef GLPS_USE_X11
   glps_x11_window_update(wm, window_id);
 #endif
+}
+
+void glps_wm_get_window_count(glps_WindowManager *wm)
+{
+  return wm->window_count;
 }
