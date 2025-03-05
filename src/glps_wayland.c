@@ -1185,6 +1185,8 @@ void frame_callback_done(void *data, struct wl_callback *callback,
                                args);
     }
   }
+
+
 }
 
 struct wl_callback_listener frame_callback_listener = {.done =
