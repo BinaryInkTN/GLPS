@@ -1559,10 +1559,13 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 
   wm->windows[window_id] = NULL;
 
+  /*
   for (size_t i = window_id; i < wm->window_count - 1; ++i)
   {
     wm->windows[i] = wm->windows[i + 1];
-  }
+  } 
+  */
+ 
   if (wm->window_count > 0)
     wm->window_count--;
 

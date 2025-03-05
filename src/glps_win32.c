@@ -191,9 +191,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     free(wm->windows[window_id]);
 
-    for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
+    /*
+      for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
       wm->windows[j] = wm->windows[j + 1];
     }
+    */
+  
     wm->window_count--;
 
     if (wm->window_count == 0) {
