@@ -1181,10 +1181,10 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     }
   }
 
-  if (window->callbacks.window_frame_update_callback)
+  if (args->wm->callbacks.window_frame_update_callback)
   {
-    window->callbacks.window_frame_update_callback(
-        args->window_id, window->callbacks.window_frame_update_data);
+    args->wm->callbacks.window_frame_update_callback(
+        args->window_id, args->wm->callbacks.window_frame_update_data);
   }
 
 
@@ -1214,9 +1214,9 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
 
   wl_egl_window_resize(window->egl_window, width, height, 0, 0);
 
-  if (window->callbacks.window_resize_callback)
+  if (wm->callbacks.window_resize_callback)
   {
-    window->callbacks.window_resize_callback(window_id, window->properties.width,
+    wm->calllbacks.window_resize_callback(window_id, window->properties.width,
                                          window->properties.height,
                                          window->window_resize_data);
   }
