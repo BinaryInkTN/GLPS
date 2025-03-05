@@ -1165,11 +1165,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     return;
   }
 
-  if (window->callbacks.window_frame_update_callback)
-  {
-    window->callbacks.window_frame_update_callback(
-        args->window_id, window->callbacks.window_frame_update_data);
-  }
 
   if (callback)
   {
@@ -1185,6 +1180,13 @@ void frame_callback_done(void *data, struct wl_callback *callback,
                                args);
     }
   }
+
+  if (window->callbacks.window_frame_update_callback)
+  {
+    window->callbacks.window_frame_update_callback(
+        args->window_id, window->callbacks.window_frame_update_data);
+  }
+
 
 
 }
