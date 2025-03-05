@@ -575,7 +575,7 @@ void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
 #endif
 }
 
-void glps_wm_get_window_count(glps_WindowManager *wm)
+size_t glps_wm_get_window_count(glps_WindowManager *wm)
 {
   return wm->window_count;
 }
