@@ -1216,9 +1216,9 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
 
   if (wm->callbacks.window_resize_callback)
   {
-    wm->calllbacks.window_resize_callback(window_id, window->properties.width,
+    wm->callbacks.window_resize_callback(window_id, window->properties.width,
                                          window->properties.height,
-                                         window->window_resize_data);
+                                         wm->callbacks.window_resize_data);
   }
   wl_update(wm, window_id);
 }
