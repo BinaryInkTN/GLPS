@@ -1522,11 +1522,6 @@ void glps_wl_destroy(glps_WindowManager *wm)
 
   glps_egl_destroy(wm);
   _cleanup_wl(wm);
-  if (wm != NULL)
-  {
-    free(wm);
-    wm = NULL;
-  }
   
 }
 
