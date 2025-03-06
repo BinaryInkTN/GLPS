@@ -1527,6 +1527,7 @@ void glps_wl_destroy(glps_WindowManager *wm)
     free(wm);
     wm = NULL;
   }
+  
 }
 
 void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
@@ -1567,7 +1568,7 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
   {
     LOG_INFO("All windows destroyed. Exiting program.");
     // Cleanup 
-    _cleanup_wl(wm);
+    
     wm->window_count = 0; // trigger exit event
   }
 }
