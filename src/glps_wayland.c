@@ -35,7 +35,8 @@ ssize_t __get_window_id_from_surface(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
-    if(wm->windows[i] == NULL) continue;    
+    if (wm->windows[i] == NULL)
+      continue;
     if (surface == wm->windows[i]->wl_surface)
       return i;
   }
@@ -56,12 +57,54 @@ ssize_t __get_window_id_from_xdg_surface(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
-    if(wm->windows[i] == NULL) continue;
+    if (wm->windows[i] == NULL)
+      continue;
     if (surface == wm->windows[i]->xdg_surface)
       return i;
   }
 
   return -1;
+}
+
+void __window_destroy(glps_WindowManager *wm, size_t window_id)
+{
+
+  glps_WaylandWindow *window = wm->windows[window_id];
+  if (window->frame_args != NULL)
+  {
+    free(window->frame_args);
+    window->frame_args = NULL;
+  }
+
+  if (window->zxdg_toplevel_decoration != NULL)
+  {
+    zxdg_toplevel_decoration_v1_destroy(window->zxdg_toplevel_decoration);
+    window->zxdg_toplevel_decoration = NULL;
+  }
+
+  if (window->frame_callback != NULL)
+  {
+    wl_callback_destroy(window->frame_callback);
+    window->frame_callback = NULL;
+  }
+
+  // eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+  wl_egl_window_destroy(window->egl_window);
+
+  xdg_toplevel_destroy(window->xdg_toplevel);
+  xdg_surface_destroy(window->xdg_surface);
+  wl_surface_destroy(window->wl_surface);
+
+  free(window);
+
+  wm->windows[window_id] = NULL;
+
+  if (window_id == 0)
+  {
+    LOG_INFO("All windows destroyed. Exiting program.");
+
+    wm->should_close = true; // trigger exit event
+  }
 }
 
 void wl_update(glps_WindowManager *wm, size_t window_id)
@@ -90,7 +133,8 @@ ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
 
   for (size_t i = 0; i < wm->window_count; ++i)
   {
-    if(wm->windows[i] == NULL) continue;
+    if (wm->windows[i] == NULL)
+      continue;
 
     if (toplevel == wm->windows[i]->xdg_toplevel)
       return i;
@@ -107,7 +151,7 @@ void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
   glps_WindowManager *context = (glps_WindowManager *)data;
 
   ssize_t window_id = __get_window_id_from_surface(context, surface);
-  
+
   if (window_id < 0)
   {
     LOG_ERROR("Origin window id is invalid.");
@@ -1168,7 +1212,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     return;
   }
 
-
   if (callback)
   {
     wl_callback_destroy(callback);
@@ -1189,9 +1232,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     args->wm->callbacks.window_frame_update_callback(
         args->window_id, args->wm->callbacks.window_frame_update_data);
   }
-
-
-
 }
 
 struct wl_callback_listener frame_callback_listener = {.done =
@@ -1293,24 +1333,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
   {
     if (wm->windows[i])
     {
-      if (wm->windows[i]->wl_surface)
-      {
-        wl_surface_destroy(wm->windows[i]->wl_surface);
-        wm->windows[i]->wl_surface = NULL;
-      }
-      if (wm->windows[i]->xdg_surface)
-      {
-        xdg_surface_destroy(wm->windows[i]->xdg_surface);
-        wm->windows[i]->xdg_surface = NULL;
-      }
-      if (wm->windows[i]->xdg_toplevel)
-      {
-        xdg_toplevel_destroy(wm->windows[i]->xdg_toplevel);
-        wm->windows[i]->xdg_toplevel = NULL;
-      }
-
-      free(wm->windows[i]);
-      wm->windows[i] = NULL;
+      __window_destroy(wm, i);
     }
   }
   free(wm->windows);
@@ -1507,7 +1530,7 @@ bool glps_wl_should_close(glps_WindowManager *wm)
 {
   if (wl_display_dispatch(wm->wayland_ctx->wl_display) == -1)
     return true;
-  else if (wm->window_count == 0)
+  else if (wm->should_close)
     return true;
 
   return false;
@@ -1519,53 +1542,13 @@ void glps_wl_destroy(glps_WindowManager *wm)
   {
     return;
   }
-
   glps_egl_destroy(wm);
   _cleanup_wl(wm);
-  
 }
 
 void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 {
-
-  glps_WaylandWindow *window = wm->windows[window_id];
-  if (window->frame_args != NULL)
-  {
-    free(window->frame_args);
-    window->frame_args = NULL;
-  }
-
-  if (window->zxdg_toplevel_decoration != NULL)
-  {
-    zxdg_toplevel_decoration_v1_destroy(window->zxdg_toplevel_decoration);
-    window->zxdg_toplevel_decoration = NULL;
-  }
-
-  if (window->frame_callback != NULL)
-  {
-    wl_callback_destroy(window->frame_callback);
-    window->frame_callback = NULL;
-  }
-
-  eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
-  wl_egl_window_destroy(window->egl_window);
-
-  xdg_toplevel_destroy(window->xdg_toplevel);
-  xdg_surface_destroy(window->xdg_surface);
-  wl_surface_destroy(window->wl_surface);
-
-  free(window);
-
-  wm->windows[window_id] = NULL;
-
- 
-  if (window_id == 0)
-  {
-    LOG_INFO("All windows destroyed. Exiting program.");
-    // Cleanup 
-    
-    wm->window_count = 0; // trigger exit event
-  }
+  __window_destroy(wm, window_id);
 }
 
 bool glps_wl_init(glps_WindowManager *wm)
