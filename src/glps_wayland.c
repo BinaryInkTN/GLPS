@@ -1,5 +1,4 @@
 
-#ifdef GLPS_USE_WAYLAND
 #include <glps_egl_context.h>
 #include <glps_wayland.h>
 
@@ -1563,17 +1562,13 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 
   wm->windows[window_id] = NULL;
 
-  /*
-  for (size_t i = window_id; i < wm->window_count - 1; ++i)
-  {
-    wm->windows[i] = wm->windows[i + 1];
-  } 
-  */
  
   if (window_id == 0)
   {
     LOG_INFO("All windows destroyed. Exiting program.");
-
+    // Cleanup 
+    _cleanup_wl(wm);
+    wm->window_count = 0; // trigger exit event
   }
 }
 
@@ -1663,5 +1658,3 @@ bool glps_wl_init(glps_WindowManager *wm)
 
   return true;
 }
-
-#endif
