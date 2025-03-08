@@ -231,7 +231,7 @@ void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
 void glps_wm_start_drag_n_drop(
     glps_WindowManager *wm, size_t origin_window_id,
     void (*drag_n_drop_callback)(size_t origin_window_id, char *mime,
-                                 char *buff, void *data),
+                                 char *buff, int x, int y, void *data),
     void *data)
 {
   if (wm == NULL)
