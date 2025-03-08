@@ -909,7 +909,7 @@ struct wl_data_offer_listener data_offer_listener = {
 
 void data_device_handle_drop(void *data, struct wl_data_device *data_device) {
   glps_WindowManager *wm = (glps_WindowManager *)data;
-  glps_WaylandContext *context = NULL;
+  glps_WaylandContext *context = __get_wl_context(wm);
 
   if (wm == NULL) {
       LOG_ERROR("Window Manager is NULL.");
@@ -942,7 +942,7 @@ void data_device_handle_drop(void *data, struct wl_data_device *data_device) {
       // Pass the drop coordinates to the callback
       wm->callbacks.drag_n_drop_callback(
           context->mouse_window_id, "text/plain", buffer,
-          context->drop_coordinates.x, context->drop_coordinates.y, // Pass coordinates
+          context->drop_coordinates.x, context->drop_coordinates.y,
           wm->callbacks.drag_n_drop_data
       );
   }
@@ -1063,7 +1063,7 @@ void data_device_handle_enter(void *data, struct wl_data_device *data_device,
                             WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
 
-static void data_device_handle_motion(void *data, struct wl_data_device *data_device,
+void data_device_handle_motion(void *data, struct wl_data_device *data_device,
                                       uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;

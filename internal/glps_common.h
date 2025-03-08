@@ -246,6 +246,11 @@
    uint32_t serial;
  } glps_WaylandWindow;
  
+ typedef struct {
+  int x; // X coordinate of the drop
+  int y; // Y coordinate of the drop
+} glps_DropCoordinates;
+
  /**
   * @struct glps_WaylandContext
   * @brief Represents the Wayland context for GLPS.
@@ -276,8 +281,11 @@
    size_t mouse_window_id;
    size_t touch_window_id;
    size_t current_drag_n_drop_window;
+  glps_DropCoordinates drop_coordinates;
+
  } glps_WaylandContext;
- 
+
+
  #endif
  
  #if defined(GLPS_USE_WAYLAND) || defined(GLPS_USE_X11)
@@ -348,10 +356,6 @@
    bool enable_fps_counter;
  };
  
- typedef struct {
-  int x; // X coordinate of the drop
-  int y; // Y coordinate of the drop
-} glps_DropCoordinates;
 
  /**
   * @struct glps_WindowManager
@@ -367,7 +371,6 @@
    struct touch_event touch_event;     /**< Current touch event data. */
    struct pointer_event pointer_event; /**< Current pointer event data. */
    struct clipboard_data clipboard;    /**< Current clipboard data. */
-   glps_DropCoordinates drop_coordinates;
  #endif
  
  #ifdef GLPS_USE_WIN32
