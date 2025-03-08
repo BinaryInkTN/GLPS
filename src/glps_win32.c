@@ -485,7 +485,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     }
 
     if (wm->callbacks.drag_n_drop_callback) {
-      wm->callbacks.drag_n_drop_callback(window_id, mime_types, files,
+      wm->callbacks.drag_n_drop_callback(window_id, mime_types, -1, -1, files,
                                          wm->callbacks.drag_n_drop_data);
     }
 
