@@ -211,7 +211,7 @@ GLPS_BINARY_DIR:STATIC=/home/yassine-ahmed-ali/Documents/GLPS/cmake-build-debug
 GLPS_IS_TOP_LEVEL:STATIC=ON
 
 //Dependencies for the target
-GLPS_LIB_DEPENDS:STATIC=general;X11;general;EGL;
+GLPS_LIB_DEPENDS:STATIC=general;m;general;EGL;general;wayland-client;general;wayland-server;general;wayland-cursor;general;wayland-egl;general;xkbcommon;
 
 //Value Computed by CMake
 GLPS_SOURCE_DIR:STATIC=/home/yassine-ahmed-ali/Documents/GLPS

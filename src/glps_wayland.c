@@ -907,28 +907,27 @@ struct wl_data_offer_listener data_offer_listener = {
     .action = data_offer_handle_action,
 };
 
-void data_device_handle_drop(void *data, struct wl_data_device *data_device)
-{
+void data_device_handle_drop(void *data, struct wl_data_device *data_device) {
   glps_WindowManager *wm = (glps_WindowManager *)data;
   glps_WaylandContext *context = NULL;
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
+
+  if (wm == NULL) {
+      LOG_ERROR("Window Manager is NULL.");
+      return;
   }
 
-  if ((context = __get_wl_context(wm)) == NULL)
-  {
-    LOG_ERROR("Failed to get Wayland context from Window Manager.");
-    return;
+  if ((context = __get_wl_context(wm)) == NULL) {
+      LOG_ERROR("Failed to get Wayland context from Window Manager.");
+      return;
   }
 
-  if (context->current_drag_offer == NULL)
-  {
-    LOG_ERROR("hello");
+  if (context->current_drag_offer == NULL) {
+      LOG_ERROR("Drag offer is null.");
+      return;
   }
 
   assert(context->current_drag_offer != NULL);
+
   int fds[2];
   pipe(fds);
   wl_data_offer_receive(context->current_drag_offer, "text/plain", fds[1]);
@@ -939,12 +938,15 @@ void data_device_handle_drop(void *data, struct wl_data_device *data_device)
   char buffer[4096];
   ssize_t bytes_read = read(fds[0], buffer, sizeof(buffer));
 
-  if (wm->callbacks.drag_n_drop_callback)
-  {
-
-    wm->callbacks.drag_n_drop_callback(context->mouse_window_id, "text/plain",
-                                       buffer, wm->callbacks.drag_n_drop_data);
+  if (wm->callbacks.drag_n_drop_callback) {
+      // Pass the drop coordinates to the callback
+      wm->callbacks.drag_n_drop_callback(
+          context->mouse_window_id, "text/plain", buffer,
+          context->drop_coordinates.x, context->drop_coordinates.y, // Pass coordinates
+          wm->callbacks.drag_n_drop_data
+      );
   }
+
   close(fds[0]);
 
   wl_data_offer_finish(context->current_drag_offer);
@@ -1061,10 +1063,18 @@ void data_device_handle_enter(void *data, struct wl_data_device *data_device,
                             WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
 }
 
-void data_device_handle_motion(void *data, struct wl_data_device *data_device,
-                               uint32_t time, wl_fixed_t x, wl_fixed_t y)
+static void data_device_handle_motion(void *data, struct wl_data_device *data_device,
+                                      uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
-  // This space is intentionally left blank
+  glps_WindowManager *wm = (glps_WindowManager *)data;
+  glps_WaylandContext *context = __get_wl_context(wm);
+
+  if (context && context->current_drag_offer)
+  {
+    // Store the coordinates
+    context->drop_coordinates.x = wl_fixed_to_int(x);
+    context->drop_coordinates.y = wl_fixed_to_int(y);
+  }
 }
 
 void data_device_handle_leave(void *data, struct wl_data_device *data_device)

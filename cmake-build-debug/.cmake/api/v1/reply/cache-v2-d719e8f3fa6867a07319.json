@@ -1119,7 +1119,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "general;X11;general;EGL;"
+			"value" : "general;m;general;EGL;general;wayland-client;general;wayland-server;general;wayland-cursor;general;wayland-egl;general;xkbcommon;"
 		},
 		{
 			"name" : "GLPS_SOURCE_DIR",

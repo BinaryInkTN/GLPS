@@ -113,9 +113,9 @@
                           double touch_y, bool state, double major, double minor,
                           double orientation,
                           void *data); /**< Callback for touch events. */
-   void (*drag_n_drop_callback)(
-       size_t window_id, char *mime, char *buff,
-       void *data); /**< Callback for drag & drop events. */
+   void (*drag_n_drop_callback)(size_t window_id, const char *mime_type, const char *data,
+   int x, int y, // Drop coordinates
+   void *user_data); /**< Callback for drag & drop events. */
    void (*window_resize_callback)(
        size_t window_id, int width, int height,
        void *data); /**< Callback for resize events. */
@@ -348,6 +348,11 @@
    bool enable_fps_counter;
  };
  
+ typedef struct {
+  int x; // X coordinate of the drop
+  int y; // Y coordinate of the drop
+} glps_DropCoordinates;
+
  /**
   * @struct glps_WindowManager
   * @brief Represents the manager for GLPS windows.
@@ -362,7 +367,7 @@
    struct touch_event touch_event;     /**< Current touch event data. */
    struct pointer_event pointer_event; /**< Current pointer event data. */
    struct clipboard_data clipboard;    /**< Current clipboard data. */
- 
+   glps_DropCoordinates drop_coordinates;
  #endif
  
  #ifdef GLPS_USE_WIN32
