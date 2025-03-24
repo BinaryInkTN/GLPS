@@ -1,6 +1,7 @@
 
 
 #include <glps_egl_context.h>
+#include "utils/logger/pico_logger.h"
 
 void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
 

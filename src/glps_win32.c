@@ -1,4 +1,6 @@
 #include <glps_common.h>
+#include "utils/logger/pico_logger.h"
+
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_NAME 16383
 #define MAX_FILES 128

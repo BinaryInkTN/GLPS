@@ -16,6 +16,7 @@
 
 #include "glps_x11.h"
 #include "glps_egl_context.h"
+#include "utils/logger/pico_logger.h"
 
 void glps_x11_init(glps_WindowManager *wm)
 {

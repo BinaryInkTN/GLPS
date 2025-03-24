@@ -1,4 +1,6 @@
 #include "glps_window_manager.h"
+#include "utils/logger/pico_logger.h"
+
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
