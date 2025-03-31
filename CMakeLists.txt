@@ -41,7 +41,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 elseif(UNIX AND NOT APPLE)
     if(WAYLAND_FOUND)
         message(STATUS "Building for Linux Wayland")
-        set(WAYLAND_PROTOCOLS_INSTALLER "${CMAKE_SOURCE_DIR}/scripts/waylandProtolcsInst.sh")
+        set(WAYLAND_PROTOCOLS_INSTALLER "${PROJECT_SOURCE_DIR}/scripts/waylandProtolcsInst.sh")
         execute_process(
           COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
         )
@@ -57,8 +57,8 @@ elseif(UNIX AND NOT APPLE)
             # src/xdg/xdg-shell.c
         )
         
-file(GLOB XDG_SOURCES "src/xdg/*.c")
-list(APPEND SOURCES ${XDG_SOURCES})
+        file(GLOB XDG_SOURCES "src/xdg/*.c")
+        list(APPEND SOURCES ${XDG_SOURCES})
 
 
         set(GLOB HEADERS
@@ -74,7 +74,7 @@ list(APPEND SOURCES ${XDG_SOURCES})
         )
         
         file(GLOB XDG_HEADERS "internal/xdg/*.h")
-list(APPEND HEADERS ${XDG_HEADERS})
+        list(APPEND HEADERS ${XDG_HEADERS})
 
         add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 
