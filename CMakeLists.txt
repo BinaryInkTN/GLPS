@@ -56,7 +56,10 @@ elseif(UNIX AND NOT APPLE)
             # src/xdg/xdg-dialog.c
             # src/xdg/xdg-shell.c
         )
-        file(GLOB SOURCES src/xdg/*.c)
+        
+file(GLOB XDG_SOURCES "src/xdg/*.c")
+list(APPEND SOURCES ${XDG_SOURCES})
+
 
         set(GLOB HEADERS
             internal/glps_wayland.h
@@ -70,7 +73,8 @@ elseif(UNIX AND NOT APPLE)
             # internal/xdg/xdg-shell.h
         )
         
-        file(GLOB HEADERS internal/xdg/*.h)
+        file(GLOB XDG_HEADERS "internal/xdg/*.h")
+list(APPEND HEADERS ${XDG_HEADERS})
 
         add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 
