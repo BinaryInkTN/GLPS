@@ -41,28 +41,36 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 elseif(UNIX AND NOT APPLE)
     if(WAYLAND_FOUND)
         message(STATUS "Building for Linux Wayland")
-        set(SOURCES
+        set(WAYLAND_PROTOCOLS_INSTALLER "${CMAKE_SOURCE_DIR}/scripts/waylandProtolcsInst.sh")
+        execute_process(
+          COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
+        )
+        set( SOURCES
             src/glps_wayland.c
             src/glps_window_manager.c
             src/utils/logger/pico_logger.c
             src/glps_egl_context.c
-            src/xdg/wlr-data-control-unstable-v1.c
-            src/xdg/xdg-decorations.c
-            src/xdg/xdg-dialog.c
-            src/xdg/xdg-shell.c
+            
+            # src/xdg/wlr-data-control-unstable-v1.c
+            # src/xdg/xdg-decorations.c
+            # src/xdg/xdg-dialog.c
+            # src/xdg/xdg-shell.c
         )
+        file(GLOB SOURCES src/xdg/*.c)
 
-        set(HEADERS
+        set(GLOB HEADERS
             internal/glps_wayland.h
             include/glps_window_manager.h
             internal/glps_egl_context.h
             internal/glps_common.h
             internal/utils/logger/pico_logger.h
-            internal/xdg/wlr-data-control-unstable-v1.h
-            internal/xdg/xdg-decorations.h
-            internal/xdg/xdg-dialog.h
-            internal/xdg/xdg-shell.h
+            # internal/xdg/wlr-data-control-unstable-v1.h
+            # internal/xdg/xdg-decorations.h
+            # internal/xdg/xdg-dialog.h
+            # internal/xdg/xdg-shell.h
         )
+        
+        file(GLOB HEADERS internal/xdg/*.h)
 
         add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 
