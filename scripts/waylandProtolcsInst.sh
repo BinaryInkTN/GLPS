@@ -24,6 +24,8 @@ if [[ -n "$(ls -A ${OUTPUT_HEADER_DIR})"   ]]; then
     exit 0 
 else 
     echo "Generating Wayland protocols"
+    mkdir -p ${OUTPUT_SRC_DIR}
+    mkdir -p ${OUTPUT_HEADER_DIR}
 fi
 
 
