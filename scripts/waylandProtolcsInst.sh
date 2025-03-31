@@ -1,123 +1,118 @@
-#!/bin/bash 
-# internal/xdg/wlr-data-control-unstable-v1.h
-            # internal/xdg/xdg-decorations.h
-            # internal/xdg/xdg-dialog.h
-            # internal/xdg/xdg-shell.h
-WAYLAND_PROTOCOLES_GIT="https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
-WLR_DATA_CTL_GIT="https://gitlab.freedesktop.org/wlroots/wlr-protocols.git"
+#!/bin/bash
+
+WAYLAND_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
+WLR_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wlroots/wlr-protocols.git"
 OUTPUTS=(xdg-shell xdg-dialog xdg-decorations wlr-data-control-unstable-v1)
+
 SCRIPT_PATH=$0 
 SCRIPT_PATH="$(realpath "$(dirname "${SCRIPT_PATH}")")"
 SCRIPT_ROOT_PATH="${SCRIPT_PATH}/.."
 
-echo $SCRIPT_ROOT_PATH
+echo "Script root path: $SCRIPT_ROOT_PATH"
 OUTPUT_HEADER_DIR="${SCRIPT_ROOT_PATH}/internal/xdg"
 OUTPUT_SRC_DIR="${SCRIPT_ROOT_PATH}/src/xdg"
-WAYLAND_PROTOCOLES_DIR="${SCRIPT_PATH}/wayland-protocols"
-WLR_DATA_DIR="${SCRIPT_PATH}/wlr-protocols"
-WAYLAND_PROTOCOLES=(xdg-shell xdg-dialog xdg-decoration)
-# Check if script should run
+WAYLAND_PROTOCOLS_DIR="${SCRIPT_PATH}/wayland-protocols"
+WLR_PROTOCOLS_DIR="${SCRIPT_PATH}/wlr-protocols"
 
-if [[ -n "$(ls -A ${OUTPUT_HEADER_DIR})"   ]]; then 
-    echo "${OUTPUT_HEADER_DIR} is not empty, Nothing to do "
+
+WAYLAND_PROTOCOLS=(
+    "stable/xdg-shell/xdg-shell.xml"
+    "unstable/xdg-dialog/xdg-dialog-unstable-v1.xml"
+    "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
+)
+
+
+if [[ -n "$(ls -A "${OUTPUT_HEADER_DIR}" 2>/dev/null)" ]]; then 
+    echo "${OUTPUT_HEADER_DIR} is not empty, Nothing to do"
     echo "Exiting ..."
     exit 0 
-else 
-    echo "Generating Wayland protocols"
-    mkdir -p ${OUTPUT_SRC_DIR}
-    mkdir -p ${OUTPUT_HEADER_DIR}
 fi
+
+echo "Creating output directories..."
+mkdir -p "${OUTPUT_SRC_DIR}"
+mkdir -p "${OUTPUT_HEADER_DIR}"
 
 
 echo "Cloning the Wayland Protocols repository..."
-if [[ ! -d "$WAYLAND_PROTOCOLES_DIR" ]]; then
-    git clone "$WAYLAND_PROTOCOLES_GIT" "${WAYLAND_PROTOCOLES_DIR}/"
+if [[ ! -d "$WAYLAND_PROTOCOLS_DIR" ]]; then
+    git clone --depth 1 "$WAYLAND_PROTOCOLS_GIT" "${WAYLAND_PROTOCOLS_DIR}/" || {
+        echo "Failed to clone wayland-protocols"
+        exit 1
+    }
 else
-    echo "Wayland protocols directory already exists, skipping clone."
+    echo "Wayland protocols directory already exists, using existing clone."
 fi
 
-# Ensure OUTPUT_DIR exists
-mkdir -p "$OUTPUT_DIR"
 
-for i in "${!WAYLAND_PROTOCOLES[@]}"; do 
-  echo "Searching for: $i"
+for i in "${!WAYLAND_PROTOCOLS[@]}"; do 
+    protocol_path="${WAYLAND_PROTOCOLS_DIR}/${WAYLAND_PROTOCOLS[$i]}"
+    
+    if [[ ! -f "$protocol_path" ]]; then
+        echo "Error: Protocol file not found: ${WAYLAND_PROTOCOLS[$i]}"
+        continue
+    fi
 
-  # Get first match
-  p=$(find "${WAYLAND_PROTOCOLES_DIR}" -type f -name "${WAYLAND_PROTOCOLES[$i]}*.xml" | head -n 1)
+    echo "Processing: $protocol_path"
 
-  # Check if a file was found
-  if [[ -z "$p" ]]; then
-    echo "No matching XML file found for ${WAYLAND_PROTOCOLES[$i]}."
-    continue
-  fi
+    
+    header_out="${OUTPUT_HEADER_DIR}/${OUTPUTS[$i]}.h"
+    src_out="${OUTPUT_SRC_DIR}/${OUTPUTS[$i]}.c"
 
-  echo "Found: $p"
-  echo "--- Using wayland-scanner"
+    echo "Generating header: $header_out"
+    if ! wayland-scanner client-header "$protocol_path" "$header_out"; then
+        echo "Error generating header from $protocol_path"
+        continue
+    fi
 
-  # Generate output path
-  NP="${OUTPUT_HEADER_DIR}/${OUTPUTS[$i]}"
-  NP="${NP}.h"  # Change extension to .h
-  NC="${OUTPUT_SRC_DIR}/${OUTPUTS[$i]}"
-  NC="${NC}.c" 
-  echo "Output: $NP"
-  echo "Output $NC"
+    echo "Generating source: $src_out"
+    if ! wayland-scanner private-code "$protocol_path" "$src_out"; then
+        echo "Error generating source from $protocol_path"
+        continue
+    fi
+done
 
-  # Run wayland-scanner safely
-  if wayland-scanner client-header "$p" "$NP"; then
-    echo "Successfully generated $NP"
-  else
-    echo "Error processing $p"
-  fi
-  if wayland-scanner private-code "$p" "$NC"; then
-    echo "Successfully generated $NC"
-  else
-    echo "Error processing $p"
-  fi
-done 
 
-echo "Cloning repo for WLR Data Protocols..."
-if [[ ! -d "$WLR_DATA_DIR" ]]; then
-    git clone "${WLR_DATA_CTL_GIT}" "${WLR_DATA_DIR}/"
+echo "Cloning wlr-protocols repository..."
+if [[ ! -d "$WLR_PROTOCOLS_DIR" ]]; then
+    git clone --depth 1 "$WLR_PROTOCOLS_GIT" "${WLR_PROTOCOLS_DIR}/" || {
+        echo "Failed to clone wlr-protocols"
+        exit 1
+    }
 else
-    echo "WLR protocols directory already exists, skipping clone."
+    echo "wlr-protocols directory already exists, using existing clone."
 fi
 
-WLR_DATA_CTL_NAME_XML="wlr-data-control"
-p=$(find "${WLR_DATA_DIR}" -type f -name "${WLR_DATA_CTL_NAME_XML}*.xml" | head -n 1)
 
-# Check if the file was found
-if [[ -z "$p" ]]; then
-    echo "Error: No WLR data-control XML file found."
+WLR_DATA_CTL_XML=$(find "${WLR_PROTOCOLS_DIR}" -type f -name "*data-control*.xml" | head -n 1)
+
+if [[ -z "$WLR_DATA_CTL_XML" ]]; then
+    echo "Error: wlr-data-control protocol XML not found in ${WLR_PROTOCOLS_DIR}"
+    exit 1
+fi
+
+echo "Found wlr-data-control protocol at: $WLR_DATA_CTL_XML"
+
+
+header_out="${OUTPUT_HEADER_DIR}/${OUTPUTS[3]}.h"
+src_out="${OUTPUT_SRC_DIR}/${OUTPUTS[3]}.c"
+
+echo "Generating wlr-data-control header: $header_out"
+if ! wayland-scanner client-header "$WLR_DATA_CTL_XML" "$header_out"; then
+    echo "Error generating wlr-data-control header"
+    exit 1
+fi
+
+echo "Generating wlr-data-control source: $src_out"
+if ! wayland-scanner private-code "$WLR_DATA_CTL_XML" "$src_out"; then
+    echo "Error generating wlr-data-control source"
     exit 1
 fi
 
 
-  # Generate output path
-  NP="${OUTPUT_HEADER_DIR}/${OUTPUTS[3]}"
-  NP="${NP}.h"  # Change extension to .h
-  NC="${OUTPUT_SRC_DIR}/${OUTPUTS[3]}"
-  NC="${NC}.c" 
-echo "Output: $NP"
-echo "Output: $NC"
-if wayland-scanner client-header "$p" "$NP"; then
-    echo "Successfully generated $NP"
-else
-    echo "Error processing $p"
-    exit 1
-fi
+echo "Cleaning up temporary directories..."
+rm -rf "${WAYLAND_PROTOCOLS_DIR}"
+rm -rf "${WLR_PROTOCOLS_DIR}"
 
-if wayland-scanner private-code "$p" "$NC"; then
-    echo "Successfully generated $NC"
-else
-    echo "Error processing $p"
-    exit 1
-fi
-
-
-echo "cleaning environment " 
-rm -rf ${WAYLAND_PROTOCOLES_DIR}
-rm -rf ${WLR_DATA_DIR}
-echo "Done."
-
-
-
+echo "All protocol files generated successfully:"
+ls -l "${OUTPUT_HEADER_DIR}"
+ls -l "${OUTPUT_SRC_DIR}"

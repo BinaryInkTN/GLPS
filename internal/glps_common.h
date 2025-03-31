@@ -30,7 +30,6 @@
  #ifdef GLPS_USE_WAYLAND
  #include "xdg/wlr-data-control-unstable-v1.h"
  #include "xdg/xdg-decorations.h"
- #include "xdg/xdg-dialog.h"
  #include "xdg/xdg-shell.h"
  #include <EGL/egl.h>
  #include <EGL/eglext.h>

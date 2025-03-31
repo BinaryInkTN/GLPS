@@ -17,14 +17,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_C_COMPILER "/usr/bin/x86_64-w64-mingw32-gcc-win32")
     message(STATUS "Building for Windows")
 
-    set(SOURCES
+    set(GLPS_SOURCES
         src/glps_wgl_context.c
         src/glps_win32.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
     )
 
-    set(HEADERS
+    set(GLPS_HEADERS
         internal/glps_wgl_context.h
         include/glps_window_manager.h
         internal/glps_win32.h
@@ -32,7 +32,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         internal/utils/logger/pico_logger.h
     )
 
-    add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
+    add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WIN32)
     target_compile_options(${PROJECT_NAME} PRIVATE -mwindows)
@@ -45,7 +45,7 @@ elseif(UNIX AND NOT APPLE)
         execute_process(
           COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
         )
-        set( SOURCES
+        set( GLPS_SOURCES
             src/glps_wayland.c
             src/glps_window_manager.c
             src/utils/logger/pico_logger.c
@@ -57,11 +57,11 @@ elseif(UNIX AND NOT APPLE)
             # src/xdg/xdg-shell.c
         )
         
-        file(GLOB XDG_SOURCES "src/xdg/*.c")
-        list(APPEND SOURCES ${XDG_SOURCES})
+        file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
+        list(APPEND GLPS_SOURCES ${XDG_GLPS_SOURCES})
 
 
-        set(GLOB HEADERS
+        set(GLOB GLPS_HEADERS
             internal/glps_wayland.h
             include/glps_window_manager.h
             internal/glps_egl_context.h
@@ -73,24 +73,24 @@ elseif(UNIX AND NOT APPLE)
             # internal/xdg/xdg-shell.h
         )
         
-        file(GLOB XDG_HEADERS "internal/xdg/*.h")
-        list(APPEND HEADERS ${XDG_HEADERS})
+        file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
+        list(APPEND GLPS_HEADERS ${XDG_GLPS_HEADERS})
 
-        add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
+        add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
         target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon)
     else()
         message(STATUS "Building for X11")
-        set(SOURCES
+        set(GLPS_SOURCES
         src/glps_egl_context.c
         src/glps_x11.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
         )
 
-        set(HEADERS
+        set(GLPS_HEADERS
         internal/glps_egl_context.h
         internal/glps_x11.h
         internal/glps_common.h
@@ -98,7 +98,7 @@ elseif(UNIX AND NOT APPLE)
         include/glps_window_manager.h
         )
 
-        add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
+        add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
        target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
