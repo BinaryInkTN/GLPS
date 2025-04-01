@@ -22,11 +22,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         src/glps_win32.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
+        src/glps_thread.c
     )
 
     set(GLPS_HEADERS
         internal/glps_wgl_context.h
         include/glps_window_manager.h
+        include/glps_thread.h
         internal/glps_win32.h
         internal/glps_common.h
         internal/utils/logger/pico_logger.h
@@ -50,7 +52,8 @@ elseif(UNIX AND NOT APPLE)
             src/glps_window_manager.c
             src/utils/logger/pico_logger.c
             src/glps_egl_context.c
-            
+            src/glps_thread.c
+
             # src/xdg/wlr-data-control-unstable-v1.c
             # src/xdg/xdg-decorations.c
             # src/xdg/xdg-dialog.c
@@ -67,6 +70,8 @@ elseif(UNIX AND NOT APPLE)
             internal/glps_egl_context.h
             internal/glps_common.h
             internal/utils/logger/pico_logger.h
+            include/glps_thread.h
+
             # internal/xdg/wlr-data-control-unstable-v1.h
             # internal/xdg/xdg-decorations.h
             # internal/xdg/xdg-dialog.h
@@ -88,6 +93,8 @@ elseif(UNIX AND NOT APPLE)
         src/glps_x11.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
+        src/glps_thread.c
+
         )
 
         set(GLPS_HEADERS
@@ -96,6 +103,8 @@ elseif(UNIX AND NOT APPLE)
         internal/glps_common.h
         internal/utils/logger/pico_logger.h
         include/glps_window_manager.h
+        include/glps_thread.h
+
         )
 
         add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
