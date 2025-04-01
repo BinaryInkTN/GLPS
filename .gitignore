@@ -3,3 +3,5 @@ build
 .idea
 .qtcreator
 *.xml
+internal/xdg
+src/xdg
