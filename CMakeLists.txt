@@ -111,7 +111,7 @@ elseif(UNIX AND NOT APPLE)
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
        target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL)
+        target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread)
     endif()
 else()
     message(FATAL_ERROR "Unsupported platform")
