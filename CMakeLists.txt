@@ -85,7 +85,7 @@ elseif(UNIX AND NOT APPLE)
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon)
+        target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread)
     else()
         message(STATUS "Building for X11")
         set(GLPS_SOURCES
