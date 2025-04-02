@@ -22,11 +22,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         src/glps_win32.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
+        src/glps_thread.c
     )
 
     set(GLPS_HEADERS
         internal/glps_wgl_context.h
         include/glps_window_manager.h
+        include/glps_thread.h
         internal/glps_win32.h
         internal/glps_common.h
         internal/utils/logger/pico_logger.h
@@ -50,7 +52,8 @@ elseif(UNIX AND NOT APPLE)
             src/glps_window_manager.c
             src/utils/logger/pico_logger.c
             src/glps_egl_context.c
-            
+            src/glps_thread.c
+
             # src/xdg/wlr-data-control-unstable-v1.c
             # src/xdg/xdg-decorations.c
             # src/xdg/xdg-dialog.c
@@ -67,6 +70,8 @@ elseif(UNIX AND NOT APPLE)
             internal/glps_egl_context.h
             internal/glps_common.h
             internal/utils/logger/pico_logger.h
+            include/glps_thread.h
+
             # internal/xdg/wlr-data-control-unstable-v1.h
             # internal/xdg/xdg-decorations.h
             # internal/xdg/xdg-dialog.h
@@ -80,7 +85,7 @@ elseif(UNIX AND NOT APPLE)
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon)
+        target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread)
     else()
         message(STATUS "Building for X11")
         set(GLPS_SOURCES
@@ -88,6 +93,8 @@ elseif(UNIX AND NOT APPLE)
         src/glps_x11.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
+        src/glps_thread.c
+
         )
 
         set(GLPS_HEADERS
@@ -96,13 +103,15 @@ elseif(UNIX AND NOT APPLE)
         internal/glps_common.h
         internal/utils/logger/pico_logger.h
         include/glps_window_manager.h
+        include/glps_thread.h
+
         )
 
         add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
        target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL)
+        target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread)
     endif()
 else()
     message(FATAL_ERROR "Unsupported platform")
