@@ -7,6 +7,7 @@
     <title>GLPS - Cross-Platform Abstraction Layer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <script>hljs.highlightAll();</script>
     <style>
         :root {
@@ -289,13 +290,16 @@
     </header>
 
     <main class="container">
-        <section class="hero">
+        <section class="hero"><i
+            class="fa-solid fa-layer-group" style="font-size: 5rem; margin-bottom: 2rem; color:  #3498db;"></i>
+
             <h1>GLPS Platform Abstraction Layer</h1>
             <p>A lightweight, high-performance abstraction API for Windows and Linux systems, powering GooeyGUI and
                 other cross-platform applications.</p>
             <div>
                 <a href="#docs" class="btn">Get Started</a>
-                <a href="https://github.com/yourusername/glps" class="btn btn-outline">View on GitHub</a>
+                <a href="https://github.com/yourusername/glps" class="btn btn-outline"><i
+                        class="fa-brands fa-github"></i> View on GitHub</a>
             </div>
         </section>
 
@@ -330,19 +334,24 @@
                 <p>Basic setup for a GLPS application:</p>
                 <pre><code class="language-c">#include &lt;GLPS/glps_window_manager.h&gt;
 
+void frame_update(size_t window_id, void *data)
+{
+    // Draw funcs [OpenGL, Vulkan, etc..]
+}
+
 int main(int argc, char** argv) {
     // Initialize the GLPS window manager component. 
     // The window manager is responsible for window creation/destruction,
     // user input and graphics context creation. 
     glps_WindowManager *wm = glps_wm_init();
-
+    glps_wm_set_frame_update_callback(wm, frame_update, NULL); // You can pass a data pointer for the third parameter.
     // Create a window
     // This returns a unique ID for each window.
     size_t win_id = glps_wm_window_create("My App", 800, 600);
 
     // Main application loop
     while (!glps_wm_should_close(window)) {
-        // Draw funcs (OpenGL, Vulkan, etc..)
+        // Nothing is written here.
     }
 
     // Cleanup
@@ -355,7 +364,7 @@ int main(int argc, char** argv) {
             <div class="doc-item">
                 <h3>Platform Services</h3>
                 <p>Accessing system services through GLPS:</p>
-<pre><code class="language-c">
+                <pre><code class="language-c">
 // Include threads
 #include &lt;GLPS/glps_thread.h&gt;
 
@@ -367,18 +376,20 @@ glps_thread_create(&thread, NULL, thread_func, NULL);
 </code></pre>
             </div>
 
-        <section id="gooeygui">
-            <h2>GooeyGUI</h2>
-            <p>GLPS is the foundation for <strong>GooeyGUI</strong>, a lightweight immediate-mode GUI library for
-                embedded and performance-sensitive applications.</p>         
-            <a href="https://github.com/yourusername/gooeygui" class="btn">GooeyGUI Project</a>
-        </section>
+            <section id="gooeygui">
+                <h2>GooeyGUI</h2>
+                <img src="gooey_light.png"/>
+                <p>GLPS is the foundation for <strong>GooeyGUI</strong>, a lightweight immediate-mode GUI library for
+                    embedded and performance-sensitive applications.</p>
+                <a href="https://github.com/yourusername/gooeygui" class="btn">GooeyGUI Project</a>
+            </section>
 
-        <section id="download">
-            <h2>Getting GLPS</h2>
-            <p>GLPS is available as a single-header library or can be built as a static library for better performance.
-            </p>
-            <pre><code class="language-bash"># Clone the repository
+            <section id="download">
+                <h2>Getting GLPS</h2>
+                <p>GLPS is available as a single-header library or can be built as a static library for better
+                    performance.
+                </p>
+                <pre><code class="language-bash"># Clone the repository
 git clone https://github.com/GooeyUI/GLPS.git glps
 cd glps
 
@@ -386,8 +397,8 @@ cd glps
 cmake -S . -B build
 make
 sudo make install</code></pre>
-            <a href="https://github.com/yourusername/glps/releases" class="btn">Download Latest Release</a>
-        </section>
+                <a href="https://github.com/yourusername/glps/releases" class="btn">Download Latest Release</a>
+            </section>
     </main>
 
     <footer>

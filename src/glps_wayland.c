@@ -1539,7 +1539,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {
-  if (wl_display_dispatch(wm->wayland_ctx->wl_display) == -1)
+if (wl_display_dispatch(wm->wayland_ctx->wl_display) == -1)
     return true;
   else if (wm->should_close)
     return true;
