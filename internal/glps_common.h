@@ -111,7 +111,7 @@
                           double touch_y, bool state, double major, double minor,
                           double orientation,
                           void *data); /**< Callback for touch events. */
-   void (*drag_n_drop_callback)(size_t window_id, const char *mime_type, const char *data,
+   void (*drag_n_drop_callback)(size_t window_id, char *mime_type, char *data,
    int x, int y, // Drop coordinates
    void *user_data); /**< Callback for drag & drop events. */
    void (*window_resize_callback)(
