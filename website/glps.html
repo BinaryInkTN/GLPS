@@ -1,416 +1,549 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLPS - Cross-Platform Abstraction Layer</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <script>hljs.highlightAll();</script>
+    <title>Gooey - Lightweight GUI Library</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --dark: #1a252f;
-            --light: #ecf0f1;
-            --text: #333;
-            --text-light: #7f8c8d;
-            --accent: #3498db;
-            --border: #ddd;
-        }
-
-        * {
+        /* 2011 Apple-inspired styles */
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            font-family: "Myriad Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: #f8f8f8;
+            color: #333;
+            line-height: 1.5;
         }
 
-        body {
-            background-color: white;
-            color: var(--text);
-            line-height: 1.6;
-            font-size: 16px;
-        }
-
-        header {
-            background-color: white;
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
-            position: sticky;
+        /* Navigation */
+        #globalheader {
+            background: #222;
+            height: 36px;
+            position: fixed;
             top: 0;
-            z-index: 100;
+            width: 100%;
+            z-index: 1000;
+            border-bottom: 1px solid #000;
         }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
+        #globalheader .container {
+            width: 980px;
             margin: 0 auto;
+            position: relative;
         }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--primary);
+        #globalheader .applelogo {
+            float: left;
+            margin: 8px 0 0 0;
         }
 
-        nav ul {
-            display: flex;
+        #globalnav {
+            float: left;
+            margin-left: 30px;
+        }
+
+        #globalnav ul {
             list-style: none;
+            margin: 0;
+            padding: 0;
         }
 
-        nav ul li {
-            margin-left: 1.5rem;
+        #globalnav li {
+            float: left;
+            position: relative;
         }
 
-        nav ul li a {
-            color: var(--text);
+        #globalnav a {
+            color: #ddd;
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 12px 15px;
             text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
+            text-shadow: 0 -1px 0 #000;
         }
 
-        nav ul li a:hover {
-            color: var(--accent);
+        #globalnav a:hover {
+            color: #fff;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
+        /* Hero section */
         .hero {
+            background: linear-gradient(to bottom, #6eb4d9 0%, #2a7ab0 100%);
+            padding: 80px 0 40px;
             text-align: center;
-            padding: 4rem 0 3rem;
+            border-bottom: 1px solid #1a5d87;
+            box-shadow: inset 0 -5px 15px rgba(0,0,0,0.1);
+            margin-top: 36px;
         }
 
         .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
-            font-weight: 600;
+            font-size: 56px;
+            font-weight: 200;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin: 0 0 10px;
         }
 
         .hero p {
-            font-size: 1.1rem;
+            font-size: 24px;
+            font-weight: 200;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin: 0 auto 30px;
             max-width: 700px;
-            margin: 0 auto 2rem;
-            color: var(--text-light);
         }
 
-        .btn {
+        /* 2011-style buttons */
+        .button {
             display: inline-block;
-            background-color: var(--accent);
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: bold;
             color: white;
-            padding: 0.7rem 1.3rem;
-            border-radius: 4px;
             text-decoration: none;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            font-size: 0.9rem;
+            text-shadow: 0 -1px 1px rgba(0,0,0,0.3);
+            border-radius: 5px;
+            background: linear-gradient(to bottom, #6cb3e0 0%, #3a7bb7 100%);
+            border: 1px solid #2a6aa5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+            margin: 0 5px;
         }
 
-        .btn:hover {
-            background-color: var(--primary);
+        .button:hover {
+            background: linear-gradient(to bottom, #7cbde8 0%, #4a8bc7 100%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.4);
         }
 
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            margin-left: 0.5rem;
+        .button.secondary {
+            background: linear-gradient(to bottom, #f8f8f8 0%, #e5e5e5 100%);
+            color: #555;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.8);
+            border: 1px solid #ccc;
         }
 
-        .btn-outline:hover {
-            background-color: var(--accent);
-            color: white;
+        .button.secondary:hover {
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
         }
 
-        section {
-            margin-bottom: 3rem;
+        /* Content sections */
+        .section {
+            width: 980px;
+            margin: 0 auto;
+            padding: 50px 0;
+            border-bottom: 1px solid #e5e5e5;
         }
 
-        h2 {
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
+        .section h2 {
+            font-size: 32px;
+            font-weight: 200;
+            color: #333;
+            margin: 0 0 30px;
+            text-align: center;
         }
 
-        h3 {
-            font-size: 1.3rem;
-            color: var(--secondary);
-            margin: 1.5rem 0 1rem;
-            font-weight: 600;
-        }
-
-        p {
-            margin-bottom: 1rem;
-        }
-
-        .features {
+        /* Widget grid */
+        .widget-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
         }
 
-        .feature-card {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
+        .widget-card {
+            background: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
         }
 
-        .feature-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 0.8rem;
-            color: var(--primary);
+        .widget-card h3 {
+            font-size: 18px;
+            color: #2a7ab0;
+            margin: 0 0 10px;
         }
 
-        .feature-card p {
-            font-size: 0.95rem;
-            color: var(--text-light);
+        .widget-card p {
+            font-size: 13px;
+            color: #666;
+            margin: 0 0 15px;
         }
 
-        .docs-section {
-            margin: 3rem 0;
-        }
-
-        .doc-item {
-            margin-bottom: 2.5rem;
-        }
-
-        .doc-item p {
-            margin-bottom: 1rem;
-        }
-
-        code {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 0.9em;
-        }
-
-        pre {
-            border-radius: 6px;
+        .widget-code {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            font-family: Monaco, Menlo, Consolas, monospace;
+            font-size: 12px;
             overflow-x: auto;
-            margin: 1.5rem 0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: none;
         }
 
-        .note {
-            background-color: #f8f9fa;
-            border-left: 4px solid var(--accent);
-            padding: 1rem;
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
+        .widget-card.active .widget-code {
+            display: block;
         }
 
-        footer {
-            background-color: var(--primary);
-            color: white;
-            padding: 2rem;
-            margin-top: 3rem;
+        /* Search box */
+        .search-container {
+            margin: 0 auto 30px;
+            max-width: 500px;
+            position: relative;
         }
 
-        .footer-content {
-            max-width: 1200px;
+        .search-input {
+            width: 100%;
+            padding: 10px 15px 10px 35px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            font-size: 14px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            color: #999;
+        }
+
+        /* Footer */
+        .footer {
+            background: #f2f2f2;
+            padding: 30px 0;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .footer .container {
+            width: 980px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
 
         .footer-links a {
-            color: white;
-            margin-left: 1.5rem;
+            color: #666;
             text-decoration: none;
+            margin-left: 15px;
         }
 
         .footer-links a:hover {
             text-decoration: underline;
         }
 
-        @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
+        /* Responsive adjustments */
+        @media (max-width: 1000px) {
+            .section, #globalheader .container, .footer .container {
+                width: 90%;
             }
 
-            nav ul {
-                margin-top: 1rem;
+            .widget-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
+        }
 
-            nav ul li {
-                margin: 0 0.8rem;
+        @media (max-width: 600px) {
+            .widget-grid {
+                grid-template-columns: 1fr;
             }
 
             .hero h1 {
-                font-size: 2rem;
+                font-size: 36px;
             }
 
-            .btn-outline {
-                margin-left: 0;
-                margin-top: 0.5rem;
-                display: block;
-            }
-
-            .footer-content {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .footer-links {
-                margin-top: 1rem;
-            }
-
-            .footer-links a {
-                margin: 0 0.75rem;
+            .hero p {
+                font-size: 18px;
             }
         }
     </style>
 </head>
-
 <body>
-    <header>
-        <nav>
-            <div class="logo">GLPS</div>
-            <ul>
-                <li><a href="#about">About</a></li>
-                <li><a href="#docs">Documentation</a></li>
-                <li><a href="#gooeygui">GooeyGUI</a></li>
-                <li><a href="https://github.com/yourusername/glps" target="_blank">GitHub</a></li>
-            </ul>
-        </nav>
-    </header>
+    <!-- Global Navigation (2011 Apple style) -->
+    <div id="globalheader">
+        <div class="container">
+            <a href="#" class="applelogo">
+                <span style="color:#ddd;font-weight:bold;font-size:18px;">Gooey</span>
+            </a>
+            <nav id="globalnav">
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#widgets">Widgets</a></li>
+                    <li><a href="#docs">Docs</a></li>
+                    <li><a href="#download">Download</a></li>
+                    <li><a href="#support">Support</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
 
-    <main class="container">
-        <section class="hero"><i
-            class="fa-solid fa-layer-group" style="font-size: 5rem; margin-bottom: 2rem; color:  #3498db;"></i>
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>Gooey GUI Library</h1>
+        <p>Lightweight, beautiful interfaces made simple</p>
+        <div>
+            <a href="#download" class="button">Download Now</a>
+            <a href="#docs" class="button secondary">Documentation</a>
+        </div>
+    </div>
 
-            <h1>GLPS Platform Abstraction Layer</h1>
-            <p>A lightweight, high-performance abstraction API for Windows and Linux systems, powering GooeyGUI and
-                other cross-platform applications.</p>
-            <div>
-                <a href="#docs" class="btn">Get Started</a>
-                <a href="https://github.com/yourusername/glps" class="btn btn-outline"><i
-                        class="fa-brands fa-github"></i> View on GitHub</a>
+    <!-- Features Section -->
+    <div class="section" id="features">
+        <h2>Why Choose Gooey?</h2>
+        <div class="widget-grid">
+            <div class="widget-card">
+                <h3>Lightweight</h3>
+                <p>At just 15KB gzipped, Gooey delivers exceptional performance without compromising on features.</p>
             </div>
-        </section>
-
-        <section id="about">
-            <h2>About GLPS</h2>
-            <p>GLPS (Generic Low-level Platform Services) provides a clean, consistent interface for platform-specific
-                functionality across Windows and Linux systems. Designed for performance and minimal overhead, it serves
-                as the foundation for <a href="#gooeygui">GooeyGUI</a>.</p>
-
-            <div class="features">
-                <div class="feature-card">
-                    <h3>System Abstraction</h3>
-                    <p>Uniform interface for filesystem, threading, timers, and other OS services with native
-                        performance.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>No Dependencies</h3>
-                    <p>Written in pure C. No heavyweight frameworks required.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Modular Design</h3>
-                    <p>Use only the components you need - windowing, input, graphics context, etc.</p>
-                </div>
+            <div class="widget-card">
+                <h3>Beautiful</h3>
+                <p>Elegant, modern UI components that look great out of the box with zero configuration.</p>
             </div>
-        </section>
-
-        <section id="docs" class="docs-section">
-            <h2>Documentation</h2>
-
-            <div class="doc-item">
-                <h3>Initialization</h3>
-                <p>Basic setup for a GLPS application:</p>
-                <pre><code class="language-c">#include &lt;GLPS/glps_window_manager.h&gt;
-
-void frame_update(size_t window_id, void *data)
-{
-    // Draw funcs [OpenGL, Vulkan, etc..]
-}
-
-int main(int argc, char** argv) {
-    // Initialize the GLPS window manager component. 
-    // The window manager is responsible for window creation/destruction,
-    // user input and graphics context creation. 
-    glps_WindowManager *wm = glps_wm_init();
-    glps_wm_set_frame_update_callback(wm, frame_update, NULL); // You can pass a data pointer for the third parameter.
-    // Create a window
-    // This returns a unique ID for each window.
-    size_t win_id = glps_wm_window_create("My App", 800, 600);
-
-    // Main application loop
-    while (!glps_wm_should_close(window)) {
-        // Nothing is written here.
-    }
-
-    // Cleanup
-    glps_wm_window_destroy(wm, win_id);
-    glps_wm_destroy(wm);
-    return 0;
-}</code></pre>
+            <div class="widget-card">
+                <h3>Modular</h3>
+                <p>Import only what you need. Tree-shaking friendly architecture keeps your bundle size small.</p>
             </div>
-
-            <div class="doc-item">
-                <h3>Platform Services</h3>
-                <p>Accessing system services through GLPS:</p>
-                <pre><code class="language-c">
-// Include threads
-#include &lt;GLPS/glps_thread.h&gt;
-
-// Thread handle
-static gthread_t thread;
-
-// Thread creation
-glps_thread_create(&thread, NULL, thread_func, NULL);
-</code></pre>
+            <div class="widget-card">
+                <h3>Responsive</h3>
+                <p>Components adapt seamlessly to any screen size, from mobile to desktop.</p>
             </div>
-
-            <section id="gooeygui">
-                <h2>GooeyGUI</h2>
-                <img src="gooey_light.png"/>
-                <p>GLPS is the foundation for <strong>GooeyGUI</strong>, a lightweight immediate-mode GUI library for
-                    embedded and performance-sensitive applications.</p>
-                <a href="https://github.com/yourusername/gooeygui" class="btn">GooeyGUI Project</a>
-            </section>
-
-            <section id="download">
-                <h2>Getting GLPS</h2>
-                <p>GLPS is available as a single-header library or can be built as a static library for better
-                    performance.
-                </p>
-                <pre><code class="language-bash"># Clone the repository
-git clone https://github.com/GooeyUI/GLPS.git glps
-cd glps
-
-# Build and install (optional)
-cmake -S . -B build
-make
-sudo make install</code></pre>
-                <a href="https://github.com/yourusername/glps/releases" class="btn">Download Latest Release</a>
-            </section>
-    </main>
-
-    <footer>
-        <div class="footer-content">
-            <div class="copyright">© 2023 GLPS Project</div>
-            <div class="footer-links">
-                <a href="https://github.com/yourusername/glps">GitHub</a>
-                <a href="https://github.com/yourusername/glps/issues">Issues</a>
-                <a href="https://github.com/yourusername/glps/blob/main/LICENSE">License</a>
+            <div class="widget-card">
+                <h3>Framework Agnostic</h3>
+                <p>Works with React, Vue, Angular, or vanilla JavaScript. Your choice.</p>
+            </div>
+            <div class="widget-card">
+                <h3>MIT Licensed</h3>
+                <p>Free to use in personal and commercial projects. No hidden fees or restrictions.</p>
             </div>
         </div>
-    </footer>
-</body>
+    </div>
 
+    <!-- Widgets Section -->
+    <div class="section" id="widgets">
+        <h2>Widget Gallery</h2>
+        <div class="search-container">
+            <i class="search-icon">🔍</i>
+            <input type="text" class="search-input" placeholder="Search widgets..." id="widgetSearch">
+        </div>
+        <div class="widget-grid" id="widgetGrid">
+            <!-- Widget cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Documentation Section -->
+    <div class="section" id="docs">
+        <h2>Getting Started</h2>
+        <div class="widget-grid">
+            <div class="widget-card">
+                <h3>Installation</h3>
+                <p>Add Gooey to your project with npm or yarn:</p>
+                <pre class="widget-code">npm install gooey-ui</pre>
+                <button class="button" style="margin-top:10px;">Copy</button>
+            </div>
+            <div class="widget-card">
+                <h3>Basic Usage</h3>
+                <p>Import and use components as needed:</p>
+                <pre class="widget-code">import { Button } from 'gooey-ui';
+
+const button = new Button({
+    text: 'Click me',
+    onClick: () => alert('Hello!')
+});</pre>
+                <button class="button" style="margin-top:10px;">Copy</button>
+            </div>
+            <div class="widget-card">
+                <h3>Customization</h3>
+                <p>Theming is simple with CSS variables:</p>
+                <pre class="widget-code">:root {
+    --gooey-primary: #0071e3;
+    --gooey-border-radius: 8px;
+}</pre>
+                <button class="button" style="margin-top:10px;">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="container">
+            <div>Copyright © 2023 Gooey UI Library. All rights reserved.</div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Use</a>
+                <a href="#">License</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Widget data
+        const widgets = [
+            {
+                name: "Button",
+                desc: "A customizable button with various styles and sizes.",
+                code: `import { Button } from 'gooey-ui';
+
+const button = new Button({
+    text: 'Click me',
+    variant: 'primary', // 'primary', 'secondary', 'text'
+    size: 'medium', // 'small', 'medium', 'large'
+    onClick: () => console.log('Button clicked!')
+});
+
+document.body.appendChild(button.element);`
+            },
+            {
+                name: "Input",
+                desc: "Text input field with validation and error states.",
+                code: `import { Input } from 'gooey-ui';
+
+const input = new Input({
+    placeholder: 'Enter your email',
+    type: 'email',
+    required: true,
+    onChange: (value) => console.log(value)
+});
+
+document.body.appendChild(input.element);`
+            },
+            {
+                name: "Checkbox",
+                desc: "Simple checkbox with label and state management.",
+                code: `import { Checkbox } from 'gooey-ui';
+
+const checkbox = new Checkbox({
+    label: 'I agree to the terms',
+    checked: false,
+    onChange: (isChecked) => {
+        console.log('Checkbox state:', isChecked);
+    }
+});
+
+document.body.appendChild(checkbox.element);`
+            },
+            {
+                name: "Dropdown",
+                desc: "Select dropdown with search and multi-select options.",
+                code: `import { Dropdown } from 'gooey-ui';
+
+const dropdown = new Dropdown({
+    options: [
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2' }
+    ],
+    placeholder: 'Select an option',
+    onChange: (selected) => {
+        console.log('Selected:', selected);
+    }
+});
+
+document.body.appendChild(dropdown.element);`
+            },
+            {
+                name: "Modal",
+                desc: "Dialog box that appears above the page content.",
+                code: `import { Modal } from 'gooey-ui';
+
+const modal = new Modal({
+    title: 'Confirm Action',
+    content: 'Are you sure you want to proceed?',
+    buttons: [
+        { text: 'Cancel', onClick: () => modal.close() },
+        { text: 'Confirm', onClick: () => {
+            console.log('Action confirmed');
+            modal.close();
+        }}
+    ]
+});
+
+modal.show();`
+            },
+            {
+                name: "Toast",
+                desc: "Temporary notification that disappears automatically.",
+                code: `import { Toast } from 'gooey-ui';
+
+const toast = new Toast({
+    message: 'Action completed successfully!',
+    type: 'success', // 'success', 'error', 'warning', 'info'
+    duration: 3000 // milliseconds
+});
+
+toast.show();`
+            }
+        ];
+
+        // Initialize widget grid
+        const widgetGrid = document.getElementById('widgetGrid');
+        const widgetSearch = document.getElementById('widgetSearch');
+
+        function renderWidgets(filter = '') {
+            widgetGrid.innerHTML = '';
+            const filteredWidgets = widgets.filter(widget =>
+                widget.name.toLowerCase().includes(filter.toLowerCase()) ||
+                widget.desc.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (filteredWidgets.length === 0) {
+                widgetGrid.innerHTML = '<p style="grid-column:1/-1;text-align:center;">No widgets found matching your search.</p>';
+                return;
+            }
+
+            filteredWidgets.forEach(widget => {
+                const widgetCard = document.createElement('div');
+                widgetCard.className = 'widget-card';
+                widgetCard.innerHTML = `
+                    <h3>${widget.name}</h3>
+                    <p>${widget.desc}</p>
+                    <pre class="widget-code">${widget.code}</pre>
+                    <button class="button" style="margin-top:10px;">Show Code</button>
+                `;
+                widgetGrid.appendChild(widgetCard);
+
+                // Add click event to toggle code display
+                const button = widgetCard.querySelector('button');
+                button.addEventListener('click', function() {
+                    widgetCard.classList.toggle('active');
+                    button.textContent = widgetCard.classList.contains('active') ? 'Hide Code' : 'Show Code';
+                });
+
+                // Add copy functionality
+                const code = widgetCard.querySelector('.widget-code');
+                code.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(code.textContent).then(() => {
+                        const originalText = button.textContent;
+                        button.textContent = 'Copied!';
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                        }, 2000);
+                    });
+                });
+            });
+        }
+
+        // Initial render
+        renderWidgets();
+
+        // Search functionality
+        widgetSearch.addEventListener('input', function() {
+            renderWidgets(this.value);
+        });
+
+        // Add copy functionality to documentation code blocks
+        document.querySelectorAll('#docs .button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const code = this.previousElementSibling.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    this.textContent = 'Copied!';
+                    setTimeout(() => {
+                        this.textContent = 'Copy';
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
 </html>

@@ -21,7 +21,7 @@ ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window to update.
  */
- void wl_update(glps_WindowManager *wm, size_t window_id);
+void wl_update(glps_WindowManager *wm, size_t window_id);
 
 // Pointer event handlers
 void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
@@ -133,10 +133,12 @@ void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel);
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
                            uint32_t serial);
 
-bool glps_wl_init(glps_WindowManager* wm);
+bool glps_wl_init(glps_WindowManager *wm);
 
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
-                             int width, int height);
+                              int width, int height);
+
+void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
 
 bool glps_wl_should_close(glps_WindowManager *wm);
 

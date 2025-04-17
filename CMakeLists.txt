@@ -53,11 +53,6 @@ elseif(UNIX AND NOT APPLE)
             src/utils/logger/pico_logger.c
             src/glps_egl_context.c
             src/glps_thread.c
-
-            # src/xdg/wlr-data-control-unstable-v1.c
-            # src/xdg/xdg-decorations.c
-            # src/xdg/xdg-dialog.c
-            # src/xdg/xdg-shell.c
         )
         
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
