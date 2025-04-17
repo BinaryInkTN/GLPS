@@ -585,6 +585,6 @@ size_t glps_wm_get_window_count(glps_WindowManager *wm)
 void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
 #ifdef GLPS_USE_WAYLAND
-  void glps_wl_window_is_resizable(wm, state, window_id);
+   glps_wl_window_is_resizable(wm, state, window_id);
 #endif
 }

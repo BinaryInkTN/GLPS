@@ -1,5 +1,5 @@
 
-//#define GLPS_USE_WAYLAND
+#define GLPS_USE_WAYLAND
 
 #include <glps_egl_context.h>
 #include <glps_wayland.h>
@@ -1176,7 +1176,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   else if (strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0)
   {
     // TODO
-    s->tag_manager = xdg_toplevel_tag_manager_v1();
+    //  s->tag_manager = xdg_toplevel_tag_manager_v1();
   }
   else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
   {
@@ -1551,17 +1551,26 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
   glps_WaylandContext *ctx = (glps_WaylandContext *)__get_wl_context(wm);
-  if (!ctx || !ctx->tag_manager || window_id >= wm->window_count || !wm->windows[window_id])
+  if (!ctx || window_id >= wm->window_count)
   {
-    LOG_ERROR("Couldn't change resize tag on window with id %ld", window_id);
+    LOG_ERROR("Couldn't change resize hint on window with id %ld", window_id);
     return;
   }
 
-  int window_width = wm->windows[window_id]->properties.width;
-  int window_height = wm->windows[window_id]->properties.height;
-  xdg_toplevel_set_min_size(wm->windows[window_id]->xdg_toplevel, state ? 0 : window_width, state ? 0 : window_height);
-  xdg_toplevel_set_max_size(wm->windows[window_id]->xdg_toplevel, state ? INT32_MAX : window_width, state ? INT32_MAX : window_height);
+  glps_WaylandWindow *window = (glps_WaylandWindow *)wm->windows[window_id];
+
+  if (!window)
+  {
+    LOG_ERROR("Wayland Window is NULL.");
+    return;
+  }
+
+  int window_width = window->properties.width;
+  int window_height = window->properties.height;
+  xdg_toplevel_set_min_size(window->xdg_toplevel, state ? 0 : window_width, state ? 0 : window_height);
+  xdg_toplevel_set_max_size(window->xdg_toplevel, state ? INT32_MAX : window_width, state ? INT32_MAX : window_height);
 }
+
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {
