@@ -1,6 +1,3 @@
-
-#define GLPS_USE_WAYLAND
-
 #include <glps_egl_context.h>
 #include <glps_wayland.h>
 #include "utils/logger/pico_logger.h"
