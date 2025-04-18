@@ -11,3 +11,4 @@ GLIMPSE or GLPS is a low-level platform abstraction layer built to be simple and
 
 - Vulkan support
 - HiDPI support
+
