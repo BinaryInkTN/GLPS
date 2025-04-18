@@ -2,7 +2,7 @@
 
 WAYLAND_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
 WLR_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wlroots/wlr-protocols.git"
-OUTPUTS=(xdg-shell xdg-dialog xdg-decorations wlr-data-control-unstable-v1)
+OUTPUTS=(xdg-shell xdg-dialog xdg-decorations xdg-toplevel-tag wlr-data-control-unstable-v1)
 
 SCRIPT_PATH=$0 
 SCRIPT_PATH="$(realpath "$(dirname "${SCRIPT_PATH}")")"
@@ -19,6 +19,7 @@ WAYLAND_PROTOCOLS=(
     "stable/xdg-shell/xdg-shell.xml"
     "unstable/xdg-dialog/xdg-dialog-unstable-v1.xml"
     "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
+    "staging/xdg-toplevel-tag/xdg-toplevel-tag-v1.xml"
 )
 
 
@@ -93,8 +94,8 @@ fi
 echo "Found wlr-data-control protocol at: $WLR_DATA_CTL_XML"
 
 
-header_out="${OUTPUT_HEADER_DIR}/${OUTPUTS[3]}.h"
-src_out="${OUTPUT_SRC_DIR}/${OUTPUTS[3]}.c"
+header_out="${OUTPUT_HEADER_DIR}/${OUTPUTS[4]}.h"
+src_out="${OUTPUT_SRC_DIR}/${OUTPUTS[4]}.c"
 
 echo "Generating wlr-data-control header: $header_out"
 if ! wayland-scanner client-header "$WLR_DATA_CTL_XML" "$header_out"; then

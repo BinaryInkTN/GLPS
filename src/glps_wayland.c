@@ -1,4 +1,3 @@
-
 #include <glps_egl_context.h>
 #include <glps_wayland.h>
 #include "utils/logger/pico_logger.h"
@@ -908,23 +907,27 @@ struct wl_data_offer_listener data_offer_listener = {
     .action = data_offer_handle_action,
 };
 
-void data_device_handle_drop(void *data, struct wl_data_device *data_device) {
+void data_device_handle_drop(void *data, struct wl_data_device *data_device)
+{
   glps_WindowManager *wm = (glps_WindowManager *)data;
   glps_WaylandContext *context = __get_wl_context(wm);
 
-  if (wm == NULL) {
-      LOG_ERROR("Window Manager is NULL.");
-      return;
+  if (wm == NULL)
+  {
+    LOG_ERROR("Window Manager is NULL.");
+    return;
   }
 
-  if ((context = __get_wl_context(wm)) == NULL) {
-      LOG_ERROR("Failed to get Wayland context from Window Manager.");
-      return;
+  if ((context = __get_wl_context(wm)) == NULL)
+  {
+    LOG_ERROR("Failed to get Wayland context from Window Manager.");
+    return;
   }
 
-  if (context->current_drag_offer == NULL) {
-      LOG_ERROR("Drag offer is null.");
-      return;
+  if (context->current_drag_offer == NULL)
+  {
+    LOG_ERROR("Drag offer is null.");
+    return;
   }
 
   assert(context->current_drag_offer != NULL);
@@ -939,13 +942,13 @@ void data_device_handle_drop(void *data, struct wl_data_device *data_device) {
   char buffer[4096];
   ssize_t bytes_read = read(fds[0], buffer, sizeof(buffer));
 
-  if (wm->callbacks.drag_n_drop_callback) {
-      // Pass the drop coordinates to the callback
-      wm->callbacks.drag_n_drop_callback(
-          context->mouse_window_id, "text/plain", buffer,
-          context->drop_coordinates.x, context->drop_coordinates.y,
-          wm->callbacks.drag_n_drop_data
-      );
+  if (wm->callbacks.drag_n_drop_callback)
+  {
+    // Pass the drop coordinates to the callback
+    wm->callbacks.drag_n_drop_callback(
+        context->mouse_window_id, "text/plain", buffer,
+        context->drop_coordinates.x, context->drop_coordinates.y,
+        wm->callbacks.drag_n_drop_data);
   }
 
   close(fds[0]);
@@ -1065,7 +1068,7 @@ void data_device_handle_enter(void *data, struct wl_data_device *data_device,
 }
 
 void data_device_handle_motion(void *data, struct wl_data_device *data_device,
-                                      uint32_t time, wl_fixed_t x, wl_fixed_t y)
+                               uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;
   glps_WaylandContext *context = __get_wl_context(wm);
@@ -1166,6 +1169,11 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
     {
       LOG_ERROR("Failed to bind wl_seat.");
     }
+  }
+  else if (strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0)
+  {
+    // TODO
+    //  s->tag_manager = xdg_toplevel_tag_manager_v1();
   }
   else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
   {
@@ -1536,6 +1544,30 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   return wm->window_count++;
 }
+
+void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
+{
+  glps_WaylandContext *ctx = (glps_WaylandContext *)__get_wl_context(wm);
+  if (!ctx || window_id >= wm->window_count)
+  {
+    LOG_ERROR("Couldn't change resize hint on window with id %ld", window_id);
+    return;
+  }
+
+  glps_WaylandWindow *window = (glps_WaylandWindow *)wm->windows[window_id];
+
+  if (!window)
+  {
+    LOG_ERROR("Wayland Window is NULL.");
+    return;
+  }
+
+  int window_width = window->properties.width;
+  int window_height = window->properties.height;
+  xdg_toplevel_set_min_size(window->xdg_toplevel, state ? 0 : window_width, state ? 0 : window_height);
+  xdg_toplevel_set_max_size(window->xdg_toplevel, state ? INT32_MAX : window_width, state ? INT32_MAX : window_height);
+}
+
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {

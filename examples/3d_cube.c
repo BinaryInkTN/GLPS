@@ -73,7 +73,7 @@ GLuint compile_shader(GLenum type, const char *source) {
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(shader, 512, NULL, info_log);
-    LOG_ERROR("Shader compilation failed: %s", info_log);
+    printf("Shader compilation failed: %s", info_log);
   }
   return shader;
 }
@@ -93,7 +93,7 @@ GLuint create_shader_program(const char *vertex_source,
   glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(shader_program, 512, NULL, info_log);
-    LOG_ERROR("Shader program linking failed: %s", info_log);
+    printf("Shader program linking failed: %s", info_log);
   }
 
   glDeleteShader(vertex_shader);
@@ -143,13 +143,13 @@ void render_cube(glps_WindowManager *wm, size_t window_id,
 }
 
 void mouse_leave_callback(size_t window_id, void *data) {
-  LOG_INFO("Mouse left.");
+  printf("Mouse left.");
 }
 
 void mouse_scroll_callback(size_t window_id, GLPS_SCROLL_AXES axe,
                            GLPS_SCROLL_SOURCE source, double value,
                            int discrete, bool is_stopped, void *data) {
-  LOG_INFO("%s scroll via %s with value %.2lf discrete %d stopped %d",
+  printf("%s scroll via %s with value %.2lf discrete %d stopped %d",
            axe == GLPS_SCROLL_H_AXIS ? "horizontal" : "vertical",
            source == GLPS_SCROLL_SOURCE_FINGER ? "finger" : "idk", value,
            discrete, is_stopped);
@@ -157,45 +157,45 @@ void mouse_scroll_callback(size_t window_id, GLPS_SCROLL_AXES axe,
 
 void drag_n_drop_callback(size_t origin_window_id, char *mime, char *buff,
                           void *data) {
-  LOG_INFO("Origin window id: %ld, Mime: %s, Buffer: %s", origin_window_id,
+  printf("Origin window id: %ld, Mime: %s, Buffer: %s", origin_window_id,
            mime, buff);
 }
 
 void mouse_enter_callback(size_t window_id, double mouse_x, double mouse_y,
                           void *data) {
-  LOG_INFO("Mouse entered at x: %lf y:%lf", mouse_x, mouse_y);
+  printf("Mouse entered at x: %lf y:%lf", mouse_x, mouse_y);
 }
 
 void mouse_click_callback(size_t window_id, bool state, void *data) {
   if (data == NULL) {
-    LOG_ERROR("null");
+    printf("null");
   } else {
     if (state == true)
       glps_wm_attach_to_clipboard((glps_WindowManager *)data, "text/plain",
                                   "dhiee");
   }
 
-  LOG_INFO("Window %ld Mouse %s", window_id, state ? "pressed" : "released");
+  printf("Window %ld Mouse %s", window_id, state ? "pressed" : "released");
 }
 
 void mouse_move_callback(size_t window_id, double mouse_x, double mouse_y,
                          void *data) {
-  LOG_INFO("x: %lf y:%lf", mouse_x, mouse_y);
+  printf("x: %lf y:%lf", mouse_x, mouse_y);
 }
 
-void keyboard_enter_callback() { LOG_INFO("keyboard entered."); }
+void keyboard_enter_callback() { printf("keyboard entered."); }
 
 void keyboard_callback(size_t window_id, bool state, const char *value,
                        void *data) {
   glps_WindowManager *wm = (glps_WindowManager *)data;
-  LOG_INFO("window %ld state: %d value:%s", window_id, state, value);
+  printf("window %ld state: %d value:%s", window_id, state, value);
   char buff[1024];
   glps_wm_get_from_clipboard(wm, buff, 1024);
-  LOG_INFO("Clipboard content is: %s", buff);
+  printf("Clipboard content is: %s", buff);
 }
 
 void keyboard_leave_callback(size_t window_id, void *data) {
-  LOG_INFO("keyboard left.");
+  printf("keyboard left.");
 }
 
 void window_resize_callback(size_t window_id, int width, int height,
@@ -206,7 +206,7 @@ void window_resize_callback(size_t window_id, int width, int height,
 void window_frame_update_callback(size_t window_id, void *data) {
   CubeData *cube_data = (CubeData *)data;
   render_cube(cube_data->wm, window_id, cube_data);
-  LOG_INFO("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
+  printf("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
 
   //  glps_wl_update(cube_data->wm, window_id);
 }
@@ -222,12 +222,13 @@ int main(int argc, char *argv[]) {
   // set_minimum_log_level(DEBUG_LEVEL_WARNING);
 
   size_t window_id = glps_wm_window_create(wm, "3D Cube Example", 800, 600);
-  if (!gladLoadGLLoader((GLADloadproc)glps_get_proc_addr)) {
+  if (!gladLoadGL()) {
     fprintf(stderr, "Failed to initialize GLAD\n");
     exit(EXIT_FAILURE);
   }
 
   glps_wm_set_window_ctx_curr(wm, window_id);
+  glps_wm_window_is_resizable(wm, false, 0);
   glEnable(GL_DEPTH_TEST);
 
   CubeData cube_data;

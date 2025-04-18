@@ -31,6 +31,7 @@
  #include "xdg/wlr-data-control-unstable-v1.h"
  #include "xdg/xdg-decorations.h"
  #include "xdg/xdg-shell.h"
+ #include "xdg/xdg-toplevel-tag.h"
  #include <EGL/egl.h>
  #include <EGL/eglext.h>
  #include <sys/mman.h>
@@ -262,6 +263,7 @@
    struct xdg_wm_base *xdg_wm_base;     /**< XDG WM base. */
    struct zxdg_decoration_manager_v1
        *decoration_manager;                         /**< Decoration manager. */
+   struct xdg_toplevel_tag_manager_v1 *tag_manager; /**< Tag manager. */
    struct wl_data_device_manager *data_dvc_manager; /**< Data control Manager. */
    struct wl_data_device *data_dvc;                 /**< Data device to interact with Clipboard
                                                        and Drag&Drop operations. */

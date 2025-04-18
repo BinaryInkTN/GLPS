@@ -26,6 +26,8 @@ glps_WindowManager *glps_wm_init(void);
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
                              int width, int height);
 
+void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
+
 /**
  * @brief Gets dimensions of a window.
  * @param wm Pointer to the GLPS Window Manager.
@@ -108,10 +110,9 @@ void glps_wm_destroy(glps_WindowManager *wm);
 /**
  * @brief Returns the total window count.
  * @param wm Pointer to the GLPS Window Manager.
- * @return total window count. 
+ * @return total window count.
  */
 size_t glps_wm_get_window_count(glps_WindowManager *wm);
-
 
 bool glps_wm_should_close(glps_WindowManager *wm);
 
@@ -258,6 +259,6 @@ void glps_wm_start_drag_n_drop(
 /* ======= Utilities ======= */
 double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id);
 
-void *glps_get_proc_addr(const char *name) ;
+void *glps_get_proc_addr(const char *name);
 
 #endif // GLPS_WINDOW_MANAGER_H
