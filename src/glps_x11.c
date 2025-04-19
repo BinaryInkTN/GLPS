@@ -347,12 +347,22 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         LOG_ERROR("Invalid parameters for window update");
         return;
     }
-    XClearArea(wm->x11_ctx->display,
-               wm->windows[window_id]->window,
-               0, 0, 0, 0,
-               True);
 
-//    XFlush(wm->x11_ctx->display);
+    // Send an Expose event to the server
+    XExposeEvent expose_event = {
+        .type = Expose,
+        .display = wm->x11_ctx->display,
+        .window = wm->windows[window_id]->window,
+        .x = 0,
+        .y = 0,
+        .width = 0,
+        .height = 0,
+        .count = 0
+    };
+
+    XSendEvent(wm->x11_ctx->display, wm->windows[window_id]->window, False, ExposureMask, (XEvent *)&expose_event);
+    XFlush(wm->x11_ctx->display);
+
 }
 
 void glps_x11_destroy(glps_WindowManager *wm)
