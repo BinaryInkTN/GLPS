@@ -374,8 +374,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         LOG_ERROR("Invalid parameters for window update");
         return;
     }
-
-    XExposeEvent expose_event = {
+/* XExposeEvent expose_event = {
         .type = Expose,
         .display = wm->x11_ctx->display,
         .window = wm->windows[window_id]->window,
@@ -385,7 +384,14 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         .height = 0,
         .count = 0};
 
-    XSendEvent(wm->x11_ctx->display, wm->windows[window_id]->window, False, ExposureMask, (XEvent *)&expose_event);
+    XSendEvent(wm->x11_ctx->display, wm->windows[window_id]->window, False, ExposureMask, (XEvent *)&expose_event);*/
+    if (wm->callbacks.window_frame_update_callback)
+    {
+        wm->callbacks.window_frame_update_callback(
+            (size_t)window_id,
+            wm->callbacks.window_frame_update_data);
+    }
+    
     XFlush(wm->x11_ctx->display);
 }
 
