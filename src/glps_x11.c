@@ -152,8 +152,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
                     &wm->x11_ctx->wm_delete_window, 1);
 
-    XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                 ExposureMask | ButtonPressMask | KeyPressMask | StructureNotifyMask);
 
     XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
 
@@ -200,7 +198,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
-
+        
         switch (event.type)
         {
         case ClientMessage:
@@ -255,7 +253,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                              &root_x, &root_y,
                              &win_x, &win_y,
                              &mask);
-
+                    
+                LOG_INFO("%d %d", win_x, win_y);
                 wm->callbacks.mouse_move_callback(
                     window_id >= 0 ? (size_t)window_id : 0,
                     win_x,
@@ -264,7 +263,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 );
             }
 
-            LOG_INFO("%d %d", event.xmotion.x, event.xmotion.y);
+            LOG_INFO("Pointer motion at (%d, %d)", event.xmotion.x, event.xmotion.y);
             break;
 
         case ButtonPress:
@@ -334,7 +333,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         default:
 
-            LOG_INFO("Unhandled event type: %d", event.type);
+            LOG_WARNING("Unhandled event type: %d", event.type);
 
             break;
         }
