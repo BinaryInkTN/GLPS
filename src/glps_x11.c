@@ -1,3 +1,4 @@
+#define GLPS_USE_X11
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -391,7 +392,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
             (size_t)window_id,
             wm->callbacks.window_frame_update_data);
     }
-    
+    XClearWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
     XFlush(wm->x11_ctx->display);
 }
 
