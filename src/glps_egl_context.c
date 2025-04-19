@@ -32,7 +32,7 @@ void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
     LOG_ERROR("Failed to initialize EGL");
     exit(EXIT_FAILURE);
   }
-
+  eglSwapInterval(wm->egl_ctx->dpy, 1); 
 
   if (!eglChooseConfig(wm->egl_ctx->dpy, config_attribs, &wm->egl_ctx->conf, 1,
                        &n) ||
