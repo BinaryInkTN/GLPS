@@ -13,8 +13,8 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-#define GLPS_USE_X11
-#include "glps_x11.h"
+
+ #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
 
@@ -118,6 +118,20 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     XSetWindowBackground(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0xFFFFFF);
 
+    XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
+
+    wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
+    if (wm->x11_ctx->gc == NULL)
+    {
+        LOG_ERROR("Failed to create graphics context");
+        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+        free(wm->windows[wm->window_count]);
+        return -1;
+    }
+
+    wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
+                    &wm->x11_ctx->wm_delete_window, 1);
     long event_mask =
         PointerMotionMask |   // Mouse movement
         ButtonPressMask |     // Mouse button presses
@@ -136,22 +150,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         free(wm->windows[wm->window_count]);
         return -1;
     }
-
-    XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
-
-    wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
-    if (wm->x11_ctx->gc == NULL)
-    {
-        LOG_ERROR("Failed to create graphics context");
-        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-        free(wm->windows[wm->window_count]);
-        return -1;
-    }
-
-    wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
-    XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                    &wm->x11_ctx->wm_delete_window, 1);
-
 
     XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
 
@@ -198,7 +196,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
-        
+
         switch (event.type)
         {
         case ClientMessage:
@@ -244,23 +242,23 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             {
                 event = next_event;
             }
-            if (wm->callbacks.mouse_move_callback) {
+            if (wm->callbacks.mouse_move_callback)
+            {
                 Window root, child;
                 int root_x, root_y, win_x, win_y;
                 unsigned int mask;
                 XQueryPointer(display, event.xmotion.window,
-                             &root, &child,
-                             &root_x, &root_y,
-                             &win_x, &win_y,
-                             &mask);
-                    
+                              &root, &child,
+                              &root_x, &root_y,
+                              &win_x, &win_y,
+                              &mask);
+
                 LOG_INFO("%d %d", win_x, win_y);
                 wm->callbacks.mouse_move_callback(
                     window_id >= 0 ? (size_t)window_id : 0,
                     win_x,
                     win_y,
-                    wm->callbacks.mouse_move_data
-                );
+                    wm->callbacks.mouse_move_data);
             }
 
             LOG_INFO("Pointer motion at (%d, %d)", event.xmotion.x, event.xmotion.y);
@@ -354,7 +352,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
                0, 0, 0, 0,
                True);
 
-    XFlush(wm->x11_ctx->display);
+//    XFlush(wm->x11_ctx->display);
 }
 
 void glps_x11_destroy(glps_WindowManager *wm)
