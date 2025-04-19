@@ -45,7 +45,7 @@ execute_process(
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
    
-    if(CURRENT_SESSION_TYPE STREQUAL "Wayland")
+    if(CURRENT_SESSION_TYPE STREQUAL "wayland")
          
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
