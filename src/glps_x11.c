@@ -258,15 +258,14 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         case MotionNotify:
 
-            if (wm->callbacks.mouse_enter_callback)
+            if (wm->callbacks.mouse_move_callback)
             {
-                wm->callbacks.mouse_enter_callback(
+                wm->callbacks.mouse_move_callback(
                     (size_t)window_id,
                     event.xmotion.x,
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
-
             break;
 
         case ButtonPress:
