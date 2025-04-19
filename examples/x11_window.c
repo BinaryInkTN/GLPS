@@ -105,7 +105,6 @@
  void render_cube(glps_WindowManager *wm, size_t window_id,
                   CubeData *cube_data) {
    glps_wm_set_window_ctx_curr(wm, window_id);  
-   printf("called \n");
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
  
@@ -122,7 +121,6 @@
  
    int width, height;
    glps_wm_window_get_dimensions(wm, window_id, &width, &height);
-    printf("%d %d \n", width, height);
    mat4x4_perspective(projection, M_PI / 4.0f, (float)width / (float)height,
                       0.1f, 100.0f);
  
@@ -192,10 +190,10 @@
  void keyboard_callback(size_t window_id, bool state, const char *value,
                         void *data) {
    glps_WindowManager *wm = (glps_WindowManager *)data;
-   printf("window %ld state: %d value:%s", window_id, state, value);
-   char buff[1024];
-   glps_wm_get_from_clipboard(wm, buff, 1024);
-   printf("Clipboard content is: %s", buff);
+   printf("window %ld state: %d value:%s \n", window_id, state, value);
+   //char buff[1024];
+  // glps_wm_get_from_clipboard(wm, buff, 1024);
+   //printf("Clipboard content is: %s", buff);
  }
  
  void keyboard_leave_callback(size_t window_id, void *data) {
@@ -210,7 +208,7 @@
  void window_frame_update_callback(size_t window_id, void *data) {
    CubeData *cube_data = (CubeData *)data;
    render_cube(cube_data->wm, window_id, cube_data);
-   printf("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
+  // printf("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
  
    //  glps_wl_update(cube_data->wm, window_id);
  }

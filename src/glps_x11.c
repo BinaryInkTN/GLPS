@@ -13,7 +13,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -179,19 +178,100 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             LOG_ERROR("Lookup failed, invalid X11 window.");
             return true;
         }
-        if (event.type == ClientMessage &&
-            (Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
+        switch (event.type)
         {
-            return true;
-        }
-        else if (event.type == Expose && event.xexpose.count == 0)
-        {
-            // Call redraw on the public API
+
+        case ClientMessage:
+            if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
+            {
+                if (wm->callbacks.window_close_callback)
+                {
+                    wm->callbacks.window_close_callback((size_t)window,
+                                                        wm->callbacks.window_close_data);
+                }
+            }
+            break;
+;
+
+        case ConfigureNotify:
+            if (wm->callbacks.window_resize_callback)
+            {
+                wm->callbacks.window_resize_callback((size_t)window,
+                                                     event.xconfigure.width,
+                                                     event.xconfigure.height,
+                                                     wm->callbacks.window_resize_data);
+            }
+            break;
+        
+        case KeyPress:
+            if (wm->callbacks.keyboard_callback)
+            {
+                wm->callbacks.keyboard_callback((size_t)window,
+                                                true,
+                                                NULL,
+                                                wm->callbacks.keyboard_data);
+            }
+            break;
+        case KeyRelease:
+            if (wm->callbacks.keyboard_callback)
+            {
+                wm->callbacks.keyboard_callback((size_t)window,
+                                                false,
+                                                NULL,
+                                                wm->callbacks.keyboard_data);
+            }
+            break;
+        case ButtonPress:
+            
+            if (wm->callbacks.mouse_click_callback)
+            {
+                wm->callbacks.mouse_click_callback((size_t)window,
+                                                   true,
+                                                   wm->callbacks.mouse_click_data);
+            }
+            break;
+
+        case ButtonRelease:
+            if (wm->callbacks.mouse_click_callback)
+            {
+                wm->callbacks.mouse_click_callback((size_t)window,
+                                                   false,
+                                                   wm->callbacks.mouse_click_data);
+            }
+            break;
+
+        case MotionNotify:
+            if (wm->callbacks.mouse_move_callback)
+            {
+                wm->callbacks.mouse_move_callback((size_t)window,
+                                                  event.xmotion.x,
+                                                  event.xmotion.y,
+                                                  wm->callbacks.mouse_move_data);
+            }
+            break;
+
+        case Expose:
             if (wm->callbacks.window_frame_update_callback)
             {
-                wm->callbacks.window_frame_update_callback(window, wm->callbacks.window_frame_update_data);
+                wm->callbacks.window_frame_update_callback((size_t)window,
+                                                           wm->callbacks.window_frame_update_data);
             }
+            break;
+
+        case DestroyNotify:
+            if (wm->callbacks.window_close_callback)
+            {
+                wm->callbacks.window_close_callback((size_t)window,
+                                                    wm->callbacks.window_close_data);
+            }
+            break;
+
+
+        default:
+            LOG_WARNING("Unhandled event type.");
+            break;
         }
+
     }
     return false;
 }
@@ -206,7 +286,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
     }
     XClearArea(wm->x11_ctx->display,
                wm->windows[window_id]->window,
-               0, 0, 0, 0, 
+               0, 0, 0, 0,
                True);
 
     XFlush(wm->x11_ctx->display);
