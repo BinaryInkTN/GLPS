@@ -40,7 +40,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 elseif(UNIX AND NOT APPLE)
 
 execute_process(
-        COMMAND bash -c "echo ${XDG_SESSION_TYPE}"
+        COMMAND bash -c "echo $XDG_SESSION_TYPE"
         OUTPUT_VARIABLE CURRENT_SESSION_TYPE
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
@@ -52,9 +52,9 @@ execute_process(
         pkg_check_modules(WAYLAND wayland-client wayland-egl egl)
     endif()
 
-        message(STATUS "Building for Linux Wayland")
         if(WAYLAND_FOUND)
-        
+        message(STATUS "Building for Linux Wayland")
+
         set(WAYLAND_PROTOCOLS_INSTALLER "${PROJECT_SOURCE_DIR}/scripts/waylandProtolcsInst.sh")
             execute_process(
             COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
