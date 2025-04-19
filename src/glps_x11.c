@@ -1,19 +1,3 @@
-/*
- Copyright 2025 Google LLC
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-      https://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
- */
-
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -25,7 +9,7 @@ static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
         return -1;
     }
 
-    for (size_t i = 0; i < wm->window_count; i++)
+    for (size_t i = 0; i < wm->window_count; ++i)
     {
         if (wm->windows[i] != NULL && wm->windows[i]->window == xid)
         {
@@ -41,7 +25,6 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     ssize_t window_id = __get_window_id_by_xid(wm, xid);
     if (window_id < 0)
     {
-        LOG_ERROR("Window ID is invalid.");
         return;
     }
 
@@ -243,7 +226,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
-            
             break;
 
         case ConfigureNotify:
@@ -270,13 +252,53 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case ButtonPress:
-            if (wm->callbacks.mouse_click_callback)
+
+            switch (event.xbutton.button)
             {
-                wm->callbacks.mouse_click_callback(
-                    (size_t)window_id,
-                    true,
-                    wm->callbacks.mouse_click_data);
+            case 4:
+                printf("Scroll up\n");
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    // TODO: Handle scroll sources
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
+                }
+                break;
+            case 5:
+                printf("Scroll down\n");
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    // TODO: Handle scroll sources
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
+                }
+                break;
+            case 6:
+                printf("Scroll left\n");
+
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    // TODO: Handle scroll sources
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
+                }
+                break;
+            case 7:
+                printf("Scroll right\n");
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    // TODO: Handle scroll sources
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
+                }
+                break;
+            default:
+                if (wm->callbacks.mouse_click_callback)
+                {
+                    wm->callbacks.mouse_click_callback(
+                        (size_t)window_id,
+                        true,
+                        wm->callbacks.mouse_click_data);
+                }
+                break;
             }
+
             break;
 
         case ButtonRelease:
