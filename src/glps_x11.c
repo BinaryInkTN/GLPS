@@ -13,6 +13,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
+#define GLPS_USE_X11
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -116,6 +117,26 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     }
 
     XSetWindowBackground(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0xFFFFFF);
+
+    long event_mask =
+        PointerMotionMask |   // Mouse movement
+        ButtonPressMask |     // Mouse button presses
+        ButtonReleaseMask |   // Mouse button releases
+        KeyPressMask |        // Keyboard presses
+        KeyReleaseMask |      // Keyboard releases
+        StructureNotifyMask | // Resize, move, etc.
+        ExposureMask;         // Expose events
+
+    int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
+                              event_mask);
+    if (result == BadWindow)
+    {
+        LOG_ERROR("Failed to select input events");
+        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+        free(wm->windows[wm->window_count]);
+        return -1;
+    }
+
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
 
     wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
@@ -158,124 +179,168 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
-
 bool glps_x11_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
     {
-        LOG_CRITICAL("Window Manager is NULL. Exiting..");
+        LOG_CRITICAL("Invalid Window Manager state. Exiting...");
         return true;
     }
 
+    Display *display = wm->x11_ctx->display;
     XEvent event;
 
-    while (XPending(wm->x11_ctx->display) > 0)
+    while (XPending(display) > 0)
     {
-        XNextEvent(wm->x11_ctx->display, &event);
-        ssize_t window = __get_window_id_by_xid(wm, event.xany.window);
-        if (window < 0)
+        XNextEvent(display, &event);
+
+        // Get window ID from our tracking system
+        ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
+        if (window_id < 0)
         {
-            LOG_ERROR("Lookup failed, invalid X11 window.");
-            return true;
+            // Check if this is a root window event
+            if (event.xany.window == DefaultRootWindow(display))
+            {
+                window_id = 0; // Use 0 for root window
+            }
+            else
+            {
+                LOG_ERROR("Event for untracked window %lu", event.xany.window);
+                continue;
+            }
         }
+
         switch (event.type)
         {
-
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
             {
+                LOG_ERROR("Window close request for window %zd", window_id);
                 if (wm->callbacks.window_close_callback)
                 {
-                    wm->callbacks.window_close_callback((size_t)window,
-                                                        wm->callbacks.window_close_data);
+                    wm->callbacks.window_close_callback(
+                        (size_t)window_id,
+                        wm->callbacks.window_close_data);
                 }
+                // Mark window for destruction
+            //    __mark_window_for_destruction(wm, event.xany.window);
             }
             break;
-;
+
+        case DestroyNotify:
+            LOG_ERROR("DestroyNotify for window %lu", event.xdestroywindow.window);
+            if (wm->callbacks.window_close_callback )
+            {
+                wm->callbacks.window_close_callback(
+                    (size_t)window_id,
+                    wm->callbacks.window_close_data);
+            }
+            //__remove_window(wm, event.xdestroywindow.window);
+            break;
 
         case ConfigureNotify:
             if (wm->callbacks.window_resize_callback)
             {
-                wm->callbacks.window_resize_callback((size_t)window,
-                                                     event.xconfigure.width,
-                                                     event.xconfigure.height,
-                                                     wm->callbacks.window_resize_data);
+                wm->callbacks.window_resize_callback(
+                    (size_t)window_id,
+                    event.xconfigure.width,
+                    event.xconfigure.height,
+                    wm->callbacks.window_resize_data);
             }
             break;
-        
-        case KeyPress:
-            if (wm->callbacks.keyboard_callback)
+
+        case MotionNotify:
+            // Handle motion event compression
+            while (XCheckTypedEvent(display, MotionNotify, &event))
             {
-                wm->callbacks.keyboard_callback((size_t)window,
-                                                true,
-                                                NULL,
-                                                wm->callbacks.keyboard_data);
             }
-            break;
-        case KeyRelease:
-            if (wm->callbacks.keyboard_callback)
+
+            if (wm->callbacks.mouse_move_callback)
             {
-                wm->callbacks.keyboard_callback((size_t)window,
-                                                false,
-                                                NULL,
-                                                wm->callbacks.keyboard_data);
+                wm->callbacks.mouse_move_callback(
+                    (size_t)window_id,
+                    event.xmotion.x,
+                    event.xmotion.y,
+                    wm->callbacks.mouse_move_data);
             }
             break;
+
         case ButtonPress:
-            
             if (wm->callbacks.mouse_click_callback)
             {
-                wm->callbacks.mouse_click_callback((size_t)window,
-                                                   true,
-                                                   wm->callbacks.mouse_click_data);
+                wm->callbacks.mouse_click_callback(
+                    (size_t)window_id,
+                    true,
+                    wm->callbacks.mouse_click_data);
             }
             break;
 
         case ButtonRelease:
             if (wm->callbacks.mouse_click_callback)
             {
-                wm->callbacks.mouse_click_callback((size_t)window,
-                                                   false,
-                                                   wm->callbacks.mouse_click_data);
+                wm->callbacks.mouse_click_callback(
+                    (size_t)window_id,
+                    false,
+                    wm->callbacks.mouse_click_data);
             }
             break;
 
-        case MotionNotify:
-            if (wm->callbacks.mouse_move_callback)
+        case KeyPress:
+            if (wm->callbacks.keyboard_callback)
             {
-                wm->callbacks.mouse_move_callback((size_t)window,
-                                                  event.xmotion.x,
-                                                  event.xmotion.y,
-                                                  wm->callbacks.mouse_move_data);
+                char buf[32];
+                KeySym keysym;
+                XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
+                wm->callbacks.keyboard_callback(
+                    (size_t)window_id,
+                    true,
+                    buf,
+                    wm->callbacks.keyboard_data);
+            }
+            break;
+
+        case KeyRelease:
+            if (wm->callbacks.keyboard_callback)
+            {
+                char buf[32];
+                KeySym keysym;
+                XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
+                wm->callbacks.keyboard_callback(
+                    (size_t)window_id,
+                    false,
+                    buf,
+                    wm->callbacks.keyboard_data);
             }
             break;
 
         case Expose:
             if (wm->callbacks.window_frame_update_callback)
             {
-                wm->callbacks.window_frame_update_callback((size_t)window,
-                                                           wm->callbacks.window_frame_update_data);
+                wm->callbacks.window_frame_update_callback(
+                    (size_t)window_id,
+                    wm->callbacks.window_frame_update_data);
             }
             break;
 
-        case DestroyNotify:
-            if (wm->callbacks.window_close_callback)
-            {
-                wm->callbacks.window_close_callback((size_t)window,
-                                                    wm->callbacks.window_close_data);
-            }
+        case MapNotify:
+            LOG_ERROR("Window %zd mapped", window_id);
             break;
 
+        case UnmapNotify:
+            LOG_ERROR("Window %zd unmapped", window_id);
+            break;
 
         default:
-            LOG_WARNING("Unhandled event type.");
+
+            LOG_ERROR("Unhandled event type: %d", event.type);
+
             break;
         }
-
     }
+
+    // Check if we should close (e.g., no windows left)
     return false;
 }
-
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
@@ -337,6 +402,11 @@ void glps_x11_destroy(glps_WindowManager *wm)
         }
         free(wm->x11_ctx);
         wm->x11_ctx = NULL;
+    }
+
+    if (wm->egl_ctx)
+    {
+        glps_egl_destroy(wm);
     }
 }
 

@@ -6,7 +6,7 @@
 void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
 
 
-  wm->egl_ctx = malloc(sizeof(glps_EGLContext));
+  wm->egl_ctx = calloc(1, sizeof(glps_EGLContext));
 
   EGLint config_attribs[] = {EGL_SURFACE_TYPE,
                              EGL_WINDOW_BIT,
