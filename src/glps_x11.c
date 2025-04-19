@@ -1,4 +1,3 @@
-#define GLPS_USE_X11
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -29,14 +28,18 @@ void __remove_window(glps_WindowManager *wm, Window xid)
         return;
     }
 
+    if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
+    {
+        eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
+    }
     XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
     free(wm->windows[window_id]);
-    wm->windows[window_id] = NULL;
 
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
     }
+    wm->windows[wm->window_count - 1] = NULL;
     wm->window_count--;
 }
 
@@ -89,7 +92,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
     {
         LOG_CRITICAL("Failed to create X11 window. Window manager and/or Display NULL.");
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     if (wm->window_count >= MAX_WINDOWS)
@@ -117,20 +120,24 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     {
         LOG_ERROR("Failed to create X11 window");
         free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
         return -1;
     }
 
     XSetWindowBackground(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0xFFFFFF);
-
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
 
-    wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
     if (wm->x11_ctx->gc == NULL)
     {
-        LOG_ERROR("Failed to create graphics context");
-        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-        free(wm->windows[wm->window_count]);
-        return -1;
+        wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
+        if (wm->x11_ctx->gc == NULL)
+        {
+            LOG_ERROR("Failed to create graphics context");
+            XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+            free(wm->windows[wm->window_count]);
+            wm->windows[wm->window_count] = NULL;
+            return -1;
+        }
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
@@ -145,13 +152,13 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         StructureNotifyMask | // Resize, move, etc.
         ExposureMask;         // Expose events
 
-    int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                              event_mask);
-    if (result == BadWindow)
+    if (XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
+                     event_mask) == BadWindow)
     {
         LOG_ERROR("Failed to select input events");
         XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
         free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
         return -1;
     }
 
@@ -167,11 +174,12 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
             LOG_ERROR("Failed to create EGL surface");
             XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
             free(wm->windows[wm->window_count]);
+            wm->windows[wm->window_count] = NULL;
             return -1;
         }
     }
 
-    if (wm->window_count == 0)
+    if (wm->window_count == 0 && wm->egl_ctx == NULL)
     {
         glps_egl_create_ctx(wm);
         glps_egl_make_ctx_current(wm, 0);
@@ -179,6 +187,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
+
 bool glps_x11_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
@@ -189,6 +198,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     Display *display = wm->x11_ctx->display;
     XEvent event;
+    bool should_close = false;
 
     while (XPending(display) > 0)
     {
@@ -213,20 +223,21 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
                 }
-                __remove_window(wm, event.xdestroywindow.window);
-
-                return true;
+                __remove_window(wm, event.xany.window);
+                should_close = (wm->window_count == 0);
             }
             break;
 
         case DestroyNotify:
-            LOG_ERROR("DestroyNotify for window %lu", event.xdestroywindow.window);
+            LOG_INFO("DestroyNotify for window %lu", event.xdestroywindow.window);
             if (wm->callbacks.window_close_callback)
             {
                 wm->callbacks.window_close_callback(
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
+            __remove_window(wm, event.xdestroywindow.window);
+            should_close = (wm->window_count == 0);
             break;
 
         case ConfigureNotify:
@@ -241,7 +252,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MotionNotify:
-
             if (wm->callbacks.mouse_move_callback)
             {
                 wm->callbacks.mouse_move_callback(
@@ -253,39 +263,29 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case ButtonPress:
-
             switch (event.xbutton.button)
             {
             case 4:
-                printf("Scroll up\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 5:
-                printf("Scroll down\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 6:
-                printf("Scroll left\n");
-
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 7:
-                printf("Scroll right\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
@@ -299,7 +299,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 }
                 break;
             }
-
             break;
 
         case ButtonRelease:
@@ -358,15 +357,14 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         default:
-
-            LOG_WARNING("Unhandled event type: %d", event.type);
-
+            LOG_DEBUG("Unhandled event type: %d", event.type);
             break;
         }
     }
 
-    return (wm->window_count == 0);
+    return should_close;
 }
+
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
@@ -382,8 +380,6 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
             (size_t)window_id,
             wm->callbacks.window_frame_update_data);
     }
-
-   // XFlush(wm->x11_ctx->display);
 }
 
 void glps_x11_destroy(glps_WindowManager *wm)
@@ -408,7 +404,6 @@ void glps_x11_destroy(glps_WindowManager *wm)
                     XDestroyWindow(wm->x11_ctx->display, wm->windows[i]->window);
                 }
                 free(wm->windows[i]);
-                wm->windows[i] = NULL;
             }
         }
         free(wm->windows);
@@ -461,7 +456,6 @@ void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
 void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
                                   char *data)
 {
-    // TODO: Implement clipboard functionality
     (void)wm;
     (void)mime;
     (void)data;
@@ -470,7 +464,6 @@ void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 void glps_x11_get_from_clipboard(glps_WindowManager *wm, char *data,
                                  size_t data_size)
 {
-    // TODO: Implement clipboard functionality
     (void)wm;
     (void)data;
     (void)data_size;
