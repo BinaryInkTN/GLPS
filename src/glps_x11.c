@@ -229,6 +229,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
                 }
+                __remove_window(wm, event.xdestroywindow.window);
 
                 return true;
             }
@@ -242,7 +243,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
-            __remove_window(wm, event.xdestroywindow.window);
+            
             break;
 
         case ConfigureNotify:
