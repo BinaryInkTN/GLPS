@@ -1236,6 +1236,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     wl_callback_destroy(callback);
   }
 
+
   if (window->wl_surface)
   {
     window->frame_callback = wl_surface_frame(window->wl_surface);

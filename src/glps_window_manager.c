@@ -28,6 +28,8 @@
 
 #ifdef GLPS_USE_X11
 #include "glps_x11.h"
+#include <glps_egl_context.h>
+
 #endif
 
 void glps_wm_set_mouse_enter_callback(
@@ -287,14 +289,14 @@ void glps_wm_start_drag_n_drop(
 
 void glps_wm_swap_interval(glps_WindowManager *wm, unsigned int swap_interval)
 {
-#ifdef GLPS_USE_WAYLAND
+#if defined(GLPS_USE_WAYLAND) || defined(GLPS_USE_X11)
   eglSwapInterval(wm->egl_ctx->dpy, 0);
 #endif
 }
 
 void glps_wm_swap_buffers(glps_WindowManager *wm, size_t window_id)
 {
-#ifdef GLPS_USE_WAYLAND
+#if defined(GLPS_USE_WAYLAND) || defined(GLPS_USE_X11)
   glps_egl_swap_buffers(wm, window_id);
 #endif
 
@@ -382,7 +384,7 @@ glps_WindowManager *glps_wm_init(void)
 
 void glps_wm_set_window_ctx_curr(glps_WindowManager *wm, size_t window_id)
 {
-#ifdef GLPS_USE_WAYLAND
+#if defined(GLPS_USE_WAYLAND) || defined(GLPS_USE_X11)
   glps_egl_make_ctx_current(wm, window_id);
 #endif
 
@@ -400,11 +402,15 @@ void glps_wm_window_get_dimensions(glps_WindowManager *wm, size_t window_id,
     LOG_ERROR("Couldn't get window dimensions. Window Manager NULL. ");
     return;
   }
-#ifdef GLPS_USE_WAYLAND
+#if defined(GLPS_USE_WAYLAND)
   glps_WaylandWindow *window = (glps_WaylandWindow *)wm->windows[window_id];
 
   *width = window->properties.width;
   *height = window->properties.height;
+#endif
+
+#ifdef GLPS_USE_X11
+  glps_x11_get_window_dimensions(wm, window_id, width, height);
 #endif
 
 #ifdef GLPS_USE_WIN32
@@ -585,6 +591,6 @@ size_t glps_wm_get_window_count(glps_WindowManager *wm)
 void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
 #ifdef GLPS_USE_WAYLAND
-   glps_wl_window_is_resizable(wm, state, window_id);
+  glps_wl_window_is_resizable(wm, state, window_id);
 #endif
 }

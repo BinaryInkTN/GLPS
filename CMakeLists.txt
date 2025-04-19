@@ -8,10 +8,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-find_package(PkgConfig)
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(WAYLAND wayland-client wayland-egl egl)
-endif()
+
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_C_COMPILER "/usr/bin/x86_64-w64-mingw32-gcc-win32")
@@ -41,72 +38,92 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
 
 elseif(UNIX AND NOT APPLE)
-    if(WAYLAND_FOUND)
+
+execute_process(
+        COMMAND bash -c "echo ${XDG_SESSION_TYPE}"
+        OUTPUT_VARIABLE CURRENT_SESSION_TYPE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+   
+    if(CURRENT_SESSION_TYPE STREQUAL "Wayland")
+         
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND)
+        pkg_check_modules(WAYLAND wayland-client wayland-egl egl)
+    endif()
+
         message(STATUS "Building for Linux Wayland")
+        if(WAYLAND_FOUND)
+        
         set(WAYLAND_PROTOCOLS_INSTALLER "${PROJECT_SOURCE_DIR}/scripts/waylandProtolcsInst.sh")
-        execute_process(
-          COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
-        )
-        set( GLPS_SOURCES
-            src/glps_wayland.c
+            execute_process(
+            COMMAND bash ${WAYLAND_PROTOCOLS_INSTALLER}
+            )
+            set( GLPS_SOURCES
+                src/glps_wayland.c
+                src/glps_window_manager.c
+                src/utils/logger/pico_logger.c
+                src/glps_egl_context.c
+                src/glps_thread.c
+            )
+            
+            file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
+            list(APPEND GLPS_SOURCES ${XDG_GLPS_SOURCES})
+
+
+            set(GLOB GLPS_HEADERS
+                internal/glps_wayland.h
+                include/glps_window_manager.h
+                internal/glps_egl_context.h
+                internal/glps_common.h
+                internal/utils/logger/pico_logger.h
+                include/glps_thread.h
+
+                # internal/xdg/wlr-data-control-unstable-v1.h
+                # internal/xdg/xdg-decorations.h
+                # internal/xdg/xdg-dialog.h
+                # internal/xdg/xdg-shell.h
+            )
+            
+            file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
+            list(APPEND GLPS_HEADERS ${XDG_GLPS_HEADERS})
+
+            add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
+
+            target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
+            target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
+            target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread)
+        else()
+            message("Found Wayland but couldn't locate required packages.")
+
+        endif()
+
+        else()
+            message(STATUS "Building for X11")
+            set(GLPS_SOURCES
+            src/glps_egl_context.c
+            src/glps_x11.c
             src/glps_window_manager.c
             src/utils/logger/pico_logger.c
-            src/glps_egl_context.c
             src/glps_thread.c
-        )
-        
-        file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
-        list(APPEND GLPS_SOURCES ${XDG_GLPS_SOURCES})
 
+            )
 
-        set(GLOB GLPS_HEADERS
-            internal/glps_wayland.h
-            include/glps_window_manager.h
+            set(GLPS_HEADERS
             internal/glps_egl_context.h
+            internal/glps_x11.h
             internal/glps_common.h
             internal/utils/logger/pico_logger.h
+            include/glps_window_manager.h
             include/glps_thread.h
 
-            # internal/xdg/wlr-data-control-unstable-v1.h
-            # internal/xdg/xdg-decorations.h
-            # internal/xdg/xdg-dialog.h
-            # internal/xdg/xdg-shell.h
-        )
-        
-        file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
-        list(APPEND GLPS_HEADERS ${XDG_GLPS_HEADERS})
+            )
 
-        add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
+            add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
-        target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
-        target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread)
-    else()
-        message(STATUS "Building for X11")
-        set(GLPS_SOURCES
-        src/glps_egl_context.c
-        src/glps_x11.c
-        src/glps_window_manager.c
-        src/utils/logger/pico_logger.c
-        src/glps_thread.c
-
-        )
-
-        set(GLPS_HEADERS
-        internal/glps_egl_context.h
-        internal/glps_x11.h
-        internal/glps_common.h
-        internal/utils/logger/pico_logger.h
-        include/glps_window_manager.h
-        include/glps_thread.h
-
-        )
-
-        add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
-
-        target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
-       target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-        target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread)
+            target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
+            target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
+            target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread)
     endif()
 else()
     message(FATAL_ERROR "Unsupported platform")

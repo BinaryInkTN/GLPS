@@ -108,6 +108,8 @@ void render_cube(glps_WindowManager *wm, size_t window_id,
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+/*
+  
   float radius = 5.0f;
   float camX = sin(cube_data->angle) * radius;
   float camZ = cos(cube_data->angle) * radius;
@@ -139,6 +141,8 @@ void render_cube(glps_WindowManager *wm, size_t window_id,
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
   cube_data->angle += 0.01f;
 
+  
+*/
   glps_wm_swap_buffers(wm, window_id);
 }
 
