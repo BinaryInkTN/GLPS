@@ -14,7 +14,7 @@
  limitations under the License.
  */
 
- #include "glps_x11.h"
+#include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
 
@@ -35,7 +35,6 @@ static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 
     return -1;
 }
-
 
 void __remove_window(glps_WindowManager *wm, Window xid)
 {
@@ -258,27 +257,13 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MotionNotify:
-            XEvent next_event;
-            while (XCheckTypedWindowEvent(display, event.xmotion.window, MotionNotify, &next_event))
-            {
-                event = next_event;
-            }
-            if (wm->callbacks.mouse_move_callback)
-            {
-                Window root, child;
-                int root_x, root_y, win_x, win_y;
-                unsigned int mask;
-                XQueryPointer(display, event.xmotion.window,
-                              &root, &child,
-                              &root_x, &root_y,
-                              &win_x, &win_y,
-                              &mask);
 
-                LOG_INFO("%d %d", win_x, win_y);
-                wm->callbacks.mouse_move_callback(
-                    window_id >= 0 ? (size_t)window_id : 0,
-                    win_x,
-                    win_y,
+            if (wm->callbacks.mouse_enter_callback)
+            {
+                wm->callbacks.mouse_enter_callback(
+                    (size_t)window_id,
+                    event.xmotion.x,
+                    event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
 
@@ -377,12 +362,10 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         .y = 0,
         .width = 0,
         .height = 0,
-        .count = 0
-    };
+        .count = 0};
 
     XSendEvent(wm->x11_ctx->display, wm->windows[window_id]->window, False, ExposureMask, (XEvent *)&expose_event);
     XFlush(wm->x11_ctx->display);
-
 }
 
 void glps_x11_destroy(glps_WindowManager *wm)
