@@ -194,20 +194,11 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     {
         XNextEvent(display, &event);
 
-        // Get window ID from our tracking system
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
         if (window_id < 0)
         {
-            // Check if this is a root window event
-            if (event.xany.window == DefaultRootWindow(display))
-            {
-                window_id = 0; // Use 0 for root window
-            }
-            else
-            {
-                LOG_ERROR("Event for untracked window %lu", event.xany.window);
-                continue;
-            }
+            LOG_ERROR("Event for untracked window %lu", event.xany.window);
+            continue;
         }
 
         switch (event.type)
@@ -215,21 +206,21 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
             {
-                LOG_ERROR("Window close request for window %zd", window_id);
+                LOG_INFO("Window close request for window %zd", window_id);
                 if (wm->callbacks.window_close_callback)
                 {
                     wm->callbacks.window_close_callback(
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
                 }
-                // Mark window for destruction
-            //    __mark_window_for_destruction(wm, event.xany.window);
+
+                return true;
             }
             break;
 
         case DestroyNotify:
             LOG_ERROR("DestroyNotify for window %lu", event.xdestroywindow.window);
-            if (wm->callbacks.window_close_callback )
+            if (wm->callbacks.window_close_callback)
             {
                 wm->callbacks.window_close_callback(
                     (size_t)window_id,
@@ -250,19 +241,30 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MotionNotify:
-            // Handle motion event compression
-            while (XCheckTypedEvent(display, MotionNotify, &event))
+            XEvent next_event;
+            while (XCheckTypedWindowEvent(display, event.xmotion.window, MotionNotify, &next_event))
             {
+                event = next_event;
+            }
+            if (wm->callbacks.mouse_move_callback) {
+                Window root, child;
+                int root_x, root_y, win_x, win_y;
+                unsigned int mask;
+                XQueryPointer(display, event.xmotion.window,
+                             &root, &child,
+                             &root_x, &root_y,
+                             &win_x, &win_y,
+                             &mask);
+
+                wm->callbacks.mouse_move_callback(
+                    window_id >= 0 ? (size_t)window_id : 0,
+                    win_x,
+                    win_y,
+                    wm->callbacks.mouse_move_data
+                );
             }
 
-            if (wm->callbacks.mouse_move_callback)
-            {
-                wm->callbacks.mouse_move_callback(
-                    (size_t)window_id,
-                    event.xmotion.x,
-                    event.xmotion.y,
-                    wm->callbacks.mouse_move_data);
-            }
+            LOG_INFO("%d %d", event.xmotion.x, event.xmotion.y);
             break;
 
         case ButtonPress:
@@ -323,23 +325,22 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MapNotify:
-            LOG_ERROR("Window %zd mapped", window_id);
+            LOG_INFO("Window %zd mapped", window_id);
             break;
 
         case UnmapNotify:
-            LOG_ERROR("Window %zd unmapped", window_id);
+            LOG_INFO("Window %zd unmapped", window_id);
             break;
 
         default:
 
-            LOG_ERROR("Unhandled event type: %d", event.type);
+            LOG_INFO("Unhandled event type: %d", event.type);
 
             break;
         }
     }
 
-    // Check if we should close (e.g., no windows left)
-    return false;
+    return (wm->window_count == 0);
 }
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
