@@ -36,6 +36,27 @@ static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
     return -1;
 }
 
+
+void __remove_window(glps_WindowManager *wm, Window xid)
+{
+    ssize_t window_id = __get_window_id_by_xid(wm, xid);
+    if (window_id < 0)
+    {
+        LOG_ERROR("Window ID is invalid.");
+        return;
+    }
+
+    XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
+    free(wm->windows[window_id]);
+    wm->windows[window_id] = NULL;
+
+    for (size_t i = window_id; i < wm->window_count - 1; i++)
+    {
+        wm->windows[i] = wm->windows[i + 1];
+    }
+    wm->window_count--;
+}
+
 void glps_x11_init(glps_WindowManager *wm)
 {
     if (wm == NULL)
@@ -222,7 +243,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
-            //__remove_window(wm, event.xdestroywindow.window);
+            __remove_window(wm, event.xdestroywindow.window);
             break;
 
         case ConfigureNotify:
@@ -348,7 +369,6 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         return;
     }
 
-    // Send an Expose event to the server
     XExposeEvent expose_event = {
         .type = Expose,
         .display = wm->x11_ctx->display,
