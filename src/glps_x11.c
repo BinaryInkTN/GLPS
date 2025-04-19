@@ -357,7 +357,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         default:
-            LOG_DEBUG("Unhandled event type: %d", event.type);
+            LOG_WARNING("Unhandled event type: %d", event.type);
             break;
         }
     }
