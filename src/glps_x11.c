@@ -383,7 +383,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
             wm->callbacks.window_frame_update_data);
     }
 
-    XFlush(wm->x11_ctx->display);
+   // XFlush(wm->x11_ctx->display);
 }
 
 void glps_x11_destroy(glps_WindowManager *wm)
