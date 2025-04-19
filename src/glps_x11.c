@@ -267,7 +267,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     wm->callbacks.mouse_move_data);
             }
 
-            LOG_INFO("Pointer motion at (%d, %d)", event.xmotion.x, event.xmotion.y);
             break;
 
         case ButtonPress:
