@@ -50,6 +50,7 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     {
         wm->windows[i] = wm->windows[i + 1];
     }
+    wm->windows[wm->window_count - 1] = NULL;
     wm->window_count--;
 }
 
@@ -132,6 +133,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     {
         LOG_ERROR("Failed to create X11 window");
         free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
         return -1;
     }
 
@@ -147,6 +149,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to create graphics context");
         XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
         free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
         return -1;
     }
 
@@ -154,13 +157,13 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
                     &wm->x11_ctx->wm_delete_window, 1);
 
     long event_mask =
-        PointerMotionMask |   // Mouse movement
-        ButtonPressMask |     // Mouse button presses
-        ButtonReleaseMask |   // Mouse button releases
-        KeyPressMask |        // Keyboard presses
-        KeyReleaseMask |      // Keyboard releases
-        StructureNotifyMask | // Resize, move, etc.
-        ExposureMask;         // Expose events
+        PointerMotionMask |
+        ButtonPressMask |
+        ButtonReleaseMask |
+        KeyPressMask |
+        KeyReleaseMask |
+        StructureNotifyMask |
+        ExposureMask;
 
     int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
                               event_mask);
@@ -169,6 +172,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to select input events");
         XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
         free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
         return -1;
     }
 
@@ -182,6 +186,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
             LOG_ERROR("Failed to create EGL surface");
             XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
             free(wm->windows[wm->window_count]);
+            wm->windows[wm->window_count] = NULL;
             return -1;
         }
     }
@@ -197,6 +202,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
+
 bool glps_x11_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
@@ -320,10 +326,10 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         case ButtonRelease:
             switch (event.xbutton.button)
             {
-            case 4: // Wheel Up
-            case 5: // Wheel Down
-            case 6: // Wheel Left
-            case 7: // Wheel Right
+            case 4:
+            case 5:
+            case 6:
+            case 7:
                 break;
             default:
                 if (wm->callbacks.mouse_click_callback)
@@ -449,6 +455,7 @@ void glps_x11_destroy(glps_WindowManager *wm)
         }
         free(wm->windows);
         wm->windows = NULL;
+        wm->window_count = 0;
     }
 
     if (wm->x11_ctx)
@@ -496,7 +503,6 @@ void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
 
 void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
-
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
         window_id >= wm->window_count || wm->windows[window_id] == NULL)
     {
@@ -528,32 +534,32 @@ void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t win
 
     if (state)
     {
-        size_hints->flags &= ~(PMinSize | PMaxSize);  // Clear existing size constraints
-        size_hints->min_width = 1;                   // Minimum reasonable size
+        size_hints->flags &= ~(PMinSize | PMaxSize);
+        size_hints->min_width = 1;
         size_hints->min_height = 1;
-        size_hints->max_width = INT_MAX;             // No maximum width constraint
-        size_hints->max_height = INT_MAX;            // No maximum height constraint
-        size_hints->flags |= PResizeInc;             // Allow resize increments
-        size_hints->width_inc = 1;                   // Default resize increment
+        size_hints->max_width = INT_MAX;
+        size_hints->max_height = INT_MAX;
+        size_hints->flags |= PResizeInc;
+        size_hints->width_inc = 1;
         size_hints->height_inc = 1;
     }
     else
     {
-        size_hints->flags |= PMinSize | PMaxSize;    // Set both min and max size
-        size_hints->min_width = width;              // Current width as minimum
-        size_hints->min_height = height;            // Current height as minimum
-        size_hints->max_width = width;              // Current width as maximum
-        size_hints->max_height = height;            // Current height as maximum
+        size_hints->flags |= PMinSize | PMaxSize;
+        size_hints->min_width = width;
+        size_hints->min_height = height;
+        size_hints->max_width = width;
+        size_hints->max_height = height;
     }
 
     XSetWMNormalHints(display, win, size_hints);
     XFree(size_hints);
     XFlush(display);
 }
+
 void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
                                   char *data)
 {
-    // TODO: Implement clipboard functionality
     (void)wm;
     (void)mime;
     (void)data;
@@ -562,7 +568,6 @@ void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 void glps_x11_get_from_clipboard(glps_WindowManager *wm, char *data,
                                  size_t data_size)
 {
-    // TODO: Implement clipboard functionality
     (void)wm;
     (void)data;
     (void)data_size;

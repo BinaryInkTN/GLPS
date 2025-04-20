@@ -15,9 +15,9 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
- #include "./glad/glad.h"
  #include "./linmath.h"
  #include <GLPS/glps_window_manager.h>
+ #include <GLES3/gl3.h>
  #include <math.h>
  #include <stdio.h>
  #include <time.h>
@@ -102,13 +102,26 @@
    return shader_program;
  }
  
+ void cleanup_cube_data(CubeData *cube_data) {
+   if (cube_data) {
+     if (cube_data->VAO) glDeleteVertexArrays(1, &cube_data->VAO);
+     if (cube_data->VBO) glDeleteBuffers(1, &cube_data->VBO);
+     if (cube_data->EBO) glDeleteBuffers(1, &cube_data->EBO);
+     if (cube_data->shader_program) glDeleteProgram(cube_data->shader_program);
+     
+     cube_data->VAO = 0;
+     cube_data->VBO = 0;
+     cube_data->EBO = 0;
+     cube_data->shader_program = 0;
+   }
+ }
+ 
  void render_cube(glps_WindowManager *wm, size_t window_id,
                   CubeData *cube_data) {
    glps_wm_set_window_ctx_curr(wm, window_id);  
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
  
-   
    float radius = 5.0f;
    float camX = sin(cube_data->angle) * radius;
    float camZ = cos(cube_data->angle) * radius;
@@ -136,10 +149,9 @@
        glGetUniformLocation(cube_data->shader_program, "projection"), 1,
        GL_FALSE, (float *)projection);
  
+   glBindVertexArray(cube_data->VAO);
    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
    cube_data->angle += 0.01f;
- 
-   
  
    glps_wm_swap_buffers(wm, window_id);
  }
@@ -182,7 +194,7 @@
  
  void mouse_move_callback(size_t window_id, double mouse_x, double mouse_y,
                           void *data) {
-   printf("x: %lf y:%lf", mouse_x, mouse_y);
+   //printf("x: %lf y:%lf", mouse_x, mouse_y);
  }
  
  void keyboard_enter_callback() { printf("keyboard entered."); }
@@ -191,9 +203,6 @@
                         void *data) {
    glps_WindowManager *wm = (glps_WindowManager *)data;
    printf("window %ld state: %d value:%s \n", window_id, state, value);
-   //char buff[1024];
-  // glps_wm_get_from_clipboard(wm, buff, 1024);
-   //printf("Clipboard content is: %s", buff);
  }
  
  void keyboard_leave_callback(size_t window_id, void *data) {
@@ -208,33 +217,23 @@
  void window_frame_update_callback(size_t window_id, void *data) {
    CubeData *cube_data = (CubeData *)data;
    render_cube(cube_data->wm, window_id, cube_data);
-  // printf("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
- 
-   //  glps_wl_update(cube_data->wm, window_id);
-    //glps_wm_window_update(cube_data->wm, 0);
-}
+ }
  
  void window_close_callback(size_t window_id, void *data) {
    glps_WindowManager *wm = (glps_WindowManager *)data;
+  
    glps_wm_window_destroy(wm, window_id);
  }
  
  int main(int argc, char *argv[]) {
-   // set_logging_enabled(false);
    glps_WindowManager *wm = glps_wm_init();
-   // set_minimum_log_level(DEBUG_LEVEL_WARNING);
- 
    size_t window_id = glps_wm_window_create(wm, "3D Cube Example", 800, 600);
-   if (!gladLoadGL()) {
-     fprintf(stderr, "Failed to initialize GLAD\n");
-     exit(EXIT_FAILURE);
-   }
  
    glps_wm_set_window_ctx_curr(wm, window_id);
    glps_wm_window_is_resizable(wm, false, 0);
    glEnable(GL_DEPTH_TEST);
  
-   CubeData cube_data;
+   CubeData cube_data = {0};
    cube_data.shader_program =
        create_shader_program(vertex_shader_source, fragment_shader_source);
    cube_data.angle = 0.0f;
@@ -260,6 +259,8 @@
                          (void *)(3 * sizeof(float)));
    glEnableVertexAttribArray(1);
  
+   // Set user data for the window
+ 
    glps_wm_set_keyboard_callback(wm, keyboard_callback, (void *)wm);
    glps_wm_set_mouse_move_callback(wm, mouse_move_callback, (void *)wm);
    glps_wm_set_mouse_click_callback(wm, mouse_click_callback, (void *)wm);
@@ -276,10 +277,11 @@
  
    render_cube(wm, window_id, &cube_data);
    while (!glps_wm_should_close(wm)) {
-    glps_wm_window_update(wm, window_id);
+     glps_wm_window_update(wm, window_id);
    }
  
-  glps_wm_destroy(wm);
+   // Cleanup remaining resources
+   cleanup_cube_data(&cube_data);
+   glps_wm_destroy(wm);
    return 0;
  }
- 

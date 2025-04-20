@@ -1,1 +1,1 @@
-cd .. && cmake -S . -B build && cd build && make && sudo make install && cd .. && cd examples && gcc glad/glad.c x11_window.c -o test -g -lGLPS -L/usr/local/include -fsanitize=address,undefined -lm && chmod +x test && ./test
+cd .. && cmake -S . -B build && cd build && make && sudo make install && cd .. && cd examples && gcc x11_window.c -o test -g -lGLESv2 -lGLPS -L/usr/local/include -fsanitize=address,undefined -lm && chmod +x test && ./test
