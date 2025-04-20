@@ -157,8 +157,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
 
-    XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-
     if (wm->egl_ctx != NULL)
     {
         wm->windows[wm->window_count]->egl_surface =
@@ -178,6 +176,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         glps_egl_create_ctx(wm);
         glps_egl_make_ctx_current(wm, 0);
     }
+
+    XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+    XFlush(wm->x11_ctx->display);
 
     return wm->window_count++;
 }
@@ -349,6 +350,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_frame_update_data);
             }
+            LOG_CRITICAL("EXPOSE");
             break;
 
         case MapNotify:
