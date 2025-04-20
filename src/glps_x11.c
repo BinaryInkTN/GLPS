@@ -3,6 +3,10 @@
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
 
+#define MAX_EVENTS_PER_FRAME 10
+#define TARGET_FPS 60
+#define NS_PER_FRAME (1000000000 / TARGET_FPS)
+
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
     if (wm == NULL || wm->windows == NULL)
@@ -29,14 +33,23 @@ void __remove_window(glps_WindowManager *wm, Window xid)
         return;
     }
 
-    XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
+    // Destroy EGL surface if it exists
+    if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
+    {
+        eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
+        wm->windows[window_id]->egl_surface = EGL_NO_SURFACE;
+    }
+
+    // Free the window structure
     free(wm->windows[window_id]);
     wm->windows[window_id] = NULL;
 
+    // Shift remaining windows down in the array
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
     }
+    wm->windows[wm->window_count - 1] = NULL;
     wm->window_count--;
 }
 
@@ -182,6 +195,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
+
 bool glps_x11_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
@@ -193,7 +207,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     Display *display = wm->x11_ctx->display;
     XEvent event;
 
-    while (XPending(display) > 0)
+    int events_processed = 0;
+    while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME)
     {
         XNextEvent(display, &event);
 
@@ -216,21 +231,21 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
                 }
-                __remove_window(wm, event.xdestroywindow.window);
-
-                return true;
+                __remove_window(wm, event.xclient.window);
+                return (wm->window_count == 0);
             }
             break;
 
         case DestroyNotify:
-            LOG_ERROR("DestroyNotify for window %lu", event.xdestroywindow.window);
+            LOG_INFO("DestroyNotify for window %lu", event.xdestroywindow.window);
             if (wm->callbacks.window_close_callback)
             {
                 wm->callbacks.window_close_callback(
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
-            break;
+            __remove_window(wm, event.xdestroywindow.window);
+            return (wm->window_count == 0);
 
         case ConfigureNotify:
             if (wm->callbacks.window_resize_callback)
@@ -244,7 +259,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MotionNotify:
-
             if (wm->callbacks.mouse_move_callback)
             {
                 wm->callbacks.mouse_move_callback(
@@ -256,14 +270,12 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case ButtonPress:
-
             switch (event.xbutton.button)
             {
             case 4:
                 printf("Scroll up\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
@@ -271,16 +283,13 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 printf("Scroll down\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 6:
                 printf("Scroll left\n");
-
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
@@ -288,7 +297,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 printf("Scroll right\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    // TODO: Handle scroll sources
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
@@ -302,7 +310,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 }
                 break;
             }
-
             break;
 
         case ButtonRelease:
@@ -362,15 +369,14 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         default:
-
             LOG_WARNING("Unhandled event type: %d", event.type);
-
             break;
         }
     }
 
     return (wm->window_count == 0);
 }
+
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
@@ -385,12 +391,32 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
         return;
     }
 
+    static struct timespec last_time;
+    struct timespec current_time;
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+    if (last_time.tv_sec != 0 || last_time.tv_nsec != 0)
+    {
+        long elapsed_ns = (current_time.tv_sec - last_time.tv_sec) * 1000000000 +
+                          (current_time.tv_nsec - last_time.tv_nsec);
+
+        if (elapsed_ns < NS_PER_FRAME)
+        {
+            struct timespec sleep_time = {
+                0,
+                NS_PER_FRAME - elapsed_ns};
+            nanosleep(&sleep_time, NULL);
+        }
+    }
+    last_time = current_time;
+
     wm->callbacks.window_frame_update_callback(
         window_id,
         wm->callbacks.window_frame_update_data);
 
-    XSync(wm->x11_ctx->display, False);
+    XFlush(wm->x11_ctx->display);
 }
+
 void glps_x11_destroy(glps_WindowManager *wm)
 {
     if (wm == NULL)
