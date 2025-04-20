@@ -211,7 +211,7 @@
   // printf("%.2lf FPS", (double)glps_wm_get_fps(cube_data->wm, window_id));
  
    //  glps_wl_update(cube_data->wm, window_id);
-    glps_wm_window_update(cube_data->wm, 0);
+    //glps_wm_window_update(cube_data->wm, 0);
 }
  
  void window_close_callback(size_t window_id, void *data) {
@@ -276,7 +276,7 @@
  
    render_cube(wm, window_id, &cube_data);
    while (!glps_wm_should_close(wm)) {
-    //glps_wm_window_update(wm, window_id);
+    glps_wm_window_update(wm, window_id);
    }
  
   glps_wm_destroy(wm);

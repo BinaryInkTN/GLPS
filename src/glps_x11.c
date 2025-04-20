@@ -33,23 +33,24 @@ void __remove_window(glps_WindowManager *wm, Window xid)
         return;
     }
 
-    // Destroy EGL surface if it exists
     if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
     {
         eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
         wm->windows[window_id]->egl_surface = EGL_NO_SURFACE;
     }
 
-    // Free the window structure
+    if (wm->x11_ctx != NULL && wm->x11_ctx->display != NULL)
+    {
+        XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
+    }
+
     free(wm->windows[window_id]);
     wm->windows[window_id] = NULL;
 
-    // Shift remaining windows down in the array
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
     }
-    wm->windows[wm->window_count - 1] = NULL;
     wm->window_count--;
 }
 
@@ -94,6 +95,8 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
+
+    wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
@@ -148,9 +151,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
 
-    wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                    &wm->x11_ctx->wm_delete_window, 1);
+                   &wm->x11_ctx->wm_delete_window, 1);
+
     long event_mask =
         PointerMotionMask |   // Mouse movement
         ButtonPressMask |     // Mouse button presses
@@ -161,7 +164,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         ExposureMask;         // Expose events
 
     int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                              event_mask);
+                             event_mask);
     if (result == BadWindow)
     {
         LOG_ERROR("Failed to select input events");
@@ -174,7 +177,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     {
         wm->windows[wm->window_count]->egl_surface =
             eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
-                                   (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
+                                  (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
         if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE)
         {
             LOG_ERROR("Failed to create EGL surface");
@@ -237,7 +240,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case DestroyNotify:
-            LOG_INFO("DestroyNotify for window %lu", event.xdestroywindow.window);
+            LOG_INFO("Window %zd destroyed", window_id);
             if (wm->callbacks.window_close_callback)
             {
                 wm->callbacks.window_close_callback(
@@ -273,31 +276,35 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             switch (event.xbutton.button)
             {
             case 4:
-                printf("Scroll up\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
+                                                      GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
+                                                      false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 5:
-                printf("Scroll down\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
+                                                      GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
+                                                      false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 6:
-                printf("Scroll left\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, false, wm->callbacks.mouse_scroll_data);
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
+                                                      GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
+                                                      false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 7:
-                printf("Scroll right\n");
                 if (wm->callbacks.mouse_scroll_callback)
                 {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, false, wm->callbacks.mouse_scroll_data);
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
+                                                      GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
+                                                      false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             default:
@@ -357,25 +364,16 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_frame_update_data);
             }
-            LOG_CRITICAL("EXPOSE");
-            break;
-
-        case MapNotify:
-            LOG_INFO("Window %zd mapped", window_id);
-            break;
-
-        case UnmapNotify:
-            LOG_INFO("Window %zd unmapped", window_id);
             break;
 
         default:
-            LOG_WARNING("Unhandled event type: %d", event.type);
             break;
         }
     }
 
     return (wm->window_count == 0);
 }
+
 
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
