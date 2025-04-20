@@ -496,6 +496,7 @@ void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
 
 void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
+    // Validate parameters
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
         window_id >= wm->window_count || wm->windows[window_id] == NULL)
     {
@@ -503,22 +504,60 @@ void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t win
         return;
     }
 
+    Display* display = wm->x11_ctx->display;
+    Window win = wm->windows[window_id]->window;
+
+    // Get current window geometry
     Window root;
     int x, y;
-    int width, height;
-    unsigned int border_width, depth;
-    XGetGeometry(wm->x11_ctx->display, wm->windows[window_id]->window, &root,
-                 &x, &y, (unsigned int *)&width, (unsigned int *)&height,
-                 &border_width, &depth);
+    unsigned int width, height, border_width, depth;
+    if (!XGetGeometry(display, win, &root, &x, &y, &width, &height, &border_width, &depth))
+    {
+        LOG_ERROR("Failed to get window geometry");
+        return;
+    }
 
+    // Allocate size hints
     XSizeHints *size_hints = XAllocSizeHints();
-    size_hints->flags = PMinSize | PMaxSize;
-    size_hints->min_width = state ? width : INT_MAX;
-    size_hints->min_height = state ? height : INT_MAX;
-    XSetWMNormalHints(wm->x11_ctx->display, wm->windows[window_id]->window, size_hints);
-    XFree(size_hints);
-}
+    if (size_hints == NULL)
+    {
+        LOG_ERROR("Failed to allocate size hints");
+        return;
+    }
 
+    // Get existing hints first (if any)
+    long supplied_return;
+    XGetWMNormalHints(display, win, size_hints, &supplied_return);
+
+    if (state)
+    {
+        // Make window resizable
+        size_hints->flags &= ~(PMinSize | PMaxSize);  // Clear existing size constraints
+        size_hints->min_width = 1;                   // Minimum reasonable size
+        size_hints->min_height = 1;
+        size_hints->max_width = INT_MAX;             // No maximum width constraint
+        size_hints->max_height = INT_MAX;            // No maximum height constraint
+        size_hints->flags |= PResizeInc;             // Allow resize increments
+        size_hints->width_inc = 1;                   // Default resize increment
+        size_hints->height_inc = 1;
+    }
+    else
+    {
+        // Make window non-resizable
+        size_hints->flags |= PMinSize | PMaxSize;    // Set both min and max size
+        size_hints->min_width = width;              // Current width as minimum
+        size_hints->min_height = height;            // Current height as minimum
+        size_hints->max_width = width;              // Current width as maximum
+        size_hints->max_height = height;            // Current height as maximum
+    }
+
+    // Apply the new hints
+    XSetWMNormalHints(display, win, size_hints);
+    XFree(size_hints);
+
+    // Force the window manager to re-evaluate the window properties
+    XFlush(display);
+}
 void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
                                   char *data)
 {
