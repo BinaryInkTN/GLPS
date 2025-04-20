@@ -516,7 +516,7 @@ void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t win
     size_hints->flags = PMinSize | PMaxSize;
     size_hints->min_width = state ? width : INT_MAX;
     size_hints->min_height = state ? height : INT_MAX;
-    XSetWMNormalHints(wm->x11_ctx->display, wm->windows[window_id], size_hints);
+    XSetWMNormalHints(wm->x11_ctx->display, wm->windows[window_id]->window, size_hints);
     XFree(size_hints);
 }
 
