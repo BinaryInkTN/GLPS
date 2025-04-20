@@ -1,4 +1,3 @@
-#define GLPS_USE_X11
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -198,11 +197,8 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
-
-bool glps_x11_should_close(glps_WindowManager *wm)
-{
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
-    {
+bool glps_x11_should_close(glps_WindowManager *wm) {
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL) {
         LOG_CRITICAL("Invalid Window Manager state. Exiting...");
         return true;
     }
@@ -211,25 +207,20 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     XEvent event;
 
     int events_processed = 0;
-    while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME)
-    {
+    while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME) {
         XNextEvent(display, &event);
 
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
-        if (window_id < 0)
-        {
+        if (window_id < 0) {
             LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
 
-        switch (event.type)
-        {
+        switch (event.type) {
         case ClientMessage:
-            if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
-            {
+            if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window) {
                 LOG_INFO("Window close request for window %zd", window_id);
-                if (wm->callbacks.window_close_callback)
-                {
+                if (wm->callbacks.window_close_callback) {
                     wm->callbacks.window_close_callback(
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
@@ -241,8 +232,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         case DestroyNotify:
             LOG_INFO("Window %zd destroyed", window_id);
-            if (wm->callbacks.window_close_callback)
-            {
+            if (wm->callbacks.window_close_callback) {
                 wm->callbacks.window_close_callback(
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
@@ -251,8 +241,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             return (wm->window_count == 0);
 
         case ConfigureNotify:
-            if (wm->callbacks.window_resize_callback)
-            {
+            if (wm->callbacks.window_resize_callback) {
                 wm->callbacks.window_resize_callback(
                     (size_t)window_id,
                     event.xconfigure.width,
@@ -262,8 +251,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case MotionNotify:
-            if (wm->callbacks.mouse_move_callback)
-            {
+            if (wm->callbacks.mouse_move_callback) {
                 wm->callbacks.mouse_move_callback(
                     (size_t)window_id,
                     event.xmotion.x,
@@ -273,43 +261,37 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case ButtonPress:
-            switch (event.xbutton.button)
-            {
-            case 4:
-                if (wm->callbacks.mouse_scroll_callback)
-                {
+            switch (event.xbutton.button) {
+            case 4: 
+                if (wm->callbacks.mouse_scroll_callback) {
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
                                                       GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
                                                       false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 5:
-                if (wm->callbacks.mouse_scroll_callback)
-                {
+                if (wm->callbacks.mouse_scroll_callback) {
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
                                                       GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
                                                       false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
-            case 6:
-                if (wm->callbacks.mouse_scroll_callback)
-                {
+            case 6: 
+                if (wm->callbacks.mouse_scroll_callback) {
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
                                                       GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
                                                       false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
-            case 7:
-                if (wm->callbacks.mouse_scroll_callback)
-                {
+            case 7: 
+                if (wm->callbacks.mouse_scroll_callback) {
                     wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
                                                       GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
                                                       false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             default:
-                if (wm->callbacks.mouse_click_callback)
-                {
+                if (wm->callbacks.mouse_click_callback) {
                     wm->callbacks.mouse_click_callback(
                         (size_t)window_id,
                         true,
@@ -320,18 +302,25 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case ButtonRelease:
-            if (wm->callbacks.mouse_click_callback)
-            {
-                wm->callbacks.mouse_click_callback(
-                    (size_t)window_id,
-                    false,
-                    wm->callbacks.mouse_click_data);
+            switch (event.xbutton.button) {
+            case 4: // Wheel Up
+            case 5: // Wheel Down
+            case 6: // Wheel Left
+            case 7: // Wheel Right
+                break;
+            default:
+                if (wm->callbacks.mouse_click_callback) {
+                    wm->callbacks.mouse_click_callback(
+                        (size_t)window_id,
+                        false,
+                        wm->callbacks.mouse_click_data);
+                }
+                break;
             }
             break;
 
         case KeyPress:
-            if (wm->callbacks.keyboard_callback)
-            {
+            if (wm->callbacks.keyboard_callback) {
                 char buf[32];
                 KeySym keysym;
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
@@ -344,8 +333,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case KeyRelease:
-            if (wm->callbacks.keyboard_callback)
-            {
+            if (wm->callbacks.keyboard_callback) {
                 char buf[32];
                 KeySym keysym;
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
@@ -358,8 +346,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             break;
 
         case Expose:
-            if (wm->callbacks.window_frame_update_callback)
-            {
+            if (wm->callbacks.window_frame_update_callback) {
                 wm->callbacks.window_frame_update_callback(
                     (size_t)window_id,
                     wm->callbacks.window_frame_update_data);
