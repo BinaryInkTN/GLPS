@@ -593,4 +593,8 @@ void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t wind
 #ifdef GLPS_USE_WAYLAND
   glps_wl_window_is_resizable(wm, state, window_id);
 #endif
+
+#ifdef GLPS_USE_X11
+  void glps_x11_window_is_resizable(wm, state, window_id);
+#endif
 }

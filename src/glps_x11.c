@@ -1,3 +1,4 @@
+#define GLPS_USE_X11
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include "utils/logger/pico_logger.h"
@@ -151,7 +152,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     }
 
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                   &wm->x11_ctx->wm_delete_window, 1);
+                    &wm->x11_ctx->wm_delete_window, 1);
 
     long event_mask =
         PointerMotionMask |   // Mouse movement
@@ -163,7 +164,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         ExposureMask;         // Expose events
 
     int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
-                             event_mask);
+                              event_mask);
     if (result == BadWindow)
     {
         LOG_ERROR("Failed to select input events");
@@ -176,7 +177,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     {
         wm->windows[wm->window_count]->egl_surface =
             eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
-                                  (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
+                                   (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
         if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE)
         {
             LOG_ERROR("Failed to create EGL surface");
@@ -197,8 +198,10 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
-bool glps_x11_should_close(glps_WindowManager *wm) {
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL) {
+bool glps_x11_should_close(glps_WindowManager *wm)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
+    {
         LOG_CRITICAL("Invalid Window Manager state. Exiting...");
         return true;
     }
@@ -207,20 +210,25 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
     XEvent event;
 
     int events_processed = 0;
-    while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME) {
+    while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME)
+    {
         XNextEvent(display, &event);
 
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
-        if (window_id < 0) {
+        if (window_id < 0)
+        {
             LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
 
-        switch (event.type) {
+        switch (event.type)
+        {
         case ClientMessage:
-            if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window) {
+            if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
+            {
                 LOG_INFO("Window close request for window %zd", window_id);
-                if (wm->callbacks.window_close_callback) {
+                if (wm->callbacks.window_close_callback)
+                {
                     wm->callbacks.window_close_callback(
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
@@ -232,7 +240,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
 
         case DestroyNotify:
             LOG_INFO("Window %zd destroyed", window_id);
-            if (wm->callbacks.window_close_callback) {
+            if (wm->callbacks.window_close_callback)
+            {
                 wm->callbacks.window_close_callback(
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
@@ -241,7 +250,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             return (wm->window_count == 0);
 
         case ConfigureNotify:
-            if (wm->callbacks.window_resize_callback) {
+            if (wm->callbacks.window_resize_callback)
+            {
                 wm->callbacks.window_resize_callback(
                     (size_t)window_id,
                     event.xconfigure.width,
@@ -251,7 +261,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case MotionNotify:
-            if (wm->callbacks.mouse_move_callback) {
+            if (wm->callbacks.mouse_move_callback)
+            {
                 wm->callbacks.mouse_move_callback(
                     (size_t)window_id,
                     event.xmotion.x,
@@ -261,37 +272,43 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case ButtonPress:
-            switch (event.xbutton.button) {
-            case 4: 
-                if (wm->callbacks.mouse_scroll_callback) {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
-                                                      GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
-                                                      false, wm->callbacks.mouse_scroll_data);
+            switch (event.xbutton.button)
+            {
+            case 4:
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS,
+                                                        GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f,
+                                                        false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             case 5:
-                if (wm->callbacks.mouse_scroll_callback) {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS, 
-                                                      GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
-                                                      false, wm->callbacks.mouse_scroll_data);
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_V_AXIS,
+                                                        GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f,
+                                                        false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
-            case 6: 
-                if (wm->callbacks.mouse_scroll_callback) {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
-                                                      GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f, 
-                                                      false, wm->callbacks.mouse_scroll_data);
+            case 6:
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS,
+                                                        GLPS_SCROLL_SOURCE_WHEEL, -1.0f, -1.0f,
+                                                        false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
-            case 7: 
-                if (wm->callbacks.mouse_scroll_callback) {
-                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS, 
-                                                      GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f, 
-                                                      false, wm->callbacks.mouse_scroll_data);
+            case 7:
+                if (wm->callbacks.mouse_scroll_callback)
+                {
+                    wm->callbacks.mouse_scroll_callback((size_t)window_id, GLPS_SCROLL_H_AXIS,
+                                                        GLPS_SCROLL_SOURCE_WHEEL, 1.0f, 1.0f,
+                                                        false, wm->callbacks.mouse_scroll_data);
                 }
                 break;
             default:
-                if (wm->callbacks.mouse_click_callback) {
+                if (wm->callbacks.mouse_click_callback)
+                {
                     wm->callbacks.mouse_click_callback(
                         (size_t)window_id,
                         true,
@@ -302,14 +319,16 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case ButtonRelease:
-            switch (event.xbutton.button) {
+            switch (event.xbutton.button)
+            {
             case 4: // Wheel Up
             case 5: // Wheel Down
             case 6: // Wheel Left
             case 7: // Wheel Right
                 break;
             default:
-                if (wm->callbacks.mouse_click_callback) {
+                if (wm->callbacks.mouse_click_callback)
+                {
                     wm->callbacks.mouse_click_callback(
                         (size_t)window_id,
                         false,
@@ -320,7 +339,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case KeyPress:
-            if (wm->callbacks.keyboard_callback) {
+            if (wm->callbacks.keyboard_callback)
+            {
                 char buf[32];
                 KeySym keysym;
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
@@ -333,7 +353,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case KeyRelease:
-            if (wm->callbacks.keyboard_callback) {
+            if (wm->callbacks.keyboard_callback)
+            {
                 char buf[32];
                 KeySym keysym;
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
@@ -346,7 +367,8 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             break;
 
         case Expose:
-            if (wm->callbacks.window_frame_update_callback) {
+            if (wm->callbacks.window_frame_update_callback)
+            {
                 wm->callbacks.window_frame_update_callback(
                     (size_t)window_id,
                     wm->callbacks.window_frame_update_data);
@@ -360,7 +382,6 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
 
     return (wm->window_count == 0);
 }
-
 
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
@@ -472,6 +493,31 @@ void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
     XGetGeometry(wm->x11_ctx->display, wm->windows[window_id]->window, &root,
                  &x, &y, (unsigned int *)width, (unsigned int *)height,
                  &border_width, &depth);
+}
+
+void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
+        window_id >= wm->window_count || wm->windows[window_id] == NULL)
+    {
+        LOG_ERROR("Invalid parameters for window_is_resizable");
+        return;
+    }
+
+    Window root;
+    int x, y;
+    int width, height;
+    unsigned int border_width, depth;
+    XGetGeometry(wm->x11_ctx->display, wm->windows[window_id]->window, &root,
+                 &x, &y, (unsigned int *)&width, (unsigned int *)&height,
+                 &border_width, &depth);
+
+    XSizeHints *size_hints = XAllocSizeHints();
+    size_hints->flags = PMinSize | PMaxSize;
+    size_hints->min_width = state ? width : INT_MAX;
+    size_hints->min_height = state ? height : INT_MAX;
+    XSetWMNormalHints(wm->x11_ctx->display, wm->windows[window_id], size_hints);
+    XFree(size_hints);
 }
 
 void glps_x11_attach_to_clipboard(glps_WindowManager *wm, char *mime,
