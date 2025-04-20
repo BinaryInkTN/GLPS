@@ -382,10 +382,12 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
     {
         return;
     }
-#
+
     wm->callbacks.window_frame_update_callback(
         window_id,
         wm->callbacks.window_frame_update_data);
+
+    XSync(wm->x11_ctx->display, False);
 }
 void glps_x11_destroy(glps_WindowManager *wm)
 {
