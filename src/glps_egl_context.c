@@ -68,7 +68,8 @@ void glps_egl_create_ctx(glps_WindowManager *wm) {
   wm->egl_ctx->ctx = eglCreateContext(wm->egl_ctx->dpy, wm->egl_ctx->conf,
                                       EGL_NO_CONTEXT, context_attribs);
   if (wm->egl_ctx->ctx == EGL_NO_CONTEXT) {
-    fprintf(stderr, "Failed to create EGL context\n");
+    EGLint error = eglGetError();
+    printf("EGL Error: 0x%X\n", error);  // Debug the error code
     exit(EXIT_FAILURE);
   }
 }
