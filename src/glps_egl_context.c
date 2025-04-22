@@ -57,13 +57,9 @@ void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
 
 void glps_egl_create_ctx(glps_WindowManager *wm) {
   static const EGLint context_attribs[] = {
-      EGL_CONTEXT_MAJOR_VERSION,
-      4,
-      EGL_CONTEXT_MINOR_VERSION,
-      5,
-      EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
-      EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
-      EGL_NONE};
+    EGL_CONTEXT_CLIENT_VERSION, 3,  // Request OpenGL ES 3.0
+    EGL_NONE
+};
 
   wm->egl_ctx->ctx = eglCreateContext(wm->egl_ctx->dpy, wm->egl_ctx->conf,
                                       EGL_NO_CONTEXT, context_attribs);
