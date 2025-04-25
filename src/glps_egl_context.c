@@ -1,5 +1,4 @@
 
-
 #include <glps_egl_context.h>
 #include "utils/logger/pico_logger.h"
 
