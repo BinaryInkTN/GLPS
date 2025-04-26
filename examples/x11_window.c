@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 
     glps_audio_stream_pause(am);
     glps_audio_stream_resume(am);
-    glps_audio_stream_set_volume(am, 0.2f);
+    glps_audio_stream_set_volume(am, 1.0f);
     // Main loop
     while (!glps_wm_should_close(wm))
     {

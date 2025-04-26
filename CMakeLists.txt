@@ -39,6 +39,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
 elseif(UNIX AND NOT APPLE)
 
+set(ALSA_INSTALLER "${PROJECT_SOURCE_DIR}/scripts/alsa.sh")
+execute_process(
+COMMAND bash ${ALSA_INSTALLER}
+)
 execute_process(
         COMMAND bash -c "echo $XDG_SESSION_TYPE"
         OUTPUT_VARIABLE CURRENT_SESSION_TYPE
@@ -145,6 +149,7 @@ if(UNIX AND NOT APPLE)
         /usr/include/libdrm
         /usr/include/libpng12
         /usr/include
+        /usr/include/alsa
     )
 endif()
 
