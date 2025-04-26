@@ -2,7 +2,7 @@
 
 #ifndef GLPS_TIMER_H
 #define GLPS_TIMER_H
-
+#include <stdlib.h>
 #ifdef GLPS_USE_WIN32
 #include <windows.h>
 #else
@@ -21,9 +21,11 @@ typedef struct
 #endif
 } glps_timer;
 
+glps_timer *glps_timer_init(void);
 void glps_timer_start(glps_timer *timer);
 void glps_timer_stop(glps_timer *timer);
 double glps_timer_elapsed_ms(glps_timer *timer);
 double glps_timer_elapsed_us(glps_timer *timer);
+void glps_timer_destroy(glps_timer *timer);
 
 #endif

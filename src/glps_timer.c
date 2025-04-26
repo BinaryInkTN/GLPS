@@ -2,7 +2,19 @@
 
 #include <stdio.h>
 
-void glps_timer_start(glps_timer* timer) {
+glps_timer *glps_timer_init(void)
+{
+    glps_timer *timer = (glps_timer *)calloc(1, sizeof(glps_timer));
+    if (!timer)
+    {
+        fprintf(stderr, "Failed to allocate memory for timer\n");
+        return NULL;
+    }
+}
+
+
+void glps_timer_start(glps_timer *timer)
+{
 #ifdef GLPS_USE_WIN32
     QueryPerformanceFrequency(&timer->frequency);
     QueryPerformanceCounter(&timer->start);
@@ -11,7 +23,8 @@ void glps_timer_start(glps_timer* timer) {
 #endif
 }
 
-void glps_timer_stop(glps_timer* timer) {
+void glps_timer_stop(glps_timer *timer)
+{
 #ifdef GLPS_USE_WIN32
     QueryPerformanceCounter(&timer->end);
 #else
@@ -19,7 +32,8 @@ void glps_timer_stop(glps_timer* timer) {
 #endif
 }
 
-double glps_timer_elapsed_ms(glps_timer* timer) {
+double glps_timer_elapsed_ms(glps_timer *timer)
+{
 #ifdef GLPS_USE_WIN32
     return ((timer->end.QuadPart - timer->start.QuadPart) * 1000.0) / timer->frequency.QuadPart;
 #else
@@ -29,7 +43,8 @@ double glps_timer_elapsed_ms(glps_timer* timer) {
 #endif
 }
 
-double glps_timer_elapsed_us(glps_timer* timer) {
+double glps_timer_elapsed_us(glps_timer *timer)
+{
 #ifdef GLPS_USE_WIN32
     return ((timer->end.QuadPart - timer->start.QuadPart) * 1000000.0) / timer->frequency.QuadPart;
 #else
@@ -37,4 +52,12 @@ double glps_timer_elapsed_us(glps_timer* timer) {
     long nanoseconds = timer->end.tv_nsec - timer->start.tv_nsec;
     return (seconds * 1000000.0) + (nanoseconds / 1000.0);
 #endif
+}
+
+void glps_timer_destroy(glps_timer *timer)
+{
+    if (timer)
+    {
+        free(timer);
+    }
 }

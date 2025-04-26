@@ -87,7 +87,7 @@ execute_process(
                 internal/utils/logger/pico_logger.h
                 include/glps_thread.h
                 include/glps_audio_stream.h
-                internal/dr_mp3.h
+                internal/utils/audio/dr_mp3.h
                 include/glps_timer.h
 
                 # internal/xdg/wlr-data-control-unstable-v1.h
@@ -130,8 +130,8 @@ execute_process(
             include/glps_window_manager.h
             include/glps_thread.h
             include/glps_audio_stream.h
-            internal/dr_mp3.h
-            internal/glps_timer.h
+            internal/utils/audio/dr_mp3.h
+            include/glps_timer.h
             )
 
             add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})

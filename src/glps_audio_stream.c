@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #define DR_MP3_IMPLEMENTATION
-#include "dr_mp3.h"
+#include "utils/audio/dr_mp3.h"
 
 #define BUFFER_FRAMES 4096
 #define DEFAULT_DEVICE "default"
