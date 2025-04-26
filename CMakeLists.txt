@@ -20,6 +20,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
         src/glps_thread.c
+        src/glps_timer.c
     )
 
     set(GLPS_HEADERS
@@ -29,6 +30,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         internal/glps_win32.h
         internal/glps_common.h
         internal/utils/logger/pico_logger.h
+        include/glps_timer.h
     )
 
     add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
@@ -70,6 +72,7 @@ execute_process(
                 src/glps_egl_context.c
                 src/glps_thread.c
                 src/glps_audio_stream.c
+                src/glps_timer.c
             )
             
             file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
@@ -85,6 +88,7 @@ execute_process(
                 include/glps_thread.h
                 include/glps_audio_stream.h
                 internal/dr_mp3.h
+                include/glps_timer.h
 
                 # internal/xdg/wlr-data-control-unstable-v1.h
                 # internal/xdg/xdg-decorations.h
@@ -99,7 +103,7 @@ execute_process(
 
             target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_WAYLAND)
          #   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-            target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread asound)
+            target_link_libraries(${PROJECT_NAME} PRIVATE m EGL wayland-client wayland-server wayland-cursor wayland-egl xkbcommon pthread asound rt)
         else()
             message("Found Wayland but couldn't locate required packages.")
 
@@ -114,7 +118,7 @@ execute_process(
             src/utils/logger/pico_logger.c
             src/glps_thread.c
             src/glps_audio_stream.c
-
+            src/glps_timer.c
 
             )
 
@@ -127,13 +131,14 @@ execute_process(
             include/glps_thread.h
             include/glps_audio_stream.h
             internal/dr_mp3.h
+            internal/glps_timer.h
             )
 
             add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
             target_compile_definitions(${PROJECT_NAME} PRIVATE GLPS_USE_X11)
          #   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -g3 -fsanitize=address,undefined)
-            target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread asound)
+            target_link_libraries(${PROJECT_NAME} PRIVATE X11 EGL pthread asound rt)
     endif()
 else()
     message(FATAL_ERROR "Unsupported platform")
