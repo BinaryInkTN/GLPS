@@ -453,7 +453,7 @@ void wl_keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
     wm->callbacks.keyboard_callback(
         context->keyboard_window_id,
         state == WL_KEYBOARD_KEY_STATE_PRESSED ? true : false,
-        (utf8[0] != '\0' ? utf8 : name), wm->callbacks.keyboard_data);
+        (utf8[0] != '\0' ? utf8 : name), keycode, wm->callbacks.keyboard_data);
   }
 }
 
@@ -1236,7 +1236,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     wl_callback_destroy(callback);
   }
 
-
   if (window->wl_surface)
   {
     window->frame_callback = wl_surface_frame(window->wl_surface);
@@ -1568,7 +1567,6 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t wind
   xdg_toplevel_set_min_size(window->xdg_toplevel, state ? 0 : window_width, state ? 0 : window_height);
   xdg_toplevel_set_max_size(window->xdg_toplevel, state ? INT32_MAX : window_width, state ? INT32_MAX : window_height);
 }
-
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {

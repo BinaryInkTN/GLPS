@@ -349,10 +349,17 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 char buf[32];
                 KeySym keysym;
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
+                KeyCode keycode = XKeysymToKeycode(wm->x11_ctx->display, keysym);
+                if (keycode == 0)
+                {
+                    LOG_ERROR("Keycode not found for keysym %lu", keysym);
+                    break;
+                }
                 wm->callbacks.keyboard_callback(
                     (size_t)window_id,
                     true,
                     buf,
+                    keycode,
                     wm->callbacks.keyboard_data);
             }
             break;
@@ -362,11 +369,21 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             {
                 char buf[32];
                 KeySym keysym;
+
                 XLookupString(&event.xkey, buf, sizeof(buf), &keysym, NULL);
+                KeyCode keycode = XKeysymToKeycode(wm->x11_ctx->display, keysym);
+                if (keycode == 0)
+                {
+                    LOG_ERROR("Keycode not found for keysym %lu", keysym);
+                    break;
+                }
+
+                LOG_INFO("%lu", keycode);
                 wm->callbacks.keyboard_callback(
                     (size_t)window_id,
                     false,
                     buf,
+                    keycode,
                     wm->callbacks.keyboard_data);
             }
             break;
@@ -510,7 +527,7 @@ void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t win
         return;
     }
 
-    Display* display = wm->x11_ctx->display;
+    Display *display = wm->x11_ctx->display;
     Window win = wm->windows[window_id]->window;
 
     Window root;

@@ -93,7 +93,7 @@ struct glps_Callback
       size_t window_id, void *data); /**< Callback for keyboard enter. */
   void (*keyboard_leave_callback)(
       size_t window_id, void *data); /**< Callback for keyboard leave. */
-  void (*keyboard_callback)(size_t window_id, bool state, const char *value,
+  void (*keyboard_callback)(size_t window_id, bool state, const char *value, unsigned long keycode,
                             void *data); /**< Callback for keyboard input. */
   void (*mouse_enter_callback)(size_t window_id, double mouse_x, double mouse_y,
                                void *data); /**< Callback for mouse enter. */

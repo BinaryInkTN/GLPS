@@ -7,12 +7,16 @@
 #define MAX_PATH_LENGTH MAX_PATH
 #define MAX_MIME_LENGTH 64
 
-ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd) {
-  if (wm == NULL) {
+ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd)
+{
+  if (wm == NULL)
+  {
     return -1;
   }
-  for (SIZE_T i = 0; i < wm->window_count; ++i) {
-    if (wm->windows[i]->hwnd == hwnd) {
+  for (SIZE_T i = 0; i < wm->window_count; ++i)
+  {
+    if (wm->windows[i]->hwnd == hwnd)
+    {
       return i;
     }
   }
@@ -20,8 +24,10 @@ ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd) {
   return -1;
 }
 
-void __get_special_key_name(UINT wParam, char *char_value, size_t size) {
-  switch (wParam) {
+void __get_special_key_name(UINT wParam, char *char_value, size_t size)
+{
+  switch (wParam)
+  {
   case VK_ESCAPE:
     strncpy(char_value, "Escape", size);
     break;
@@ -106,38 +112,46 @@ void __get_special_key_name(UINT wParam, char *char_value, size_t size) {
 }
 
 void glps_win32_attach_to_clipboard(glps_WindowManager *wm, char *mime,
-                                    char *data) {
+                                    char *data)
+{
 
-  if (!OpenClipboard(NULL)) {
+  if (!OpenClipboard(NULL))
+  {
     LOG_ERROR("Failed to open clipboard.");
     return;
   }
 
-  if (!EmptyClipboard()) {
+  if (!EmptyClipboard())
+  {
     LOG_ERROR("Failed to empty clipboard.");
     CloseClipboard();
     return;
   }
 
   HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, strlen(data) + 1);
-  if (!hGlobal) {
+  if (!hGlobal)
+  {
     LOG_ERROR("Failed to allocate global memory.");
     CloseClipboard();
     return;
   }
 
   char *pGlobal = (char *)GlobalLock(hGlobal);
-  if (pGlobal) {
+  if (pGlobal)
+  {
     strcpy(pGlobal, data);
     GlobalUnlock(hGlobal);
-  } else {
+  }
+  else
+  {
     LOG_ERROR("Failed to lock global memory.\n");
     GlobalFree(hGlobal);
     CloseClipboard();
     return;
   }
 
-  if (!SetClipboardData(CF_TEXT, hGlobal)) {
+  if (!SetClipboardData(CF_TEXT, hGlobal))
+  {
     LOG_ERROR("Failed to set clipboard data.");
     GlobalFree(hGlobal);
   }
@@ -145,21 +159,25 @@ void glps_win32_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 }
 
 void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data,
-                                   size_t data_size) {
-  if (!OpenClipboard(NULL)) {
+                                   size_t data_size)
+{
+  if (!OpenClipboard(NULL))
+  {
     LOG_ERROR("Failed to open clipboard.");
     return;
   }
 
   HANDLE hData = GetClipboardData(CF_TEXT);
-  if (!hData) {
+  if (!hData)
+  {
     LOG_ERROR("Failed to get clipboard data.");
     CloseClipboard();
     return;
   }
 
   char *pText = (char *)GlobalLock(hData);
-  if (!pText) {
+  if (!pText)
+  {
     printf("Failed to lock clipboard data.");
     CloseClipboard();
     return;
@@ -174,16 +192,19 @@ void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data,
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
-                                LPARAM lParam) {
+                                LPARAM lParam)
+{
   glps_WindowManager *wm =
       (glps_WindowManager *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   ssize_t window_id = __get_window_id_from_hwnd(wm, hwnd);
   POINT p = {.x = -1, .y = -1};
   static bool key_states[256] = {false};
 
-  switch (msg) {
+  switch (msg)
+  {
   case WM_DESTROY:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
@@ -200,7 +221,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     */
     wm->window_count--;
 
-    if (wm->window_count == 0) {
+    if (wm->window_count == 0)
+    {
       PostQuitMessage(0);
     }
     break;
@@ -208,15 +230,19 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   /* ======== Keyboard Input ========= */
   case WM_KEYDOWN:
 
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (!(lParam & 0x40000000)) { // Prevent auto-repeat
-      if (wParam < 256 && !key_states[wParam]) {
+    if (!(lParam & 0x40000000))
+    { // Prevent auto-repeat
+      if (wParam < 256 && !key_states[wParam])
+      {
         key_states[wParam] = true;
 
-        if (wm->callbacks.keyboard_callback) {
+        if (wm->callbacks.keyboard_callback)
+        {
           char key_name[32] = {0};
           GetKeyNameTextA(lParam, key_name, sizeof(key_name));
 
@@ -227,18 +253,20 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
           char char_value[32] = {0};
 
           if (ToUnicode(wParam, (lParam >> 16) & 0xFF, keyboardState,
-                        &unicodeChar, 1, 0) == 1) {
+                        &unicodeChar, 1, 0) == 1)
+          {
             WideCharToMultiByte(CP_UTF8, 0, &unicodeChar, 1, char_value,
                                 sizeof(char_value), NULL, NULL);
           }
-
-          if (char_value[0] == '\0') {
+          unsigned long keycode = MapVirtualKey(wParam, MAPVK_VK_TO_VSC);
+          if (char_value[0] == '\0')
+          {
             __get_special_key_name(wParam, char_value, sizeof(char_value));
             if (char_value[0] == '\0')
               strncpy(char_value, key_name, sizeof(char_value) - 1);
           }
 
-          wm->callbacks.keyboard_callback(window_id, true, char_value,
+          wm->callbacks.keyboard_callback(window_id, true, char_value, keycode,
                                           wm->callbacks.keyboard_data);
         }
       }
@@ -247,14 +275,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
   case WM_KEYUP:
 
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (wParam < 256) {
+    if (wParam < 256)
+    {
       key_states[wParam] = false;
 
-      if (wm->callbacks.keyboard_callback) {
+      if (wm->callbacks.keyboard_callback)
+      {
         char key_name[32] = {0};
         GetKeyNameTextA(lParam, key_name, sizeof(key_name));
 
@@ -265,18 +296,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         char char_value[32] = {0};
 
         if (ToUnicode(wParam, (lParam >> 16) & 0xFF, keyboardState,
-                      &unicodeChar, 1, 0) == 1) {
+                      &unicodeChar, 1, 0) == 1)
+        {
           WideCharToMultiByte(CP_UTF8, 0, &unicodeChar, 1, char_value,
                               sizeof(char_value), NULL, NULL);
         }
+        unsigned long keycode = MapVirtualKey(wParam, MAPVK_VK_TO_VSC);
 
-        if (char_value[0] == '\0') {
+        if (char_value[0] == '\0')
+        {
           __get_special_key_name(wParam, char_value, sizeof(char_value));
           if (char_value[0] == '\0')
             strncpy(char_value, key_name, sizeof(char_value) - 1);
         }
 
-        wm->callbacks.keyboard_callback(window_id, false, char_value,
+        wm->callbacks.keyboard_callback(window_id, false, char_value, keycode,
                                         wm->callbacks.keyboard_data);
       }
     }
@@ -285,11 +319,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     /* ======= Window focus ======= */
   case WM_SETFOCUS:
 
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (wm->callbacks.keyboard_enter_callback) {
+    if (wm->callbacks.keyboard_enter_callback)
+    {
       wm->callbacks.keyboard_enter_callback(window_id,
                                             wm->callbacks.keyboard_enter_data);
     }
@@ -298,11 +334,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
   case WM_KILLFOCUS:
 
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (wm->callbacks.keyboard_leave_callback) {
+    if (wm->callbacks.keyboard_leave_callback)
+    {
       wm->callbacks.keyboard_leave_callback(window_id,
                                             wm->callbacks.keyboard_leave_data);
     }
@@ -310,16 +348,19 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     break;
 
     /* ======== Rendering ========= */
-  case WM_PAINT: {
+  case WM_PAINT:
+  {
     PAINTSTRUCT ps;
 
     HDC hdc = BeginPaint(hwnd, &ps);
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       EndPaint(hwnd, &ps);
       break;
     }
 
-    if (wm->callbacks.window_frame_update_callback) {
+    if (wm->callbacks.window_frame_update_callback)
+    {
       wm->callbacks.window_frame_update_callback(
           window_id, wm->callbacks.window_frame_update_data);
     }
@@ -334,14 +375,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     break;
 
   case WM_SIZE:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       return -1;
     }
     RECT rect;
-    if (GetWindowRect(hwnd, &rect)) {
+    if (GetWindowRect(hwnd, &rect))
+    {
       int width = rect.right - rect.left;
       int height = rect.bottom - rect.top;
-      if (wm->callbacks.window_resize_callback) {
+      if (wm->callbacks.window_resize_callback)
+      {
         wm->callbacks.window_resize_callback(window_id, width, height,
                                              wm->callbacks.window_resize_data);
       }
@@ -350,17 +394,20 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     break;
   /* =========== Mouse Input ============ */
   case WM_MOUSEMOVE:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
     static bool is_mouse_in_window = false;
     GetCursorPos(&p);
     ScreenToClient(hwnd, &p);
 
-    if (!is_mouse_in_window) {
+    if (!is_mouse_in_window)
+    {
       is_mouse_in_window = true;
 
-      if (wm->callbacks.mouse_enter_callback) {
+      if (wm->callbacks.mouse_enter_callback)
+      {
         wm->callbacks.mouse_enter_callback(window_id, (double)p.x, (double)p.y,
                                            wm->callbacks.mouse_enter_data);
       }
@@ -372,7 +419,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
       TrackMouseEvent(&tme);
     }
 
-    if (wm->callbacks.mouse_move_callback) {
+    if (wm->callbacks.mouse_move_callback)
+    {
       wm->callbacks.mouse_move_callback(window_id, (double)p.x, (double)p.y,
                                         wm->callbacks.mouse_move_data);
     }
@@ -383,36 +431,42 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   case WM_MOUSELEAVE:
     is_mouse_in_window = false;
 
-    if (wm && wm->callbacks.mouse_leave_callback) {
+    if (wm && wm->callbacks.mouse_leave_callback)
+    {
       wm->callbacks.mouse_leave_callback(window_id,
                                          wm->callbacks.mouse_leave_data);
     }
     break;
 
   case WM_LBUTTONDOWN:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (wm->callbacks.mouse_click_callback) {
+    if (wm->callbacks.mouse_click_callback)
+    {
       wm->callbacks.mouse_click_callback(window_id, true,
                                          wm->callbacks.mouse_click_data);
     }
     break;
 
   case WM_LBUTTONUP:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
 
-    if (wm->callbacks.mouse_click_callback) {
+    if (wm->callbacks.mouse_click_callback)
+    {
       wm->callbacks.mouse_click_callback(window_id, false,
                                          wm->callbacks.mouse_click_data);
     }
     break;
 
   case WM_MOUSEWHEEL:
-    if (window_id < 0 || wm == NULL) {
+    if (window_id < 0 || wm == NULL)
+    {
       break;
     }
     DOUBLE delta = (DOUBLE)(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
@@ -422,7 +476,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     GLPS_SCROLL_SOURCE source =
         extra_info == 0 ? GLPS_SCROLL_SOURCE_WHEEL : GLPS_SCROLL_SOURCE_FINGER;
 
-    if (wm->callbacks.mouse_scroll_callback) {
+    if (wm->callbacks.mouse_scroll_callback)
+    {
       // TODO: impl discrete and is_stopped
       wm->callbacks.mouse_scroll_callback(window_id, GLPS_SCROLL_V_AXIS, source,
                                           delta, -1, false,
@@ -430,8 +485,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     }
     break;
 
-  case WM_DROPFILES: {
-    if (window_id < 0 || wm == NULL) {
+  case WM_DROPFILES:
+  {
+    if (window_id < 0 || wm == NULL)
+    {
       return -1;
     }
 
@@ -442,14 +499,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     CHAR mime_types[MAX_MIME_LENGTH * MAX_FILES] = {0};
 
     UINT count = DragQueryFileW(hDropInfo, 0xFFFFFFFF, NULL, 0);
-    if (count == 0) {
+    if (count == 0)
+    {
       LOG_ERROR("No files dropped.\n");
       DragFinish(hDropInfo);
       return -1;
     }
 
-    for (UINT i = 0; i < count; ++i) {
-      if (DragQueryFileW(hDropInfo, i, filename, MAX_PATH_LENGTH) == 0) {
+    for (UINT i = 0; i < count; ++i)
+    {
+      if (DragQueryFileW(hDropInfo, i, filename, MAX_PATH_LENGTH) == 0)
+      {
         LOG_ERROR("Failed to get filename for file %u.\n", i);
         continue;
       }
@@ -461,7 +521,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
       strcat(files, utf8_filename);
 
       WCHAR *extension = wcsrchr(filename, L'.');
-      if (extension == NULL) {
+      if (extension == NULL)
+      {
         LOG_ERROR("File %s has no extension.\n", utf8_filename);
         continue;
       }
@@ -471,22 +532,27 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
                                  RRF_RT_REG_SZ, NULL, mime, &data_size);
 
       CHAR utf8_mime[MAX_MIME_LENGTH] = {0};
-      if (result == ERROR_SUCCESS) {
+      if (result == ERROR_SUCCESS)
+      {
         WideCharToMultiByte(CP_UTF8, 0, mime, -1, utf8_mime, MAX_MIME_LENGTH,
                             NULL, NULL);
-      } else {
+      }
+      else
+      {
         strcpy(utf8_mime, "unknown");
       }
 
       strcat(mime_types, utf8_mime);
 
-      if (i != count - 1) {
+      if (i != count - 1)
+      {
         strcat(mime_types, ",");
         strcat(files, ",");
       }
     }
 
-    if (wm->callbacks.drag_n_drop_callback) {
+    if (wm->callbacks.drag_n_drop_callback)
+    {
       wm->callbacks.drag_n_drop_callback(window_id, mime_types, -1, -1, files,
                                          wm->callbacks.drag_n_drop_data);
     }
@@ -501,7 +567,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   return 0;
 }
 static void __init_window_class(glps_WindowManager *wm,
-                                const char *class_name) {
+                                const char *class_name)
+{
   HINSTANCE hInstance = GetModuleHandle(NULL);
 
   wm->wc = (WNDCLASSEX){0};
@@ -518,18 +585,21 @@ static void __init_window_class(glps_WindowManager *wm,
   wm->wc.lpszClassName = class_name;
   wm->wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-  if (!RegisterClassEx(&wm->wc)) {
+  if (!RegisterClassEx(&wm->wc))
+  {
     MessageBox(NULL, "Window Registration Failed!", "Error!",
                MB_ICONEXCLAMATION | MB_OK);
     return;
   }
 }
 
-void glps_win32_init(glps_WindowManager *wm) {
+void glps_win32_init(glps_WindowManager *wm)
+{
   __init_window_class(wm, "glpsWindowClass");
 
   wm->windows = malloc(sizeof(glps_Win32Window *) * MAX_WINDOWS);
-  if (!wm->windows) {
+  if (!wm->windows)
+  {
     LOG_ERROR("Failed to allocate memory for windows array");
     free(wm);
     return;
@@ -537,7 +607,8 @@ void glps_win32_init(glps_WindowManager *wm) {
 
   wm->win32_ctx = malloc(sizeof(glps_Win32Context));
   *wm->win32_ctx = (glps_Win32Context){0};
-  if (!wm->win32_ctx) {
+  if (!wm->win32_ctx)
+  {
     LOG_ERROR("Failed to allocate memory for WIN32 context");
     free(wm->windows);
     free(wm);
@@ -547,7 +618,8 @@ void glps_win32_init(glps_WindowManager *wm) {
   wm->window_count = 0;
 }
 
-static BOOL SetPixelFormatForOpenGL(HDC hdc) {
+static BOOL SetPixelFormatForOpenGL(HDC hdc)
+{
   PIXELFORMATDESCRIPTOR pfd = {sizeof(PIXELFORMATDESCRIPTOR),
                                1,
                                PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
@@ -577,13 +649,15 @@ static BOOL SetPixelFormatForOpenGL(HDC hdc) {
                                0};
 
   INT pixelFormat = ChoosePixelFormat(hdc, &pfd);
-  if (pixelFormat == 0) {
+  if (pixelFormat == 0)
+  {
     MessageBox(NULL, "ChoosePixelFormat failed!", "Error!",
                MB_ICONEXCLAMATION | MB_OK);
     return FALSE;
   }
 
-  if (!SetPixelFormat(hdc, pixelFormat, &pfd)) {
+  if (!SetPixelFormat(hdc, pixelFormat, &pfd))
+  {
     MessageBox(NULL, "SetPixelFormat failed!", "Error!",
                MB_ICONEXCLAMATION | MB_OK);
     return FALSE;
@@ -593,22 +667,26 @@ static BOOL SetPixelFormatForOpenGL(HDC hdc) {
 }
 
 void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
-                                      int *width, int *height) {
+                                      int *width, int *height)
+{
   RECT rect;
-  if (GetWindowRect(wm->windows[window_id]->hwnd, &rect)) {
+  if (GetWindowRect(wm->windows[window_id]->hwnd, &rect))
+  {
     *width = rect.right - rect.left;
     *height = rect.bottom - rect.top;
   }
 }
 
 ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title,
-                                 int width, int height) {
+                                 int width, int height)
+{
   HINSTANCE hInstance = GetModuleHandle(NULL);
 
   glps_Win32Window *win32_window =
       (glps_Win32Window *)malloc(sizeof(glps_Win32Window));
 
-  if (win32_window == NULL) {
+  if (win32_window == NULL)
+  {
     MessageBox(NULL, "Win32 Window allocation failed", "Error!",
                MB_ICONEXCLAMATION | MB_OK);
     return -1;
@@ -618,7 +696,8 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title,
       0, wm->wc.lpszClassName, title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
       CW_USEDEFAULT, width, height, NULL, NULL, hInstance, NULL);
 
-  if (win32_window->hwnd == NULL) {
+  if (win32_window->hwnd == NULL)
+  {
     MessageBox(NULL, "CreateWindowEx failed!", "Error!",
                MB_ICONEXCLAMATION | MB_OK);
     return -1;
@@ -626,14 +705,17 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title,
 
   win32_window->hdc = GetDC(win32_window->hwnd);
 
-  if (!SetPixelFormatForOpenGL(win32_window->hdc)) {
+  if (!SetPixelFormatForOpenGL(win32_window->hdc))
+  {
     ReleaseDC(win32_window->hwnd, win32_window->hdc);
     DestroyWindow(win32_window->hwnd);
     return -1;
   }
-  if (wm->window_count == 0) {
+  if (wm->window_count == 0)
+  {
     wm->win32_ctx->hglrc = wglCreateContext(win32_window->hdc);
-    if (!wm->win32_ctx->hglrc) {
+    if (!wm->win32_ctx->hglrc)
+    {
       MessageBox(NULL, "wglCreateContext failed!", "Error!",
                  MB_ICONEXCLAMATION | MB_OK);
       ReleaseDC(win32_window->hwnd, win32_window->hdc);
@@ -659,31 +741,38 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title,
   return wm->window_count++;
 }
 
-void glps_win32_destroy(glps_WindowManager *wm) {
-  for (size_t i = 0; i < wm->window_count; ++i) {
-    if (wm->windows[i] != NULL) {
+void glps_win32_destroy(glps_WindowManager *wm)
+{
+  for (size_t i = 0; i < wm->window_count; ++i)
+  {
+    if (wm->windows[i] != NULL)
+    {
       DragAcceptFiles(wm->windows[i]->hwnd, FALSE);
       free(wm->windows[i]);
       wm->windows[i] = NULL;
     }
   }
 
-  if (wm->windows != NULL) {
+  if (wm->windows != NULL)
+  {
     free(wm->windows);
     wm->windows = NULL;
   }
 
-  if (wm->win32_ctx != NULL) {
+  if (wm->win32_ctx != NULL)
+  {
     free(wm->win32_ctx);
     wm->win32_ctx = NULL;
   }
 
-  if (wm != NULL) {
+  if (wm != NULL)
+  {
     free(wm);
     wm = NULL;
   }
 }
 
-HDC glps_win32_get_window_hdc(glps_WindowManager *wm, size_t window_id) {
+HDC glps_win32_get_window_hdc(glps_WindowManager *wm, size_t window_id)
+{
   return wm->windows[window_id]->hdc;
 }

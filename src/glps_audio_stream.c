@@ -152,14 +152,14 @@ void *__audio_thread_func(void *arg)
         if(am->is_stopped)
         {
             playing = false;
-            LOG_INFO("Audio stream is stopped");
+            //LOG_INFO("Audio stream is stopped");
             break;
 
         }
 
         if (am->is_paused)
         {
-            LOG_INFO("Audio stream is paused");
+           // LOG_INFO("Audio stream is paused");
             continue;
         }
 
