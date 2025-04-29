@@ -142,25 +142,26 @@ void glps_wm_set_keyboard_leave_callback(
  * @param keyboard_callback Function to call on key events.
  * @note There is a known issue with some keys not returning values.
  */
+
 void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
                                    void (*keyboard_callback)(size_t window_id,
                                                              bool state,
                                                              const char *value,
+                                                             unsigned long keycode,
                                                              void *data),
                                    void *data);
+    /* ======= Mouse/Trackpad Events ======= */
 
-/* ======= Mouse/Trackpad Events ======= */
-
-/**
- * @brief Sets the callback for mouse enter events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_enter_callback Function to call when the mouse enters a window.
- */
-void glps_wm_set_mouse_enter_callback(
-    glps_WindowManager *wm,
-    void (*mouse_enter_callback)(size_t window_id, double mouse_x,
-                                 double mouse_y, void *data),
-    void *data);
+    /**
+     * @brief Sets the callback for mouse enter events.
+     * @param wm Pointer to the GLPS Window Manager.
+     * @param mouse_enter_callback Function to call when the mouse enters a window.
+     */
+    void glps_wm_set_mouse_enter_callback(
+        glps_WindowManager *wm,
+        void (*mouse_enter_callback)(size_t window_id, double mouse_x,
+                                     double mouse_y, void *data),
+        void *data);
 
 /**
  * @brief Sets the callback for mouse leave events.

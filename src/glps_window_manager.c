@@ -134,6 +134,7 @@ void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
                                    void (*keyboard_callback)(size_t window_id,
                                                              bool state,
                                                              const char *value,
+                                                             unsigned long keycode,
                                                              void *data),
                                    void *data)
 {

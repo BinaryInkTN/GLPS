@@ -221,7 +221,7 @@ void keyboard_enter_callback(size_t window_id, void *data)
     printf("Keyboard focus entered window %zu\n", window_id);
 }
 
-void keyboard_callback(size_t window_id, bool state, const char *value,
+void keyboard_callback(size_t window_id, bool state, const char *value, unsigned long keycode,
                        void *data)
 {
     printf("Key %s in window %zu: %s\n",
