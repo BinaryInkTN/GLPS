@@ -447,6 +447,8 @@ void wl_keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
   {
     utf8[0] = '\0';
   }
+  printf("%u \n", keycode);
+
   glps_WindowManager *wm = (glps_WindowManager *)data;
   if (wm->callbacks.keyboard_callback != NULL)
   {
