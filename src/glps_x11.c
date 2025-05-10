@@ -1,5 +1,6 @@
 #include "glps_x11.h"
 #include "glps_egl_context.h"
+#include <X11/Xatom.h>
 #include "utils/logger/pico_logger.h"
 
 #define MAX_EVENTS_PER_FRAME 10
@@ -201,6 +202,43 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     XFlush(wm->x11_ctx->display);
 
     return wm->window_count++;
+}
+
+void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id) {
+    Atom motif_hints = XInternAtom(wm->x11_ctx->display, "_MOTIF_WM_HINTS", False);
+    
+    if (motif_hints != None) {
+        typedef struct {
+            unsigned long flags;
+            unsigned long functions;
+            unsigned long decorations;
+            long input_mode;
+            unsigned long status;
+        } MotifWmHints;
+        
+        MotifWmHints hints;
+        hints.flags = 2;  // MWM_HINTS_DECORATIONS flag
+        hints.decorations = state ? 1 : 0;  // 1=enable, 0=disable
+        hints.functions = 0;
+        hints.input_mode = 0;
+        hints.status = 0;
+        
+        XChangeProperty(wm->x11_ctx->display, wm->windows[window_id]->window, motif_hints, motif_hints, 32,
+                       PropModeReplace, (unsigned char*)&hints, 5);
+    }
+
+    Atom net_wm_window_type = XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE", False);
+    Atom window_type = state ? 
+        XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_NORMAL", False) :
+        XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    
+    if (net_wm_window_type != None && window_type != None) {
+        XChangeProperty(wm->x11_ctx->display,  wm->windows[window_id]->window, net_wm_window_type, XA_ATOM, 32,
+                       PropModeReplace, (unsigned char*)&window_type, 1);
+    }
+
+    XFlush(wm->x11_ctx->display);
+    XSync(wm->x11_ctx->display, False);
 }
 
 bool glps_x11_should_close(glps_WindowManager *wm)

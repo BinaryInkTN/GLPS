@@ -262,4 +262,5 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id);
 
 void *glps_get_proc_addr(const char *name);
 
+void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id);
 #endif // GLPS_WINDOW_MANAGER_H

@@ -599,3 +599,13 @@ void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t wind
   glps_x11_window_is_resizable(wm, state, window_id);
 #endif
 }
+
+void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
+{
+#ifdef GLPS_USE_WAYLAND
+#endif
+
+#ifdef GLPS_USE_X11
+  glps_x11_toggle_window_decorations(wm, state, window_id);
+#endif
+}
