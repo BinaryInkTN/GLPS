@@ -21,5 +21,5 @@ void glps_x11_get_from_clipboard(glps_WindowManager *wm, char *data,
 bool glps_x11_should_close(glps_WindowManager *wm);
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id);
 void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
-
+void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id);
 #endif
