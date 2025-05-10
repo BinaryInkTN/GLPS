@@ -23,6 +23,7 @@
 #include <string.h>
 #include <time.h>
 #include <GLPS/glps_audio_stream.h>
+#include <GLPS/glps_timer.h>
 
 typedef struct
 {
@@ -253,8 +254,16 @@ void window_close_callback(size_t window_id, void *data)
     glps_wm_window_destroy(wm, window_id);
 }
 
+void hello_world()
+{
+    printf("test \n");
+}
+
 int main(int argc, char *argv[])
 {
+    glps_timer* timer = glps_timer_init();
+    glps_timer_start(timer, 3000, hello_world, NULL);
+
     glps_WindowManager *wm = glps_wm_init();
     if (!wm)
     {
@@ -328,6 +337,7 @@ int main(int argc, char *argv[])
     while (!glps_wm_should_close(wm))
     {
         glps_wm_window_update(wm, window_id);
+        glps_timer_check_and_call(timer);
     }
 
     // Cleanup

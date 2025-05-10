@@ -1,63 +1,73 @@
 #include "glps_timer.h"
+#include <stdlib.h>
+#include <unistd.h>
 
-#include <stdio.h>
+#ifdef _WIN32
+#include <windows.h>
+static uint64_t now_ms(void) {
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    ULARGE_INTEGER li = { .LowPart = ft.dwLowDateTime, .HighPart = ft.dwHighDateTime };
+    return li.QuadPart / 10000;
+}
+#else
+#include <sys/time.h>
+static uint64_t now_ms(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (uint64_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
+}
+#endif
 
 glps_timer *glps_timer_init(void)
 {
     glps_timer *timer = (glps_timer *)calloc(1, sizeof(glps_timer));
-    if (!timer)
-    {
-        fprintf(stderr, "Failed to allocate memory for timer\n");
-        return NULL;
-    }
+    return timer;
 }
 
-
-void glps_timer_start(glps_timer *timer)
+void glps_timer_start(glps_timer *timer, uint64_t duration_ms, timer_callback callback, void *arg)
 {
-#ifdef GLPS_USE_WIN32
-    QueryPerformanceFrequency(&timer->frequency);
-    QueryPerformanceCounter(&timer->start);
-#else
-    clock_gettime(CLOCK_MONOTONIC, &timer->start);
-#endif
+    if (timer)
+    {
+        timer->start_time_ms = now_ms();
+        timer->duration_ms = duration_ms;
+        timer->callback = callback;
+        timer->callback_arg = arg;
+    }
 }
 
 void glps_timer_stop(glps_timer *timer)
 {
-#ifdef GLPS_USE_WIN32
-    QueryPerformanceCounter(&timer->end);
-#else
-    clock_gettime(CLOCK_MONOTONIC, &timer->end);
-#endif
+    if (timer)
+        timer->end_time_ms = now_ms();
 }
 
 double glps_timer_elapsed_ms(glps_timer *timer)
 {
-#ifdef GLPS_USE_WIN32
-    return ((timer->end.QuadPart - timer->start.QuadPart) * 1000.0) / timer->frequency.QuadPart;
-#else
-    long seconds = timer->end.tv_sec - timer->start.tv_sec;
-    long nanoseconds = timer->end.tv_nsec - timer->start.tv_nsec;
-    return (seconds * 1000.0) + (nanoseconds / 1000000.0);
-#endif
+    if (!timer) return 0.0;
+    return (double)(timer->end_time_ms - timer->start_time_ms);
 }
 
 double glps_timer_elapsed_us(glps_timer *timer)
 {
-#ifdef GLPS_USE_WIN32
-    return ((timer->end.QuadPart - timer->start.QuadPart) * 1000000.0) / timer->frequency.QuadPart;
-#else
-    long seconds = timer->end.tv_sec - timer->start.tv_sec;
-    long nanoseconds = timer->end.tv_nsec - timer->start.tv_nsec;
-    return (seconds * 1000000.0) + (nanoseconds / 1000.0);
-#endif
+    if (!timer) return 0.0;
+    return (double)(timer->end_time_ms - timer->start_time_ms) * 1000.0;
 }
 
 void glps_timer_destroy(glps_timer *timer)
 {
-    if (timer)
+    free(timer);
+}
+
+void glps_timer_check_and_call(glps_timer *timer)
+{
+    if (timer && timer->callback)
     {
-        free(timer);
+        uint64_t current_time = now_ms();
+        if (current_time - timer->start_time_ms >= timer->duration_ms)
+        {
+            timer->callback(timer->callback_arg);
+            timer->start_time_ms = current_time;
+        }
     }
 }
