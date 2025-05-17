@@ -55,8 +55,12 @@ double glps_timer_elapsed_us(glps_timer *timer) {
   return (double)(timer->end_time_ms - timer->start_time_ms) * 1000.0;
 }
 
-void glps_timer_destroy(glps_timer *timer) { free(timer); }
-
+void glps_timer_destroy(glps_timer *timer) {
+    if (timer != NULL) {
+        free(timer);
+        timer = NULL;
+    }
+}
 void glps_timer_check_and_call(glps_timer *timer) {
   if (timer && timer->callback) {
     uint64_t current_time = now_ms();
