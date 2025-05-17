@@ -1,8 +1,8 @@
 #include "glps_timer.h"
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <limits.h>
 
 #ifdef GLPS_USE_WIN32
 #include <windows.h>
@@ -62,7 +62,10 @@ void glps_timer_check_and_call(glps_timer *timer) {
     uint64_t current_time = now_ms();
     if (current_time >= timer->end_time_ms)
       return;
-    timer->callback(timer->callback_arg);
-    timer->start_time_ms = current_time;
+
+    if (current_time - timer->start_time_ms >= timer->duration_ms) {
+      timer->callback(timer->callback_arg);
+      timer->start_time_ms = current_time;
+    }
   }
 }
