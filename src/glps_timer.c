@@ -1,6 +1,8 @@
 #include "glps_timer.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
 
 #ifdef GLPS_USE_WIN32
 #include <windows.h>
@@ -32,6 +34,7 @@ void glps_timer_start(glps_timer *timer, uint64_t duration_ms,
     timer->duration_ms = duration_ms;
     timer->callback = callback;
     timer->callback_arg = arg;
+    timer->end_time_ms = UINT64_MAX;
   }
 }
 
