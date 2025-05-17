@@ -433,6 +433,11 @@ void *glps_get_proc_addr(const char *name)
   return NULL;
 }
 
+void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
+{ 
+  return (void*)(uintptr_t) wm->windows[window_id]->window;
+}
+
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
                              int width, int height)
 {
