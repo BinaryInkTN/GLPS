@@ -56,10 +56,10 @@ double glps_timer_elapsed_us(glps_timer *timer) {
 }
 
 void glps_timer_destroy(glps_timer *timer) {
-    if (timer != NULL) {
-        free(timer);
-        timer = NULL;
-    }
+  if (timer != NULL) {
+    free(timer);
+    timer = NULL;
+  }
 }
 void glps_timer_check_and_call(glps_timer *timer) {
   if (timer && timer->callback) {
