@@ -87,7 +87,6 @@ void glps_timer_check_and_call(glps_timer *timer)
     if (current_time - timer->start_time_ms >= timer->duration_ms)
     {
       timer->callback(timer->callback_arg);
-      timer->start_time_ms = current_time;
     }
   }
 }
