@@ -78,7 +78,7 @@ void glps_timer_destroy(glps_timer *timer)
 }
 void glps_timer_check_and_call(glps_timer *timer)
 {
-  if (timer->is_valid && timer && timer->callback)
+  if (timer && timer->is_valid && timer->callback)
   {
     uint64_t current_time = now_ms();
     if (current_time >= timer->end_time_ms)
