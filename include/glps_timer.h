@@ -2,6 +2,7 @@
 #define GLPS_TIMER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef void (*timer_callback)(void *arg);  // Callback function type
 
@@ -11,6 +12,7 @@ typedef struct glps_timer {
     uint64_t duration_ms;          // Timer duration in ms
     timer_callback callback;       // Callback function
     void *callback_arg;            // Argument to pass to callback
+    bool is_valid;
 } glps_timer;
 
 glps_timer *glps_timer_init(void);
