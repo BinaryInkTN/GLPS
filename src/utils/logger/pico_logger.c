@@ -26,6 +26,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #ifdef GLPS_USE_WAYLAND
 
 #include <execinfo.h>
@@ -33,7 +34,6 @@ static struct timespec start_time = {0};
 
 #endif
 #include <unistd.h>
-
 static bool logging_enabled = true;
 static DebugLevel min_log_level = DEBUG_LEVEL_INFO;
 

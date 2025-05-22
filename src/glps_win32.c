@@ -1,12 +1,21 @@
 #include <glps_common.h>
 #include "utils/logger/pico_logger.h"
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601 // Windows 7 or newer
+#endif
 
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_NAME 16383
 #define MAX_FILES 128
 #define MAX_PATH_LENGTH MAX_PATH
 #define MAX_MIME_LENGTH 64
+#ifndef GET_X_LPARAM
+#define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
+#endif
 
+#ifndef GET_Y_LPARAM
+#define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
+#endif
 ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd)
 {
   if (wm == NULL)
@@ -183,7 +192,7 @@ void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data,
     return;
   }
 
-  strncpy(data, strdup(pText), data_size - 1);
+// strncpy(data, strdup(pText), data_size - 1);
   data[data_size - 1] = '\0';
 
   GlobalUnlock(hData);
@@ -369,10 +378,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     break;
   }
 
-    /* ========= Touch ========== */
-  case WM_TOUCH:
-
-    break;
 
   case WM_SIZE:
     if (window_id < 0 || wm == NULL)
@@ -398,9 +403,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     {
       break;
     }
+
+
     static bool is_mouse_in_window = false;
-    GetCursorPos(&p);
-    ScreenToClient(hwnd, &p);
+      double x = GET_X_LPARAM(lParam);
+      double y = GET_Y_LPARAM(lParam);
 
     if (!is_mouse_in_window)
     {
@@ -408,7 +415,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
       if (wm->callbacks.mouse_enter_callback)
       {
-        wm->callbacks.mouse_enter_callback(window_id, (double)p.x, (double)p.y,
+        wm->callbacks.mouse_enter_callback(window_id, (double)x, (double)y,
                                            wm->callbacks.mouse_enter_data);
       }
 
@@ -421,11 +428,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     if (wm->callbacks.mouse_move_callback)
     {
-      wm->callbacks.mouse_move_callback(window_id, (double)p.x, (double)p.y,
+      wm->callbacks.mouse_move_callback(window_id, (double)x, (double)y,
                                         wm->callbacks.mouse_move_data);
-    }
-    RedrawWindow(hwnd, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW);
 
+    }
     break;
 
   case WM_MOUSELEAVE:
@@ -484,7 +490,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
                                           wm->callbacks.mouse_scroll_data);
     }
     break;
-
+/*
   case WM_DROPFILES:
   {
     if (window_id < 0 || wm == NULL)
@@ -553,14 +559,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     if (wm->callbacks.drag_n_drop_callback)
     {
-      wm->callbacks.drag_n_drop_callback(window_id, mime_types, -1, -1, files,
-                                         wm->callbacks.drag_n_drop_data);
+   //   wm->callbacks.drag_n_drop_callback(window_id, mime_types, -1, -1, files,
+    //                                     wm->callbacks.drag_n_drop_data);
     }
 
     DragFinish(hDropInfo);
     break;
   }
-
+*/
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);
   }
@@ -670,7 +676,7 @@ void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
                                       int *width, int *height)
 {
   RECT rect;
-  if (GetWindowRect(wm->windows[window_id]->hwnd, &rect))
+  if (GetClientRect(wm->windows[window_id]->hwnd, &rect))
   {
     *width = rect.right - rect.left;
     *height = rect.bottom - rect.top;
@@ -680,65 +686,81 @@ void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
 ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title,
                                  int width, int height)
 {
-  HINSTANCE hInstance = GetModuleHandle(NULL);
+    HINSTANCE hInstance = GetModuleHandle(NULL);
 
-  glps_Win32Window *win32_window =
-      (glps_Win32Window *)malloc(sizeof(glps_Win32Window));
+    glps_Win32Window *win32_window =
+        (glps_Win32Window *)malloc(sizeof(glps_Win32Window));
 
-  if (win32_window == NULL)
-  {
-    MessageBox(NULL, "Win32 Window allocation failed", "Error!",
-               MB_ICONEXCLAMATION | MB_OK);
-    return -1;
-  }
-
-  win32_window->hwnd = CreateWindowEx(
-      0, wm->wc.lpszClassName, title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-      CW_USEDEFAULT, width, height, NULL, NULL, hInstance, NULL);
-
-  if (win32_window->hwnd == NULL)
-  {
-    MessageBox(NULL, "CreateWindowEx failed!", "Error!",
-               MB_ICONEXCLAMATION | MB_OK);
-    return -1;
-  }
-
-  win32_window->hdc = GetDC(win32_window->hwnd);
-
-  if (!SetPixelFormatForOpenGL(win32_window->hdc))
-  {
-    ReleaseDC(win32_window->hwnd, win32_window->hdc);
-    DestroyWindow(win32_window->hwnd);
-    return -1;
-  }
-  if (wm->window_count == 0)
-  {
-    wm->win32_ctx->hglrc = wglCreateContext(win32_window->hdc);
-    if (!wm->win32_ctx->hglrc)
+    if (win32_window == NULL)
     {
-      MessageBox(NULL, "wglCreateContext failed!", "Error!",
-                 MB_ICONEXCLAMATION | MB_OK);
-      ReleaseDC(win32_window->hwnd, win32_window->hdc);
-      DestroyWindow(win32_window->hwnd);
-      return -1;
+        MessageBox(NULL, "Win32 Window allocation failed", "Error!",
+                   MB_ICONEXCLAMATION | MB_OK);
+        return -1;
     }
-  }
 
-  wglMakeCurrent(win32_window->hdc, wm->win32_ctx->hglrc);
+    RECT rect = { 0, 0, width, height };
+    AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 
-  snprintf(win32_window->properties.title,
-           sizeof(win32_window->properties.title), "%s", title);
+    int real_width  = rect.right - rect.left;
+    int real_height = rect.bottom - rect.top;
 
-  win32_window->properties.width = width;
-  win32_window->properties.height = height;
-  wm->windows[wm->window_count] = win32_window;
+    win32_window->hwnd = CreateWindowEx(
+        0, wm->wc.lpszClassName, title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+        CW_USEDEFAULT, real_width, real_height, NULL, NULL, hInstance, NULL);
 
-  SetWindowLongPtr(win32_window->hwnd, GWLP_USERDATA, (LONG_PTR)wm);
-  ShowWindow(win32_window->hwnd, SW_SHOW);
-  UpdateWindow(win32_window->hwnd);
-  DragAcceptFiles(win32_window->hwnd, TRUE);
+    if (win32_window->hwnd == NULL)
+    {
+        MessageBox(NULL, "CreateWindowEx failed!", "Error!",
+                   MB_ICONEXCLAMATION | MB_OK);
+        free(win32_window);
+        return -1;
+    }
 
-  return wm->window_count++;
+    win32_window->hdc = GetDC(win32_window->hwnd);
+
+    if (!SetPixelFormatForOpenGL(win32_window->hdc))
+    {
+        ReleaseDC(win32_window->hwnd, win32_window->hdc);
+        DestroyWindow(win32_window->hwnd);
+        free(win32_window);
+        return -1;
+    }
+
+    if (wm->window_count == 0)
+    {
+        wm->win32_ctx->hglrc = wglCreateContext(win32_window->hdc);
+        if (!wm->win32_ctx->hglrc)
+        {
+            MessageBox(NULL, "wglCreateContext failed!", "Error!",
+                       MB_ICONEXCLAMATION | MB_OK);
+            ReleaseDC(win32_window->hwnd, win32_window->hdc);
+            DestroyWindow(win32_window->hwnd);
+            free(win32_window);
+            return -1;
+        }
+    }
+
+    wglMakeCurrent(win32_window->hdc, wm->win32_ctx->hglrc);
+
+    ShowWindow(win32_window->hwnd, SW_SHOW);
+    UpdateWindow(win32_window->hwnd);
+    DragAcceptFiles(win32_window->hwnd, TRUE);
+
+    RECT client_rect;
+    GetClientRect(win32_window->hwnd, &client_rect);
+    int client_width  = client_rect.right - client_rect.left;
+    int client_height = client_rect.bottom - client_rect.top;
+
+    snprintf(win32_window->properties.title,
+             sizeof(win32_window->properties.title), "%s", title);
+    win32_window->properties.width = client_width;
+    win32_window->properties.height = client_height;
+
+    wm->windows[wm->window_count] = win32_window;
+
+    SetWindowLongPtr(win32_window->hwnd, GWLP_USERDATA, (LONG_PTR)wm);
+
+    return wm->window_count++;
 }
 
 void glps_win32_destroy(glps_WindowManager *wm)

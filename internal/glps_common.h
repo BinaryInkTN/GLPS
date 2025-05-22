@@ -24,6 +24,18 @@
 #include <GL/gl.h>
 #include <tchar.h>
 #include <windows.h>
+#include <winuser.h>
+#include <wchar.h>
+#include <shlwapi.h>       // For wcsrchr (optional)
+#include <stdint.h>        // For uintptr_t
+#include <stdlib.h>        // For strdup
+#include <string.h>        // For strncpy, strcpy
+#include <winreg.h>        // For RegGetValueW, RRF_RT_REG_SZ
+#include <shellapi.h>      // For DragQueryFileW, DragFinish, etc.
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600 // Windows Vista or newer
+#endif
+
 #endif
 
 // Wayland
