@@ -586,6 +586,31 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   }
   return 0;
 }
+
+
+bool glps_win32_should_close(glps_WindowManager* wm) {
+  MSG msg = {};
+  if (GetMessage(&msg, NULL, 0, 0)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+    return false;
+  }
+
+  ssize_t window_id = -1;
+  for (SIZE_T i = 0; i < wm->window_count; i++) {
+    if (wm->windows[i] && wm->windows[i]->hwnd == msg.hwnd) {
+      window_id = (ssize_t)i;
+      break;
+    }
+  }
+
+  if (wm->callbacks.window_close_callback && window_id >= 0) {
+    wm->callbacks.window_close_callback((SIZE_T)window_id, wm->callbacks.window_close_data);
+  }
+
+  return true;
+}
+
 static void __init_window_class(glps_WindowManager *wm,
                                 const char *class_name)
 {

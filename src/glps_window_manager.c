@@ -535,15 +535,7 @@ bool glps_wm_should_close(glps_WindowManager *wm)
   return glps_wl_should_close(wm);
 #endif
 #ifdef GLPS_USE_WIN32
-  MSG msg = {};
-  if (GetMessage(&msg, NULL, 0, 0))
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-    return false;
-  }
-
-  return true;
+  return glps_win32_should_close(wm);
 #endif
 #ifdef GLPS_USE_X11
   return glps_x11_should_close(wm);

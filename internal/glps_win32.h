@@ -20,4 +20,6 @@ void glps_win32_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data,
                                 size_t data_size);
 
+bool glps_win32_should_close(glps_WindowManager* wm);
+
 #endif
