@@ -213,7 +213,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   {
     case WM_DESTROY:
     {
-      if (window_id < 0 || wm == NULL || window_id >= wm->window_count)
+      if (window_id < 0 || wm == NULL || (size_t) window_id >= wm->window_count)
         break;
 
       bool is_parent = (window_id == 0);
@@ -226,7 +226,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
       }
 
       if (is_parent) {
-        printf("Parent window closed. Closing children...\n");
 
         for (SIZE_T j = 1; j < wm->window_count; j++) {
           if (wm->windows[j]) {
