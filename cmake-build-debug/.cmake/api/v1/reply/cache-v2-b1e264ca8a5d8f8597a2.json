@@ -15,7 +15,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/addr2line"
+			"value" : "C:/msys64/mingw64/bin/addr2line.exe"
 		},
 		{
 			"name" : "CMAKE_AR",
@@ -31,7 +31,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/ar"
+			"value" : "C:/msys64/mingw64/bin/ar.exe"
 		},
 		{
 			"name" : "CMAKE_BUILD_TYPE",
@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/yassine-ahmed-ali/Documents/GLPS/cmake-build-debug"
+			"value" : "c:/Users/overflow/Documents/GLPS/cmake-build-debug"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -79,7 +79,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "30"
+			"value" : "31"
 		},
 		{
 			"name" : "CMAKE_CACHE_PATCH_VERSION",
@@ -91,7 +91,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "5"
+			"value" : "6"
 		},
 		{
 			"name" : "CMAKE_COLOR_DIAGNOSTICS",
@@ -115,7 +115,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/326/bin/cmake/linux/x64/bin/cmake"
+			"value" : "C:/Program Files/JetBrains/CLion 2025.1.1/bin/cmake/win/x64/bin/cmake.exe"
 		},
 		{
 			"name" : "CMAKE_CPACK_COMMAND",
@@ -127,7 +127,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/326/bin/cmake/linux/x64/bin/cpack"
+			"value" : "C:/Program Files/JetBrains/CLion 2025.1.1/bin/cmake/win/x64/bin/cpack.exe"
 		},
 		{
 			"name" : "CMAKE_CTEST_COMMAND",
@@ -139,7 +139,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/326/bin/cmake/linux/x64/bin/ctest"
+			"value" : "C:/Program Files/JetBrains/CLion 2025.1.1/bin/cmake/win/x64/bin/ctest.exe"
 		},
 		{
 			"name" : "CMAKE_C_COMPILER",
@@ -155,7 +155,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/cc"
+			"value" : "C:/msys64/mingw64/bin/cc.exe"
 		},
 		{
 			"name" : "CMAKE_C_COMPILER_AR",
@@ -171,7 +171,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/gcc-ar-13"
+			"value" : "C:/msys64/mingw64/bin/gcc-ar.exe"
 		},
 		{
 			"name" : "CMAKE_C_COMPILER_RANLIB",
@@ -187,7 +187,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/gcc-ranlib-13"
+			"value" : "C:/msys64/mingw64/bin/gcc-ranlib.exe"
 		},
 		{
 			"name" : "CMAKE_C_FLAGS",
@@ -270,6 +270,22 @@
 			"value" : "-O2 -g -DNDEBUG"
 		},
 		{
+			"name" : "CMAKE_C_STANDARD_LIBRARIES",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Libraries linked by default with all C applications."
+				}
+			],
+			"type" : "STRING",
+			"value" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
+		},
+		{
 			"name" : "CMAKE_DLLTOOL",
 			"properties" : 
 			[
@@ -283,7 +299,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "CMAKE_DLLTOOL-NOTFOUND"
+			"value" : "C:/msys64/mingw64/bin/dlltool.exe"
 		},
 		{
 			"name" : "CMAKE_EXECUTABLE_FORMAT",
@@ -295,7 +311,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "ELF"
+			"value" : "Unknown"
 		},
 		{
 			"name" : "CMAKE_EXE_LINKER_FLAGS",
@@ -378,6 +394,22 @@
 			"value" : ""
 		},
 		{
+			"name" : "CMAKE_EXPORT_BUILD_DATABASE",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Enable/Disable output of build database during the build."
+				}
+			],
+			"type" : "BOOL",
+			"value" : ""
+		},
+		{
 			"name" : "CMAKE_EXPORT_COMPILE_COMMANDS",
 			"properties" : 
 			[
@@ -415,7 +447,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/yassine-ahmed-ali/Documents/GLPS/cmake-build-debug/CMakeFiles/pkgRedirects"
+			"value" : "C:/Users/overflow/Documents/GLPS/cmake-build-debug/CMakeFiles/pkgRedirects"
 		},
 		{
 			"name" : "CMAKE_GENERATOR",
@@ -466,6 +498,18 @@
 			"value" : ""
 		},
 		{
+			"name" : "CMAKE_GNUtoMS",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Convert GNU import libraries to MS format (requires Visual Studio)"
+				}
+			],
+			"type" : "BOOL",
+			"value" : "OFF"
+		},
+		{
 			"name" : "CMAKE_HOME_DIRECTORY",
 			"properties" : 
 			[
@@ -475,7 +519,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/yassine-ahmed-ali/Documents/GLPS"
+			"value" : "C:/Users/overflow/Documents/GLPS"
 		},
 		{
 			"name" : "CMAKE_INSTALL_PREFIX",
@@ -487,19 +531,7 @@
 				}
 			],
 			"type" : "PATH",
-			"value" : "/usr/local"
-		},
-		{
-			"name" : "CMAKE_INSTALL_SO_NO_EXE",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Install .so files without execute permission."
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "1"
+			"value" : "C:/Program Files (x86)/GLPS"
 		},
 		{
 			"name" : "CMAKE_LINKER",
@@ -515,7 +547,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/ld"
+			"value" : "C:/msys64/mingw64/bin/ld.exe"
 		},
 		{
 			"name" : "CMAKE_MAKE_PROGRAM",
@@ -523,11 +555,11 @@
 			[
 				{
 					"name" : "HELPSTRING",
-					"value" : "No help, variable specified on the command line."
+					"value" : "make program"
 				}
 			],
-			"type" : "UNINITIALIZED",
-			"value" : "/snap/clion/326/bin/ninja/linux/x64/ninja"
+			"type" : "FILEPATH",
+			"value" : "C:/PROGRA~1/JETBRA~1/CLION2~1.1/bin/ninja/win/x64/ninja.exe"
 		},
 		{
 			"name" : "CMAKE_MODULE_LINKER_FLAGS",
@@ -623,7 +655,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/nm"
+			"value" : "C:/msys64/mingw64/bin/nm.exe"
 		},
 		{
 			"name" : "CMAKE_NUMBER_OF_MAKEFILES",
@@ -651,7 +683,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/objcopy"
+			"value" : "C:/msys64/mingw64/bin/objcopy.exe"
 		},
 		{
 			"name" : "CMAKE_OBJDUMP",
@@ -667,7 +699,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/objdump"
+			"value" : "C:/msys64/mingw64/bin/objdump.exe"
 		},
 		{
 			"name" : "CMAKE_PLATFORM_INFO_INITIALIZED",
@@ -791,7 +823,115 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/ranlib"
+			"value" : "C:/msys64/mingw64/bin/ranlib.exe"
+		},
+		{
+			"name" : "CMAKE_RC_COMPILER",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "RC compiler"
+				}
+			],
+			"type" : "FILEPATH",
+			"value" : "C:/msys64/mingw64/bin/windres.exe"
+		},
+		{
+			"name" : "CMAKE_RC_COMPILER_WORKS",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : ""
+				}
+			],
+			"type" : "INTERNAL",
+			"value" : "1"
+		},
+		{
+			"name" : "CMAKE_RC_FLAGS",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Flags for Windows Resource Compiler during all build types."
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
+		},
+		{
+			"name" : "CMAKE_RC_FLAGS_DEBUG",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Flags for Windows Resource Compiler during DEBUG builds."
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
+		},
+		{
+			"name" : "CMAKE_RC_FLAGS_MINSIZEREL",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Flags for Windows Resource Compiler during MINSIZEREL builds."
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
+		},
+		{
+			"name" : "CMAKE_RC_FLAGS_RELEASE",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Flags for Windows Resource Compiler during RELEASE builds."
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
+		},
+		{
+			"name" : "CMAKE_RC_FLAGS_RELWITHDEBINFO",
+			"properties" : 
+			[
+				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
+					"name" : "HELPSTRING",
+					"value" : "Flags for Windows Resource Compiler during RELWITHDEBINFO builds."
+				}
+			],
+			"type" : "STRING",
+			"value" : ""
 		},
 		{
 			"name" : "CMAKE_READELF",
@@ -807,7 +947,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/readelf"
+			"value" : "C:/msys64/mingw64/bin/readelf.exe"
 		},
 		{
 			"name" : "CMAKE_ROOT",
@@ -819,7 +959,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/snap/clion/326/bin/cmake/linux/x64/share/cmake-3.30"
+			"value" : "C:/Program Files/JetBrains/CLion 2025.1.1/bin/cmake/win/x64/share/cmake-3.31"
 		},
 		{
 			"name" : "CMAKE_SHARED_LINKER_FLAGS",
@@ -1027,7 +1167,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/strip"
+			"value" : "C:/msys64/mingw64/bin/strip.exe"
 		},
 		{
 			"name" : "CMAKE_TAPI",
@@ -1046,18 +1186,6 @@
 			"value" : "CMAKE_TAPI-NOTFOUND"
 		},
 		{
-			"name" : "CMAKE_UNAME",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "uname command"
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/bin/uname"
-		},
-		{
 			"name" : "CMAKE_VERBOSE_MAKEFILE",
 			"properties" : 
 			[
@@ -1074,18 +1202,6 @@
 			"value" : "FALSE"
 		},
 		{
-			"name" : "FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Details about finding PkgConfig"
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "[/usr/bin/pkg-config][v1.8.1()]"
-		},
-		{
 			"name" : "GLPS_BINARY_DIR",
 			"properties" : 
 			[
@@ -1095,7 +1211,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/yassine-ahmed-ali/Documents/GLPS/cmake-build-debug"
+			"value" : "C:/Users/overflow/Documents/GLPS/cmake-build-debug"
 		},
 		{
 			"name" : "GLPS_IS_TOP_LEVEL",
@@ -1119,7 +1235,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "general;m;general;EGL;general;wayland-client;general;wayland-server;general;wayland-cursor;general;wayland-egl;general;xkbcommon;"
+			"value" : "general;opengl32;general;glew32;general;gdi32;general;user32;"
 		},
 		{
 			"name" : "GLPS_SOURCE_DIR",
@@ -1131,591 +1247,19 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/yassine-ahmed-ali/Documents/GLPS"
+			"value" : "C:/Users/overflow/Documents/GLPS"
 		},
 		{
-			"name" : "PKG_CONFIG_ARGN",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "Arguments to supply to pkg-config"
-				}
-			],
-			"type" : "STRING",
-			"value" : ""
-		},
-		{
-			"name" : "PKG_CONFIG_EXECUTABLE",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "pkg-config executable"
-				}
-			],
-			"type" : "FILEPATH",
-			"value" : "/usr/bin/pkg-config"
-		},
-		{
-			"name" : "WAYLAND_CFLAGS",
+			"name" : "_CMAKE_C_LINKER_PUSHPOP_STATE_SUPPORTED",
 			"properties" : 
 			[
 				{
 					"name" : "HELPSTRING",
-					"value" : ""
+					"value" : "linker supports push/pop state"
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "-I/usr/include"
-		},
-		{
-			"name" : "WAYLAND_CFLAGS_I",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_CFLAGS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_FOUND",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "1"
-		},
-		{
-			"name" : "WAYLAND_INCLUDEDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_INCLUDE_DIRS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/include"
-		},
-		{
-			"name" : "WAYLAND_LDFLAGS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "-L/usr/lib/x86_64-linux-gnu;-lwayland-egl;-lwayland-client;-lEGL"
-		},
-		{
-			"name" : "WAYLAND_LDFLAGS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_LIBDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_LIBRARIES",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "wayland-egl;wayland-client;EGL"
-		},
-		{
-			"name" : "WAYLAND_LIBRARY_DIRS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
-		},
-		{
-			"name" : "WAYLAND_LIBS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_LIBS_L",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_LIBS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_LIBS_PATHS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_MODULE_NAME",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_PREFIX",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_CFLAGS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "-I/usr/include"
-		},
-		{
-			"name" : "WAYLAND_STATIC_CFLAGS_I",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_CFLAGS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_INCLUDE_DIRS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/include"
-		},
-		{
-			"name" : "WAYLAND_STATIC_LDFLAGS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "-L/usr/lib/x86_64-linux-gnu;-lm;-pthread;-lrt;-lffi;-lwayland-egl;-lwayland-client;-lm;-pthread;-lrt;-lffi;-lEGL"
-		},
-		{
-			"name" : "WAYLAND_STATIC_LDFLAGS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "-pthread;-pthread"
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBRARIES",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "m;rt;ffi;wayland-egl;wayland-client;m;rt;ffi;EGL"
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBRARY_DIRS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBS_L",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBS_OTHER",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_STATIC_LIBS_PATHS",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_VERSION",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : ""
-		},
-		{
-			"name" : "WAYLAND_egl_INCLUDEDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/include"
-		},
-		{
-			"name" : "WAYLAND_egl_LIBDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
-		},
-		{
-			"name" : "WAYLAND_egl_MODULE_NAME",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "egl"
-		},
-		{
-			"name" : "WAYLAND_egl_PREFIX",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr"
-		},
-		{
-			"name" : "WAYLAND_egl_VERSION",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "1.5"
-		},
-		{
-			"name" : "WAYLAND_wayland-client_INCLUDEDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/include"
-		},
-		{
-			"name" : "WAYLAND_wayland-client_LIBDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
-		},
-		{
-			"name" : "WAYLAND_wayland-client_MODULE_NAME",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "wayland-client"
-		},
-		{
-			"name" : "WAYLAND_wayland-client_PREFIX",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr"
-		},
-		{
-			"name" : "WAYLAND_wayland-client_VERSION",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "1.22.0"
-		},
-		{
-			"name" : "WAYLAND_wayland-egl_INCLUDEDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/include"
-		},
-		{
-			"name" : "WAYLAND_wayland-egl_LIBDIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
-		},
-		{
-			"name" : "WAYLAND_wayland-egl_MODULE_NAME",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "wayland-egl"
-		},
-		{
-			"name" : "WAYLAND_wayland-egl_PREFIX",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr"
-		},
-		{
-			"name" : "WAYLAND_wayland-egl_VERSION",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "18.1.0"
+			"value" : "TRUE"
 		},
 		{
 			"name" : "_CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED",
@@ -1728,90 +1272,6 @@
 			],
 			"type" : "INTERNAL",
 			"value" : "TRUE"
-		},
-		{
-			"name" : "__pkg_config_arguments_WAYLAND",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "wayland-client;wayland-egl;egl"
-		},
-		{
-			"name" : "__pkg_config_checked_WAYLAND",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "1"
-		},
-		{
-			"name" : "pkgcfg_lib_WAYLAND_EGL",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "Path to a library."
-				}
-			],
-			"type" : "FILEPATH",
-			"value" : "/usr/lib/x86_64-linux-gnu/libEGL.so"
-		},
-		{
-			"name" : "pkgcfg_lib_WAYLAND_wayland-client",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "Path to a library."
-				}
-			],
-			"type" : "FILEPATH",
-			"value" : "/usr/lib/x86_64-linux-gnu/libwayland-client.so"
-		},
-		{
-			"name" : "pkgcfg_lib_WAYLAND_wayland-egl",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "Path to a library."
-				}
-			],
-			"type" : "FILEPATH",
-			"value" : "/usr/lib/x86_64-linux-gnu/libwayland-egl.so"
-		},
-		{
-			"name" : "prefix_result",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : ""
-				}
-			],
-			"type" : "INTERNAL",
-			"value" : "/usr/lib/x86_64-linux-gnu"
 		}
 	],
 	"kind" : "cache",

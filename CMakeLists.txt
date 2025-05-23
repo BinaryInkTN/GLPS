@@ -22,7 +22,7 @@ if(WIN32)
         src/glps_win32.c
         src/glps_window_manager.c
         src/utils/logger/pico_logger.c
-     #   src/glps_thread.c
+        # src/glps_thread.c
         src/glps_timer.c
     )
 

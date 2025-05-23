@@ -223,16 +223,25 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     free(wm->windows[window_id]);
 
-    /*
+
       for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
       wm->windows[j] = wm->windows[j + 1];
     }
-    */
+
     wm->window_count--;
 
     if (wm->window_count == 0)
     {
       PostQuitMessage(0);
+      for (SIZE_T j = 1; j < wm->window_count - 1; j++) {
+        if (wm->windows[j]) {
+          DestroyWindow(wm->windows[j]->hwnd);
+          free(wm->windows[j]);
+          wm->windows[j] = NULL;
+          wm->window_count = 0;
+        }
+      }
+
     }
     break;
 

@@ -17,25 +17,25 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 112,
+				"line" : 219,
 				"parent" : 0
 			},
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 113,
+				"line" : 220,
 				"parent" : 0
 			},
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 115,
+				"line" : 222,
 				"parent" : 0
 			},
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 122,
+				"line" : 229,
 				"parent" : 0
 			}
 		]
@@ -45,7 +45,7 @@
 		{
 			"backtrace" : 1,
 			"component" : "Unspecified",
-			"destination" : "include/GLPS/",
+			"destination" : "include/GLPS",
 			"paths" : 
 			[
 				{
@@ -58,7 +58,7 @@
 		{
 			"backtrace" : 2,
 			"component" : "Unspecified",
-			"destination" : "include/GLPS/",
+			"destination" : "include/GLPS",
 			"paths" : 
 			[
 				{
@@ -74,7 +74,20 @@
 			"destination" : "lib",
 			"paths" : 
 			[
-				"lib/libGLPS.so"
+				"lib/libGLPS.dll.a"
+			],
+			"targetId" : "GLPS::@6890427a1f51a3e7e1df",
+			"targetIndex" : 0,
+			"targetIsImportLibrary" : true,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "bin",
+			"paths" : 
+			[
+				"bin/libGLPS.dll"
 			],
 			"targetId" : "GLPS::@6890427a1f51a3e7e1df",
 			"targetIndex" : 0,

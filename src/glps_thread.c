@@ -1,6 +1,8 @@
 #include "glps_thread.h"
 #include <stdlib.h>
 
+#include "glps_common.h"
+
 #ifdef GLPS_THREAD_WIN32
 
 struct thread_wrapper_args
@@ -62,7 +64,7 @@ int glps_thread_detach(gthread_t thread)
 
 void glps_thread_exit(void *retval)
 {
-    ExitThread((DWORD)(uintptr_t)retval);
+    ExitThread((DWORD)(uintptr_t) retval);
 }
 
 gthread_t glps_thread_self(void)

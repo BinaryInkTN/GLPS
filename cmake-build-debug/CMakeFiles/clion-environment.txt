@@ -1,4 +1,5 @@
-ToolSet: 1.0 (local)Ninja: 1.12.1@/snap/clion/326/bin/ninja/linux/x64/ninja
+ToolSet: 13.0 w64 (local)@C:\msys64\mingw64
+Ninja: 1.12.1@C:\Program Files\JetBrains\CLion 2025.1.1\bin\ninja\win\x64\ninja.exe
 Options: 
 
-Options:-DCMAKE_MAKE_PROGRAM=/snap/clion/326/bin/ninja/linux/x64/ninja
+Options:-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2025.1.1/bin/ninja/win/x64/ninja.exe

@@ -2,7 +2,13 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "lib/libGLPS.so"
+			"path" : "bin/libGLPS.dll"
+		},
+		{
+			"path" : "lib/libGLPS.dll.a"
+		},
+		{
+			"path" : "bin/libGLPS.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -15,7 +21,7 @@
 			"target_link_libraries",
 			"target_compile_options",
 			"target_compile_definitions",
-			"include_directories"
+			"target_include_directories"
 		],
 		"files" : 
 		[
@@ -29,43 +35,37 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 67,
+				"line" : 39,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 115,
+				"line" : 222,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 71,
+				"line" : 54,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 70,
+				"line" : 47,
 				"parent" : 0
 			},
 			{
 				"command" : 4,
 				"file" : 0,
-				"line" : 69,
+				"line" : 41,
 				"parent" : 0
 			},
 			{
 				"command" : 5,
 				"file" : 0,
-				"line" : 99,
-				"parent" : 0
-			},
-			{
-				"command" : 5,
-				"file" : 0,
-				"line" : 102,
+				"line" : 210,
 				"parent" : 0
 			}
 		]
@@ -76,7 +76,11 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g -fPIC -fdiagnostics-color=always"
+					"fragment" : "-g -std=c11 -fdiagnostics-color=always"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-mwindows"
 				},
 				{
 					"backtrace" : 4,
@@ -85,22 +89,6 @@
 				{
 					"backtrace" : 4,
 					"fragment" : "-Wextra"
-				},
-				{
-					"backtrace" : 4,
-					"fragment" : "-Wno-unused-variable"
-				},
-				{
-					"backtrace" : 4,
-					"fragment" : "-Wno-unused-parameter"
-				},
-				{
-					"backtrace" : 4,
-					"fragment" : "-g3"
-				},
-				{
-					"backtrace" : 4,
-					"fragment" : "-fsanitize=address,undefined"
 				}
 			],
 			"defines" : 
@@ -110,56 +98,40 @@
 				},
 				{
 					"backtrace" : 5,
-					"define" : "GLPS_USE_WAYLAND"
+					"define" : "GLPS_USE_WIN32"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
 				}
 			],
 			"includes" : 
 			[
 				{
 					"backtrace" : 6,
-					"path" : "/home/yassine-ahmed-ali/Documents/GLPS/include"
+					"path" : "C:/Users/overflow/Documents/GLPS/include"
 				},
 				{
 					"backtrace" : 6,
-					"path" : "/home/yassine-ahmed-ali/Documents/GLPS/internal"
-				},
-				{
-					"backtrace" : 7,
-					"isSystem" : true,
-					"path" : "/usr/include/glib-2.0"
-				},
-				{
-					"backtrace" : 7,
-					"isSystem" : true,
-					"path" : "/usr/lib/glib-2.0/include"
-				},
-				{
-					"backtrace" : 7,
-					"isSystem" : true,
-					"path" : "/usr/include/pixman-1"
-				},
-				{
-					"backtrace" : 7,
-					"isSystem" : true,
-					"path" : "/usr/include/libdrm"
-				},
-				{
-					"backtrace" : 7,
-					"isSystem" : true,
-					"path" : "/usr/include/libpng12"
+					"path" : "C:/Users/overflow/Documents/GLPS/internal"
 				}
 			],
 			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
 			"sourceIndexes" : 
 			[
 				0,
 				1,
 				2,
 				3,
-				4,
-				5,
-				6,
-				7
+				4
 			]
 		}
 	],
@@ -174,12 +146,12 @@
 			},
 			{
 				"backtrace" : 2,
-				"path" : "lib"
+				"path" : "bin"
 			}
 		],
 		"prefix" : 
 		{
-			"path" : "/usr/local"
+			"path" : "C:/Program Files (x86)/GLPS"
 		}
 	},
 	"link" : 
@@ -192,44 +164,33 @@
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "-lm",
+				"fragment" : "-lopengl32",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "-lEGL",
+				"fragment" : "-lglew32",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "-lwayland-client",
+				"fragment" : "-lgdi32",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "-lwayland-server",
+				"fragment" : "-luser32",
 				"role" : "libraries"
 			},
 			{
-				"backtrace" : 3,
-				"fragment" : "-lwayland-cursor",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 3,
-				"fragment" : "-lwayland-egl",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 3,
-				"fragment" : "-lxkbcommon",
+				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
 				"role" : "libraries"
 			}
 		],
 		"language" : "C"
 	},
 	"name" : "GLPS",
-	"nameOnDisk" : "libGLPS.so",
+	"nameOnDisk" : "libGLPS.dll",
 	"paths" : 
 	{
 		"build" : ".",
@@ -245,25 +206,19 @@
 				1,
 				2,
 				3,
-				4,
-				5,
-				6,
-				7
+				4
 			]
 		},
 		{
 			"name" : "Header Files",
 			"sourceIndexes" : 
 			[
+				5,
+				6,
+				7,
 				8,
 				9,
-				10,
-				11,
-				12,
-				13,
-				14,
-				15,
-				16
+				10
 			]
 		}
 	],
@@ -272,7 +227,13 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "src/glps_wayland.c",
+			"path" : "src/glps_wgl_context.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/glps_win32.c",
 			"sourceGroupIndex" : 0
 		},
 		{
@@ -290,36 +251,12 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "src/glps_egl_context.c",
+			"path" : "src/glps_timer.c",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "src/xdg/wlr-data-control-unstable-v1.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "src/xdg/xdg-decorations.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "src/xdg/xdg-dialog.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "src/xdg/xdg-shell.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"path" : "internal/glps_wayland.h",
+			"path" : "internal/glps_wgl_context.h",
 			"sourceGroupIndex" : 1
 		},
 		{
@@ -329,7 +266,7 @@
 		},
 		{
 			"backtrace" : 1,
-			"path" : "internal/glps_egl_context.h",
+			"path" : "internal/glps_win32.h",
 			"sourceGroupIndex" : 1
 		},
 		{
@@ -344,22 +281,7 @@
 		},
 		{
 			"backtrace" : 1,
-			"path" : "internal/xdg/wlr-data-control-unstable-v1.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "internal/xdg/xdg-decorations.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "internal/xdg/xdg-dialog.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"path" : "internal/xdg/xdg-shell.h",
+			"path" : "include/glps_timer.h",
 			"sourceGroupIndex" : 1
 		}
 	],
