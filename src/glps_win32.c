@@ -217,39 +217,45 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         break;
 
       bool is_parent = (window_id == 0);
+      glps_Win32Window* window = wm->windows[window_id];
 
-      wglMakeCurrent(NULL, NULL);
-      wglDeleteContext(wm->win32_ctx->hglrc);
-
-      ReleaseDC(wm->windows[window_id]->hwnd, wm->windows[window_id]->hdc);
-      free(wm->windows[window_id]);
-
-      for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
-        wm->windows[j] = wm->windows[j + 1];
+      if (window->hdc) {
+        wglMakeCurrent(NULL, NULL);
+        ReleaseDC(window->hwnd, window->hdc);
+        window->hdc = NULL;
       }
-
-
 
       if (is_parent) {
         printf("Parent window closed. Closing children...\n");
 
-        for (SIZE_T j = 0; j < wm->window_count; j++) {
+        for (SIZE_T j = 1; j < wm->window_count; j++) {
           if (wm->windows[j]) {
-            DestroyWindow(wm->windows[j]->hwnd); // This will trigger WM_DESTROY again
-            ReleaseDC(wm->windows[j]->hwnd, wm->windows[j]->hdc);
-            free(wm->windows[j]);
-            wm->windows[j] = NULL;
+            DestroyWindow(wm->windows[j]->hwnd);
           }
         }
 
+        if (wm->win32_ctx && wm->win32_ctx->hglrc) {
+          wglDeleteContext(wm->win32_ctx->hglrc);
+          wm->win32_ctx->hglrc = NULL;
+        }
+      }
+
+      free(window);
+      wm->windows[window_id] = NULL;
+
+      if (!is_parent) {
+        for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
+          wm->windows[j] = wm->windows[j + 1];
+        }
+        wm->windows[wm->window_count - 1] = NULL;
+        wm->window_count--;
+      }
+      else {
         wm->window_count = 0;
         PostQuitMessage(0);
       }
-      wm->window_count--;
       break;
     }
-
-
   /* ======== Keyboard Input ========= */
   case WM_KEYDOWN:
 
