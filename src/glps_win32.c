@@ -228,7 +228,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         wm->windows[j] = wm->windows[j + 1];
       }
 
-      wm->window_count--;
+
 
       if (is_parent) {
         printf("Parent window closed. Closing children...\n");
@@ -245,7 +245,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         wm->window_count = 0;
         PostQuitMessage(0);
       }
-
+      wm->window_count--;
       break;
     }
 
