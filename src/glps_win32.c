@@ -211,39 +211,39 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
   switch (msg)
   {
-  case WM_DESTROY:
-    if (window_id < 0 || wm == NULL)
+    case WM_DESTROY:
     {
-      break;
-    }
+      if (window_id < 0 || wm == NULL || window_id >= wm->window_count)
+        break;
 
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(wm->win32_ctx->hglrc);
-    ReleaseDC(wm->windows[window_id]->hwnd, wm->windows[window_id]->hdc);
+      wglMakeCurrent(NULL, NULL);
+      wglDeleteContext(wm->win32_ctx->hglrc);
 
-    free(wm->windows[window_id]);
-
+      ReleaseDC(wm->windows[window_id]->hwnd, wm->windows[window_id]->hdc);
+      DestroyWindow(wm->windows[window_id]->hwnd);
+      free(wm->windows[window_id]);
 
       for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
-      wm->windows[j] = wm->windows[j + 1];
-    }
-
-    wm->window_count--;
-
-    if (wm->window_count == 0)
-    {
-      PostQuitMessage(0);
-      for (SIZE_T j = 1; j < wm->window_count - 1; j++) {
-        if (wm->windows[j]) {
-          DestroyWindow(wm->windows[j]->hwnd);
-          free(wm->windows[j]);
-          wm->windows[j] = NULL;
-          wm->window_count = 0;
-        }
+        wm->windows[j] = wm->windows[j + 1];
       }
 
+      wm->window_count--;
+
+      if (window_id == 0) {
+        for (SIZE_T j = 0; j < wm->window_count; j++) {
+          if (wm->windows[j]) {
+            DestroyWindow(wm->windows[j]->hwnd);
+            ReleaseDC(wm->windows[j]->hwnd, wm->windows[j]->hdc);
+            free(wm->windows[j]);
+            wm->windows[j] = NULL;
+          }
+        }
+        wm->window_count = 0;
+        PostQuitMessage(0);
+      }
+
+      break;
     }
-    break;
 
   /* ======== Keyboard Input ========= */
   case WM_KEYDOWN:
