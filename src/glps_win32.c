@@ -230,6 +230,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
       wm->window_count--;
 
       if (window_id == 0) {
+      printf("Window id: %ld \n", window_id);
         for (SIZE_T j = 0; j < wm->window_count; j++) {
           if (wm->windows[j]) {
             DestroyWindow(wm->windows[j]->hwnd);
