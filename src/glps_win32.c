@@ -225,7 +225,16 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         window->hdc = NULL;
       }
 
-      if (is_parent) {
+
+
+      if (!is_parent) {
+        for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
+          wm->windows[j] = wm->windows[j + 1];
+        }
+        wm->windows[wm->window_count - 1] = NULL;
+        wm->window_count--;
+      }
+      else {
 
         for (SIZE_T j = 1; j < wm->window_count; j++) {
           if (wm->windows[j]) {
@@ -237,22 +246,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
           wglDeleteContext(wm->win32_ctx->hglrc);
           wm->win32_ctx->hglrc = NULL;
         }
+        wm->window_count = 0;
+        PostQuitMessage(0);
       }
+
 
       free(window);
       wm->windows[window_id] = NULL;
 
-      if (!is_parent) {
-        for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
-          wm->windows[j] = wm->windows[j + 1];
-        }
-        wm->windows[wm->window_count - 1] = NULL;
-        wm->window_count--;
-      }
-      else {
-        wm->window_count = 0;
-        PostQuitMessage(0);
-      }
       break;
     }
   /* ======== Keyboard Input ========= */
