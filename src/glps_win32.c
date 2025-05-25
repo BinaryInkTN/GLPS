@@ -213,11 +213,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   {
     case WM_DESTROY:
     {
-      if (window_id < 0 || wm == NULL || (size_t) window_id >= wm->window_count)
+      if (window_id < 0 || !wm || (size_t) window_id >= wm->window_count)
         break;
 
       bool is_parent = (window_id == 0);
       glps_Win32Window* window = wm->windows[window_id];
+      if (!window)
+        break;
 
       if (window->hdc) {
         wglMakeCurrent(NULL, NULL);
@@ -225,17 +227,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
         window->hdc = NULL;
       }
 
-
-
-      if (!is_parent) {
-        for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
-          wm->windows[j] = wm->windows[j + 1];
-        }
-        wm->windows[wm->window_count - 1] = NULL;
-        wm->window_count--;
-      }
-      else {
-
+      if (is_parent) {
         for (SIZE_T j = 1; j < wm->window_count; j++) {
           if (wm->windows[j]) {
             DestroyWindow(wm->windows[j]->hwnd);
@@ -246,16 +238,24 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
           wglDeleteContext(wm->win32_ctx->hglrc);
           wm->win32_ctx->hglrc = NULL;
         }
-        wm->window_count = 0;
-        PostQuitMessage(0);
       }
-
 
       free(window);
       wm->windows[window_id] = NULL;
 
+      if (!is_parent) {
+        for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
+          wm->windows[j] = wm->windows[j + 1];
+        }
+        wm->windows[wm->window_count - 1] = NULL;
+        wm->window_count--;
+      } else {
+        wm->window_count = 0;
+        PostQuitMessage(0);
+      }
       break;
     }
+
   /* ======== Keyboard Input ========= */
   case WM_KEYDOWN:
 
@@ -593,29 +593,34 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
   return 0;
 }
 
-
 bool glps_win32_should_close(glps_WindowManager* wm) {
-  MSG msg = {};
-  if (GetMessage(&msg, NULL, 0, 0)) {
+  MSG msg;
+  while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+    if (msg.message == WM_QUIT) {
+      return true;
+    }
+
     TranslateMessage(&msg);
     DispatchMessage(&msg);
-    return false;
-  }
 
-  ssize_t window_id = -1;
-  for (SIZE_T i = 0; i < wm->window_count; i++) {
-    if (wm->windows[i] && wm->windows[i]->hwnd == msg.hwnd) {
-      window_id = (ssize_t)i;
-      break;
+    if (msg.message == WM_DESTROY) {
+      ssize_t window_id = -1;
+      for (SIZE_T i = 0; i < wm->window_count; i++) {
+        if (wm->windows[i] && wm->windows[i]->hwnd == msg.hwnd) {
+          window_id = (ssize_t)i;
+          break;
+        }
+      }
+
+      if (window_id >= 0 && wm->callbacks.window_close_callback) {
+        wm->callbacks.window_close_callback((SIZE_T)window_id, wm->callbacks.window_close_data);
+      }
     }
   }
 
-  if (wm->callbacks.window_close_callback && window_id >= 0) {
-    wm->callbacks.window_close_callback((SIZE_T)window_id, wm->callbacks.window_close_data);
-  }
-
-  return true;
+  return false;
 }
+
 
 static void __init_window_class(glps_WindowManager *wm,
                                 const char *class_name)
