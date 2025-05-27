@@ -22,4 +22,6 @@ void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data,
 
 bool glps_win32_should_close(glps_WindowManager* wm);
 
+void glps_win32_cursor_change(glps_WindowManager*wm, GLPS_CURSOR_TYPE cursor_type);
+
 #endif

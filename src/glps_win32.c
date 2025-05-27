@@ -418,6 +418,15 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     break;
   /* =========== Mouse Input ============ */
+
+    case WM_SETCURSOR: {
+      if (LOWORD(lParam) == HTCLIENT) {
+        SetCursor(wm->win32_ctx->user_cursor);
+        return TRUE;
+      }
+      break;
+    }
+
   case WM_MOUSEMOVE:
     if (window_id < 0 || wm == NULL)
     {
@@ -635,7 +644,7 @@ static void __init_window_class(glps_WindowManager *wm,
   wm->wc.cbWndExtra = 0;
   wm->wc.hInstance = hInstance;
   wm->wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-  wm->wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+  wm->wc.hCursor =  LoadCursor(NULL, IDC_CROSS);
   wm->wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   wm->wc.lpszMenuName = NULL;
   wm->wc.lpszClassName = class_name;
@@ -651,7 +660,6 @@ static void __init_window_class(glps_WindowManager *wm,
 
 void glps_win32_init(glps_WindowManager *wm)
 {
-  __init_window_class(wm, "glpsWindowClass");
 
   wm->windows = malloc(sizeof(glps_Win32Window *) * MAX_WINDOWS);
   if (!wm->windows)
@@ -670,8 +678,11 @@ void glps_win32_init(glps_WindowManager *wm)
     free(wm);
     return;
   }
-
+  wm->win32_ctx->user_cursor = LoadCursor(NULL, IDC_ARROW);
   wm->window_count = 0;
+
+  __init_window_class(wm, "glpsWindowClass");
+
 }
 
 static BOOL SetPixelFormatForOpenGL(HDC hdc)
@@ -847,4 +858,26 @@ void glps_win32_destroy(glps_WindowManager *wm)
 HDC glps_win32_get_window_hdc(glps_WindowManager *wm, size_t window_id)
 {
   return wm->windows[window_id]->hdc;
+}
+
+
+void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type) {
+  if (!wm || !wm->win32_ctx) {
+    LOG_ERROR("Window manager invalid. Couldn't change cursor.");
+    return;
+  }
+
+  LPCSTR cursor_id;
+  switch(cursor_type) {
+    case GLPS_CURSOR_ARROW: cursor_id = IDC_ARROW; break;
+    case GLPS_CURSOR_IBEAM: cursor_id = IDC_IBEAM; break;
+    case GLPS_CURSOR_CROSSHAIR: cursor_id = IDC_CROSS; break;
+    case GLPS_CURSOR_HAND: cursor_id = IDC_HAND; break;
+    case GLPS_CURSOR_HRESIZE: cursor_id = IDC_SIZEWE; break;
+    case GLPS_CURSOR_VRESIZE: cursor_id = IDC_SIZENS; break;
+    default: cursor_id = IDC_ARROW;
+  }
+
+  wm->win32_ctx->user_cursor = LoadCursor(NULL, cursor_id);
+  SetCursor(wm->win32_ctx->user_cursor);
 }

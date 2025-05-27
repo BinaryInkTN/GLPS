@@ -241,6 +241,7 @@ void glps_wm_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
                                 size_t data_size);
 
+void glps_wm_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type);
 /* ======= Drag & Drop ======= */
 /**
  * @brief Attaches data to Clipboard.

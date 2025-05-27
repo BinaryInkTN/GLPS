@@ -99,6 +99,20 @@ typedef enum
   GLPS_SCROLL_SOURCE_OTHER       /**< Other scroll source. */
 } GLPS_SCROLL_SOURCE;
 
+
+/**
+ * @enum GLPS_CURSOR_TYPE
+ * @brief Cursor types.
+ */
+typedef enum {
+  GLPS_CURSOR_ARROW,
+  GLPS_CURSOR_IBEAM,
+  GLPS_CURSOR_CROSSHAIR,
+  GLPS_CURSOR_HAND,
+  GLPS_CURSOR_HRESIZE,
+  GLPS_CURSOR_VRESIZE
+} GLPS_CURSOR_TYPE;
+
 struct glps_Callback
 {
   void (*keyboard_enter_callback)(
@@ -329,7 +343,7 @@ typedef struct
 {
   WNDCLASSEX wc;
   HGLRC hglrc;
-
+  HCURSOR user_cursor;
 } glps_Win32Context;
 
 #endif

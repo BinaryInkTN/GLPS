@@ -608,3 +608,9 @@ void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_
   glps_x11_toggle_window_decorations(wm, state, window_id);
 #endif
 }
+
+void glps_wm_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type) {
+#ifdef GLPS_USE_WIN32
+  glps_win32_cursor_change(wm, cursor_type);
+#endif
+}
