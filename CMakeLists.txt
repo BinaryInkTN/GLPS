@@ -7,10 +7,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Common compiler settings
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+
 
 # Platform detection and configuration
 if(WIN32)
@@ -62,7 +59,14 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     # Linux-specific settings
     find_package(PkgConfig REQUIRED)
-    
+    execute_process(
+        COMMAND bash -c "echo $XDG_SESSION_TYPE"
+        OUTPUT_VARIABLE CURRENT_SESSION_TYPE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if(CURRENT_SESSION_TYPE STREQUAL "wayland")
+
     # First try Wayland
     pkg_check_modules(WAYLAND wayland-client wayland-egl egl)
     
@@ -131,6 +135,7 @@ elseif(UNIX AND NOT APPLE)
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             )
         endif()
+    endif()
     else()
         # Fall back to X11
         message(STATUS "Building for X11")

@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
     glps_wm_set_keyboard_enter_callback(wm, keyboard_enter_callback, wm);
     glps_wm_set_scroll_callback(wm, mouse_scroll_callback, wm);
     // glps_wm_set_drag_n_drop_callback(wm, drag_n_drop_callback, wm);
-
+glps_wm_cursor_change(wm, GLPS_CURSOR_HAND);
     glps_wm_window_set_resize_callback(wm, window_resize_callback, &cube_data);
     glps_wm_window_set_close_callback(wm, window_close_callback, wm);
     glps_wm_window_set_frame_update_callback(wm, window_frame_update_callback, &cube_data);

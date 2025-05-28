@@ -34,7 +34,6 @@
     typedef pthread_cond_t gthread_cond_t;
     typedef pthread_condattr_t gthread_condattr_t;
 #endif
-/*
 
 // Threads
 int glps_thread_create(gthread_t *thread, const gthread_attr_t *attr,
@@ -65,5 +64,5 @@ int glps_thread_attr_destroy(gthread_attr_t *attr);
 int glps_thread_attr_setdetachstate(gthread_attr_t *attr, int detachstate);
 int glps_thread_attr_getdetachstate(const gthread_attr_t *attr, int *detachstate);
 
-*/
+
 #endif // GLPS_THREAD_H

@@ -1,3 +1,5 @@
+
+
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include <X11/Xatom.h>
@@ -6,6 +8,13 @@
 #define MAX_EVENTS_PER_FRAME 10
 #define TARGET_FPS 60
 #define NS_PER_FRAME (1000000000 / TARGET_FPS)
+
+#define XC_arrow 2
+#define XC_hand1 58
+#define XC_crosshair 34
+#define XC_right_side 96
+#define XC_top_side 138
+#define XC_xterm 152
 
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
@@ -77,6 +86,7 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
+   // wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
 
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display)
@@ -204,37 +214,39 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     return wm->window_count++;
 }
 
-void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id) {
+void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
+{
     Atom motif_hints = XInternAtom(wm->x11_ctx->display, "_MOTIF_WM_HINTS", False);
-    
-    if (motif_hints != None) {
-        typedef struct {
+
+    if (motif_hints != None)
+    {
+        typedef struct
+        {
             unsigned long flags;
             unsigned long functions;
             unsigned long decorations;
             long input_mode;
             unsigned long status;
         } MotifWmHints;
-        
+
         MotifWmHints hints;
-        hints.flags = 2;  // MWM_HINTS_DECORATIONS flag
-        hints.decorations = state ? 1 : 0;  // 1=enable, 0=disable
+        hints.flags = 2;                   // MWM_HINTS_DECORATIONS flag
+        hints.decorations = state ? 1 : 0; // 1=enable, 0=disable
         hints.functions = 0;
         hints.input_mode = 0;
         hints.status = 0;
-        
+
         XChangeProperty(wm->x11_ctx->display, wm->windows[window_id]->window, motif_hints, motif_hints, 32,
-                       PropModeReplace, (unsigned char*)&hints, 5);
+                        PropModeReplace, (unsigned char *)&hints, 5);
     }
 
     Atom net_wm_window_type = XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE", False);
-    Atom window_type = state ? 
-        XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_NORMAL", False) :
-        XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    
-    if (net_wm_window_type != None && window_type != None) {
-        XChangeProperty(wm->x11_ctx->display,  wm->windows[window_id]->window, net_wm_window_type, XA_ATOM, 32,
-                       PropModeReplace, (unsigned char*)&window_type, 1);
+    Atom window_type = state ? XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_NORMAL", False) : XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+
+    if (net_wm_window_type != None && window_type != None)
+    {
+        XChangeProperty(wm->x11_ctx->display, wm->windows[window_id]->window, net_wm_window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&window_type, 1);
     }
 
     XFlush(wm->x11_ctx->display);
@@ -312,6 +324,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
+           XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+                break;
             break;
 
         case ButtonPress:
@@ -435,6 +449,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             }
             break;
 
+      
+            
         default:
             break;
         }
@@ -626,4 +642,52 @@ void glps_x11_get_from_clipboard(glps_WindowManager *wm, char *data,
     (void)wm;
     (void)data;
     (void)data_size;
+}
+
+void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor)
+{
+    if (!wm || !wm->x11_ctx)
+    {
+        LOG_ERROR("Window manager invalid. Couldn't change cursor.");
+        return;
+    }
+
+
+    int selected_cursor;
+
+    switch (user_cursor)
+    {
+    case GLPS_CURSOR_ARROW:
+    {
+        selected_cursor = XC_arrow;
+        break;
+    }
+    case GLPS_CURSOR_IBEAM:
+        selected_cursor = XC_xterm;
+        break;
+    case GLPS_CURSOR_CROSSHAIR:
+        selected_cursor = XC_crosshair;
+        break;
+    case GLPS_CURSOR_HAND:
+        selected_cursor = XC_hand1;
+        break;
+    case GLPS_CURSOR_HRESIZE:
+        selected_cursor = XC_right_side;
+        break;
+    case GLPS_CURSOR_VRESIZE:
+        selected_cursor = XC_top_side;
+        break;
+    default:
+        selected_cursor = -1;
+    }
+
+    if(selected_cursor < 0)
+    {
+        LOG_ERROR("Unknown cursor type.");
+        return;
+    }
+
+    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int) selected_cursor);
+    
+    LOG_INFO("Cursor updated.");
 }

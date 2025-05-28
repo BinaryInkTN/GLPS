@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <stdlib.h>
@@ -60,6 +59,8 @@
 #include <X11/Xutil.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <X11/cursorfont.h>
+#include <time.h>
 
 #endif
 
@@ -356,6 +357,7 @@ typedef struct
   GC gc;                 /**< Graphics context for rendering. */
   Atom wm_delete_window; /**< Atom for handling window close events. */
   XFontStruct *font;     /**< X11 font structure for text rendering. */
+  Cursor cursor;
 } glps_X11Context;
 
 typedef struct

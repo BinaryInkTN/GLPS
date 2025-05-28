@@ -1681,3 +1681,27 @@ bool glps_wl_init(glps_WindowManager *wm)
 
   return true;
 }
+
+void glps_wl_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE user_cursor)
+{
+  /*
+  if(!wm || !wm->wayland_ctx)
+  {
+    LOG_ERROR("Window manager invalid. Couldn't update cursor");
+    return;
+  }
+   LPCSTR cursor_id;
+  switch(cursor_type) {
+    case GLPS_CURSOR_ARROW: cursor_id = IDC_ARROW; break;
+    case GLPS_CURSOR_IBEAM: cursor_id = IDC_IBEAM; break;
+    case GLPS_CURSOR_CROSSHAIR: cursor_id = IDC_CROSS; break;
+    case GLPS_CURSOR_HAND: cursor_id = IDC_HAND; break;
+    case GLPS_CURSOR_HRESIZE: cursor_id = IDC_SIZEWE; break;
+    case GLPS_CURSOR_VRESIZE: cursor_id = IDC_SIZENS; break;
+    default: cursor_id = IDC_ARROW;
+  }
+
+  */
+  
+}
+
