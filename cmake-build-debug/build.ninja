@@ -52,7 +52,7 @@ build cmake_object_order_depends_target_GLPS: phony || .
 build CMakeFiles/GLPS.dir/src/glps_wgl_context.c.obj: C_COMPILER__GLPS_unscanned_Debug C$:/Users/overflow/Documents/GLPS/src/glps_wgl_context.c || cmake_object_order_depends_target_GLPS
   DEFINES = -DGLPS_EXPORTS -DGLPS_USE_WIN32 -D_CRT_SECURE_NO_WARNINGS
   DEP_FILE = CMakeFiles\GLPS.dir\src\glps_wgl_context.c.obj.d
-  FLAGS = -g -std=c11 -fdiagnostics-color=always -mwindows -Wall -Wextra
+  FLAGS = -g -fdiagnostics-color=always -mwindows -Wall -Wextra
   INCLUDES = -IC:/Users/overflow/Documents/GLPS/include -IC:/Users/overflow/Documents/GLPS/internal
   OBJECT_DIR = CMakeFiles\GLPS.dir
   OBJECT_FILE_DIR = CMakeFiles\GLPS.dir\src
@@ -60,7 +60,7 @@ build CMakeFiles/GLPS.dir/src/glps_wgl_context.c.obj: C_COMPILER__GLPS_unscanned
 build CMakeFiles/GLPS.dir/src/glps_win32.c.obj: C_COMPILER__GLPS_unscanned_Debug C$:/Users/overflow/Documents/GLPS/src/glps_win32.c || cmake_object_order_depends_target_GLPS
   DEFINES = -DGLPS_EXPORTS -DGLPS_USE_WIN32 -D_CRT_SECURE_NO_WARNINGS
   DEP_FILE = CMakeFiles\GLPS.dir\src\glps_win32.c.obj.d
-  FLAGS = -g -std=c11 -fdiagnostics-color=always -mwindows -Wall -Wextra
+  FLAGS = -g -fdiagnostics-color=always -mwindows -Wall -Wextra
   INCLUDES = -IC:/Users/overflow/Documents/GLPS/include -IC:/Users/overflow/Documents/GLPS/internal
   OBJECT_DIR = CMakeFiles\GLPS.dir
   OBJECT_FILE_DIR = CMakeFiles\GLPS.dir\src
@@ -68,7 +68,7 @@ build CMakeFiles/GLPS.dir/src/glps_win32.c.obj: C_COMPILER__GLPS_unscanned_Debug
 build CMakeFiles/GLPS.dir/src/glps_window_manager.c.obj: C_COMPILER__GLPS_unscanned_Debug C$:/Users/overflow/Documents/GLPS/src/glps_window_manager.c || cmake_object_order_depends_target_GLPS
   DEFINES = -DGLPS_EXPORTS -DGLPS_USE_WIN32 -D_CRT_SECURE_NO_WARNINGS
   DEP_FILE = CMakeFiles\GLPS.dir\src\glps_window_manager.c.obj.d
-  FLAGS = -g -std=c11 -fdiagnostics-color=always -mwindows -Wall -Wextra
+  FLAGS = -g -fdiagnostics-color=always -mwindows -Wall -Wextra
   INCLUDES = -IC:/Users/overflow/Documents/GLPS/include -IC:/Users/overflow/Documents/GLPS/internal
   OBJECT_DIR = CMakeFiles\GLPS.dir
   OBJECT_FILE_DIR = CMakeFiles\GLPS.dir\src
@@ -76,7 +76,7 @@ build CMakeFiles/GLPS.dir/src/glps_window_manager.c.obj: C_COMPILER__GLPS_unscan
 build CMakeFiles/GLPS.dir/src/utils/logger/pico_logger.c.obj: C_COMPILER__GLPS_unscanned_Debug C$:/Users/overflow/Documents/GLPS/src/utils/logger/pico_logger.c || cmake_object_order_depends_target_GLPS
   DEFINES = -DGLPS_EXPORTS -DGLPS_USE_WIN32 -D_CRT_SECURE_NO_WARNINGS
   DEP_FILE = CMakeFiles\GLPS.dir\src\utils\logger\pico_logger.c.obj.d
-  FLAGS = -g -std=c11 -fdiagnostics-color=always -mwindows -Wall -Wextra
+  FLAGS = -g -fdiagnostics-color=always -mwindows -Wall -Wextra
   INCLUDES = -IC:/Users/overflow/Documents/GLPS/include -IC:/Users/overflow/Documents/GLPS/internal
   OBJECT_DIR = CMakeFiles\GLPS.dir
   OBJECT_FILE_DIR = CMakeFiles\GLPS.dir\src\utils\logger
@@ -84,7 +84,7 @@ build CMakeFiles/GLPS.dir/src/utils/logger/pico_logger.c.obj: C_COMPILER__GLPS_u
 build CMakeFiles/GLPS.dir/src/glps_timer.c.obj: C_COMPILER__GLPS_unscanned_Debug C$:/Users/overflow/Documents/GLPS/src/glps_timer.c || cmake_object_order_depends_target_GLPS
   DEFINES = -DGLPS_EXPORTS -DGLPS_USE_WIN32 -D_CRT_SECURE_NO_WARNINGS
   DEP_FILE = CMakeFiles\GLPS.dir\src\glps_timer.c.obj.d
-  FLAGS = -g -std=c11 -fdiagnostics-color=always -mwindows -Wall -Wextra
+  FLAGS = -g -fdiagnostics-color=always -mwindows -Wall -Wextra
   INCLUDES = -IC:/Users/overflow/Documents/GLPS/include -IC:/Users/overflow/Documents/GLPS/internal
   OBJECT_DIR = CMakeFiles\GLPS.dir
   OBJECT_FILE_DIR = CMakeFiles\GLPS.dir\src

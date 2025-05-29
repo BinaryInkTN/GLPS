@@ -875,6 +875,7 @@ void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_ty
     case GLPS_CURSOR_HAND: cursor_id = IDC_HAND; break;
     case GLPS_CURSOR_HRESIZE: cursor_id = IDC_SIZEWE; break;
     case GLPS_CURSOR_VRESIZE: cursor_id = IDC_SIZENS; break;
+    case GLPS_CURSOR_NOT_ALLOWED: cursor_id = IDC_NO; break;
     default: cursor_id = IDC_ARROW;
   }
 

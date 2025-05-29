@@ -15,7 +15,7 @@
 #define XC_right_side 96
 #define XC_top_side 138
 #define XC_xterm 152
-
+#define XC_X_cursor 0
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
     if (wm == NULL || wm->windows == NULL)
@@ -676,6 +676,9 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         break;
     case GLPS_CURSOR_VRESIZE:
         selected_cursor = XC_top_side;
+        break;
+    case GLPS_CURSOR_NOT_ALLOWED:
+    selected_cursor = XC_X_cursor;
         break;
     default:
         selected_cursor = -1;
