@@ -51,7 +51,6 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} 
         PRIVATE 
             opengl32
-            glew32
             gdi32
             user32
     )
@@ -163,6 +162,8 @@ elseif(UNIX AND NOT APPLE)
             include/glps_audio_stream.h
             internal/utils/audio/dr_mp3.h
             include/glps_timer.h
+                include/glps_mqtt_client.h
+                src/glps_mqtt_client.c
         )
 
         add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})

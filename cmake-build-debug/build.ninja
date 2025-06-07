@@ -99,7 +99,7 @@ build CMakeFiles/GLPS.dir/src/glps_timer.c.obj: C_COMPILER__GLPS_unscanned_Debug
 
 build bin/libGLPS.dll lib/libGLPS.dll.a: C_SHARED_LIBRARY_LINKER__GLPS_Debug CMakeFiles/GLPS.dir/src/glps_wgl_context.c.obj CMakeFiles/GLPS.dir/src/glps_win32.c.obj CMakeFiles/GLPS.dir/src/glps_window_manager.c.obj CMakeFiles/GLPS.dir/src/utils/logger/pico_logger.c.obj CMakeFiles/GLPS.dir/src/glps_timer.c.obj
   LANGUAGE_COMPILE_FLAGS = -g
-  LINK_LIBRARIES = -lopengl32  -lglew32  -lgdi32  -luser32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lopengl32  -lgdi32  -luser32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\GLPS.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
