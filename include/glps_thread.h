@@ -19,7 +19,7 @@
     typedef CRITICAL_SECTION gthread_mutex_t;
     typedef int gthread_mutexattr_t;
 
-  //  typedef CONDITION_VARIABLE gthread_cond_t;
+typedef CONDITION_VARIABLE gthread_cond_t;
     typedef int gthread_condattr_t;
 
 #else // POSIX
