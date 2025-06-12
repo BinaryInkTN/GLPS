@@ -71,7 +71,14 @@ elseif(UNIX AND NOT APPLE)
     
     if(WAYLAND_FOUND)
         message(STATUS "Building for Linux Wayland")
-        
+         # Install Wayland protocols if needed
+        if(NOT EXISTS ${PROJECT_SOURCE_DIR}/xdg)
+            message(STATUS "Installing Wayland protocols...")
+            execute_process(
+                COMMAND ${PROJECT_SOURCE_DIR}/scripts/waylandProtolcsInst.sh
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            )
+        endif()
         set(GLPS_SOURCES
             src/glps_wayland.c
             src/glps_window_manager.c
@@ -126,14 +133,7 @@ elseif(UNIX AND NOT APPLE)
                 rt
         )
         
-        # Install Wayland protocols if needed
-        if(NOT EXISTS "/usr/share/wayland-protocols")
-            message(STATUS "Installing Wayland protocols...")
-            execute_process(
-                COMMAND ${PROJECT_SOURCE_DIR}/scripts/waylandProtolcsInst.sh
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            )
-        endif()
+       
     endif()
     else()
         # Fall back to X11

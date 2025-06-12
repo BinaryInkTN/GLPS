@@ -50,6 +50,7 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 #include <xkbcommon/xkbcommon.h>
+#include <time.h>
 #endif
 
 #ifdef GLPS_USE_X11
