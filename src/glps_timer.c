@@ -9,8 +9,7 @@
 static uint64_t now_ms(void) {
   FILETIME ft;
   GetSystemTimeAsFileTime(&ft);
-  ULARGE_INTEGER li = {.LowPart = ft.dwLowDateTime,
-                       .HighPart = ft.dwHighDateTime};
+  ULARGE_INTEGER li = {.LowPart = ft.dwLowDateTime, .HighPart = ft.dwHighDateTime};
   return li.QuadPart / 10000;
 }
 #else
@@ -23,13 +22,16 @@ static uint64_t now_ms(void) {
 #endif
 
 glps_timer *glps_timer_init(void) {
-  return (glps_timer *)calloc(1, sizeof(glps_timer));
+  glps_timer *timer = (glps_timer *)calloc(1, sizeof(glps_timer));
+  timer->is_valid = false;
+  return timer;
 }
 
 void glps_timer_start(glps_timer *timer, uint64_t duration_ms,
                      timer_callback callback, void *arg) {
   if (timer) {
     timer->start_time_ms = now_ms();
+    timer->next_fire_ms = timer->start_time_ms + duration_ms;
     timer->duration_ms = duration_ms;
     timer->callback = callback;
     timer->callback_arg = arg;
@@ -42,7 +44,13 @@ void glps_timer_stop(glps_timer *timer) {
 }
 
 double glps_timer_elapsed_ms(glps_timer *timer) {
-  return timer && timer->is_valid ? (double)(now_ms() - timer->start_time_ms) : 0.0;
+  if (!timer || !timer->is_valid) return 0.0;
+  return (double)(now_ms() - timer->start_time_ms);
+}
+
+double glps_timer_elapsed_us(glps_timer *timer) {
+  if (!timer || !timer->is_valid) return 0.0;
+  return (double)(now_ms() - timer->start_time_ms) * 1000.0;
 }
 
 void glps_timer_destroy(glps_timer *timer) {
@@ -53,11 +61,11 @@ void glps_timer_check_and_call(glps_timer *timer) {
   if (!timer || !timer->is_valid || !timer->callback) return;
   
   uint64_t current = now_ms();
-  uint64_t elapsed = current - timer->start_time_ms;
-  
-  while (elapsed >= timer->duration_ms) {
+  while (current >= timer->next_fire_ms) {
     timer->callback(timer->callback_arg);
-    timer->start_time_ms += timer->duration_ms; 
-    elapsed = current - timer->start_time_ms;   
+    timer->next_fire_ms += timer->duration_ms;
+    if (timer->next_fire_ms < current) {
+      timer->next_fire_ms = current + timer->duration_ms;
+    }
   }
 }
