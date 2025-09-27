@@ -132,6 +132,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
+    wm->windows[wm->window_count]->fps_start_time= (struct timespec) {0} ; 
+
+    wm->windows[wm->window_count]->fps_is_init= false ; 
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
         wm->x11_ctx->display,

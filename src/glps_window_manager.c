@@ -483,7 +483,7 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id)
 {
   if (!wm->windows[window_id]->fps_is_init)
   {
-#ifdef GLPS_USE_WAYLAND
+#if  defined(GLPS_USE_WAYLAND) || defined(GPLPS_USE_X11)
     clock_gettime(CLOCK_MONOTONIC, &wm->windows[window_id]->fps_start_time);
 #endif
 
@@ -491,13 +491,12 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id)
     QueryPerformanceCounter(&wm->windows[window_id]->fps_start_time);
     QueryPerformanceFrequency(&wm->windows[window_id]->fps_freq);
 #endif
-
-    wm->windows[window_id]->fps_is_init = true;
+   wm->windows[window_id]->fps_is_init = true;
     return 0.0;
   }
   else
   {
-#ifdef GLPS_USE_WAYLAND
+#if defined(GLPS_USE_WAYLAND) || defined(GLPS_USE_X11)
     struct timespec end_time;
     clock_gettime(CLOCK_MONOTONIC, &end_time);
 

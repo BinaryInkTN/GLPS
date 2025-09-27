@@ -367,7 +367,7 @@ typedef struct
   struct wl_egl_window *egl_window; /**< X11 EGL window. */
   Window window;                    /**< X11 window identifier. */
   bool fps_is_init;
-
+  struct timespec fps_start_time;
 } glps_X11Window;
 
 #endif
