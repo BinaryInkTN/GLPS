@@ -432,10 +432,20 @@ void *glps_get_proc_addr(const char *name)
 
   return NULL;
 }
+uint8_t glps_wm_get_platform(void ) {
+  #ifdef GLPS_USE_X11
+    return 3 ; 
+  #elif defined(GLPS_USE_WIN32)
+    return 0 ; 
+  #elif defined(GLPS_USE_WAYLAND)
+    return 1 ; 
+  #endif  
+  
+}
 
 void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
 { 
- // return (void*)(uintptr_t) wm->windows[window_id]->window;
+  return (void*)(uintptr_t) wm->windows[window_id]->window;
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,

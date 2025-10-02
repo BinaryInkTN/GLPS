@@ -15,7 +15,7 @@
  */
 glps_WindowManager *glps_wm_init(void);
 
-
+uint8_t glps_wm_get_platform(void );
 void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
 /**
  * @brief Creates a new window with the specified title and dimensions.
