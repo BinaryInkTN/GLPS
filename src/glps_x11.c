@@ -86,7 +86,7 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
-   // wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
+    // wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
 
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display)
@@ -96,6 +96,10 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
+    wm->x11_ctx->root = RootWindow(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display));
+    XSelectInput(wm->x11_ctx->display, wm->x11_ctx->root,
+                 SubstructureRedirectMask | SubstructureNotifyMask |
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font)
@@ -108,6 +112,20 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
+}
+
+// Gooey DE Specific functions
+Window glps_x11_window_get_root(glps_WindowManager *wm)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
+    {
+        LOG_CRITICAL("Invalid Window Manager state. Exiting...");
+        XCloseDisplay(wm->x11_ctx->display);
+        free(wm->windows);
+        free(wm->x11_ctx);
+        exit(EXIT_FAILURE);
+    }
+    return wm->x11_ctx->root;
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
@@ -132,9 +150,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
-    wm->windows[wm->window_count]->fps_start_time= (struct timespec) {0} ; 
+    wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
 
-    wm->windows[wm->window_count]->fps_is_init= false ; 
+    wm->windows[wm->window_count]->fps_is_init = false;
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
         wm->x11_ctx->display,
@@ -150,6 +168,11 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         wm->windows[wm->window_count] = NULL;
         return -1;
     }
+    wm->x11_ctx->frame = XCreateSimpleWindow(
+        wm->x11_ctx->display, wm->x11_ctx->root, 100, 100, 800, 600, 2,
+        BlackPixel(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display)),
+        WhitePixel(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display)));
+    XReparentWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window, wm->x11_ctx->frame, 0, 20);
 
     XSetWindowBackground(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0xFFFFFF);
     XSetWindowAttributes swa;
@@ -266,6 +289,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     Display *display = wm->x11_ctx->display;
     XEvent event;
+    XMapRequestEvent *e = &event.xmaprequest;
 
     int events_processed = 0;
     while (XPending(display) > 0 && events_processed++ < MAX_EVENTS_PER_FRAME)
@@ -281,6 +305,16 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         switch (event.type)
         {
+
+        case MapRequest:
+        {
+            LOG_INFO("Map request for window %zd", window_id);
+            XReparentWindow(display, e->window, wm->x11_ctx->frame, 0, 20);
+            XMapWindow(display, wm->x11_ctx->frame);
+            XMapWindow(display, e->window);
+            break;
+        }
+
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
             {
@@ -327,8 +361,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
-           XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
-                break;
+            XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            break;
             break;
 
         case ButtonPress:
@@ -452,8 +486,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             }
             break;
 
-      
-            
         default:
             break;
         }
@@ -655,7 +687,6 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         return;
     }
 
-
     int selected_cursor;
 
     switch (user_cursor)
@@ -681,19 +712,19 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         selected_cursor = XC_top_side;
         break;
     case GLPS_CURSOR_NOT_ALLOWED:
-    selected_cursor = XC_X_cursor;
+        selected_cursor = XC_X_cursor;
         break;
     default:
         selected_cursor = -1;
     }
 
-    if(selected_cursor < 0)
+    if (selected_cursor < 0)
     {
         LOG_ERROR("Unknown cursor type.");
         return;
     }
 
-    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int) selected_cursor);
-    
+    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int)selected_cursor);
+
     LOG_INFO("Cursor updated.");
 }

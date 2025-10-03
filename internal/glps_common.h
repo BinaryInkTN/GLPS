@@ -355,6 +355,8 @@ typedef struct
 typedef struct
 {
   Display *display;      /**< X11 display connection. */
+  Window root;           /**< Root window. */
+  Window frame;         /**< Frame window for decorations. */
   GC gc;                 /**< Graphics context for rendering. */
   Atom wm_delete_window; /**< Atom for handling window close events. */
   XFontStruct *font;     /**< X11 font structure for text rendering. */
