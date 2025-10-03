@@ -17,21 +17,6 @@
 #define XC_xterm 152
 #define XC_X_cursor 0
 
-// Window manager state
-typedef struct {
-    bool is_window_manager;
-    Window root_window;
-    Atom wm_protocols;
-    Atom wm_delete_window;
-    Atom wm_state;
-    Atom net_active_window;
-    Atom net_supported;
-    Atom net_wm_name;
-    Atom net_wm_window_type;
-    Atom net_wm_window_type_normal;
-    Atom wm_take_focus;
-} glps_WindowManagerState;
-
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
     if (wm == NULL || wm->windows == NULL)
@@ -80,14 +65,13 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     wm->window_count--;
 }
 
-// Window manager function to manage client windows
 void __manage_client_window(glps_WindowManager *wm, Window client_win)
 {
-    if (!wm->wm_state.is_window_manager) return;
+    if (!wm->wm_state.is_window_manager)
+        return;
 
     LOG_INFO("Managing client window: %lu", client_win);
 
-    // Add frame window
     int screen = DefaultScreen(wm->x11_ctx->display);
     Window frame_win = XCreateSimpleWindow(
         wm->x11_ctx->display,
@@ -96,10 +80,8 @@ void __manage_client_window(glps_WindowManager *wm, Window client_win)
         BlackPixel(wm->x11_ctx->display, screen),
         WhitePixel(wm->x11_ctx->display, screen));
 
-    // Reparent client window
     XReparentWindow(wm->x11_ctx->display, client_win, frame_win, 10, 30);
 
-    // Add window to our window list
     if (wm->window_count < MAX_WINDOWS)
     {
         wm->windows[wm->window_count] = (glps_X11Window *)calloc(1, sizeof(glps_X11Window));
@@ -109,7 +91,6 @@ void __manage_client_window(glps_WindowManager *wm, Window client_win)
             wm->windows[wm->window_count]->client_window = client_win;
             wm->windows[wm->window_count]->is_managed_client = true;
 
-            // Create EGL surface for the frame window
             if (wm->egl_ctx != NULL)
             {
                 wm->windows[wm->window_count]->egl_surface =
@@ -121,12 +102,10 @@ void __manage_client_window(glps_WindowManager *wm, Window client_win)
         }
     }
 
-    // Map both windows
     XMapWindow(wm->x11_ctx->display, frame_win);
     XMapWindow(wm->x11_ctx->display, client_win);
 
-    // Set window manager protocols
-    XSetWMProtocols(wm->x11_ctx->display, client_win, 
+    XSetWMProtocols(wm->x11_ctx->display, client_win,
                     &wm->wm_state.wm_delete_window, 1);
 
     XFlush(wm->x11_ctx->display);
@@ -164,11 +143,9 @@ void glps_x11_init(glps_WindowManager *wm)
         exit(EXIT_FAILURE);
     }
 
-    // Initialize window manager state
     wm->wm_state.is_window_manager = false;
     wm->wm_state.root_window = RootWindow(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display));
-    
-    // Create standard atoms
+
     wm->wm_state.wm_protocols = XInternAtom(wm->x11_ctx->display, "WM_PROTOCOLS", False);
     wm->wm_state.wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
     wm->wm_state.wm_state = XInternAtom(wm->x11_ctx->display, "WM_STATE", False);
@@ -214,8 +191,8 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
-    wm->windows[wm->window_count]->fps_start_time= (struct timespec) {0} ; 
-    wm->windows[wm->window_count]->fps_is_init= false ; 
+    wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
+    wm->windows[wm->window_count]->fps_is_init = false;
     wm->windows[wm->window_count]->is_managed_client = false;
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
@@ -308,12 +285,10 @@ void glps_x11_enable_window_manager(glps_WindowManager *wm)
 
     wm->wm_state.is_window_manager = true;
 
-    // Select root window events to detect new windows
-    XSelectInput(wm->x11_ctx->display, wm->wm_state.root_window, 
-                 SubstructureRedirectMask | SubstructureNotifyMask | 
-                 StructureNotifyMask | PropertyChangeMask);
+    XSelectInput(wm->x11_ctx->display, wm->wm_state.root_window,
+                 SubstructureRedirectMask | SubstructureNotifyMask |
+                     StructureNotifyMask | PropertyChangeMask);
 
-    // Set supported features
     Atom supported_atoms[] = {
         wm->wm_state.wm_protocols,
         wm->wm_state.wm_delete_window,
@@ -323,12 +298,11 @@ void glps_x11_enable_window_manager(glps_WindowManager *wm)
         wm->wm_state.net_supported,
         wm->wm_state.net_wm_name,
         wm->wm_state.net_wm_window_type,
-        wm->wm_state.net_wm_window_type_normal
-    };
+        wm->wm_state.net_wm_window_type_normal};
 
     XChangeProperty(wm->x11_ctx->display, wm->wm_state.root_window,
                     wm->wm_state.net_supported, XA_ATOM, 32,
-                    PropModeReplace, (unsigned char*)supported_atoms,
+                    PropModeReplace, (unsigned char *)supported_atoms,
                     sizeof(supported_atoms) / sizeof(Atom));
 
     LOG_INFO("Window manager mode enabled");
@@ -350,8 +324,8 @@ void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size
         } MotifWmHints;
 
         MotifWmHints hints;
-        hints.flags = 2;                   // MWM_HINTS_DECORATIONS flag
-        hints.decorations = state ? 1 : 0; // 1=enable, 0=disable
+        hints.flags = 2;
+        hints.decorations = state ? 1 : 0;
         hints.functions = 0;
         hints.input_mode = 0;
         hints.status = 0;
@@ -388,14 +362,13 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     {
         XNextEvent(display, &event);
 
-        // Handle window manager events
         if (wm->wm_state.is_window_manager)
         {
             switch (event.type)
             {
             case CreateNotify:
                 LOG_INFO("New window created: %lu", event.xcreatewindow.window);
-                // Don't manage our own windows
+
                 if (__get_window_id_by_xid(wm, event.xcreatewindow.window) < 0)
                 {
                     __manage_client_window(wm, event.xcreatewindow.window);
@@ -435,7 +408,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
         if (window_id < 0)
         {
-            // Check if it's a client window event
+
             for (size_t i = 0; i < wm->window_count; ++i)
             {
                 if (wm->windows[i] && wm->windows[i]->client_window == event.xany.window)
@@ -444,7 +417,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     break;
                 }
             }
-            
+
             if (window_id < 0)
             {
                 LOG_ERROR("Event for untracked window %lu", event.xany.window);
@@ -634,7 +607,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     return (wm->window_count == 0);
 }
-
 
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {
@@ -829,7 +801,6 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         return;
     }
 
-
     int selected_cursor;
 
     switch (user_cursor)
@@ -855,19 +826,19 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         selected_cursor = XC_top_side;
         break;
     case GLPS_CURSOR_NOT_ALLOWED:
-    selected_cursor = XC_X_cursor;
+        selected_cursor = XC_X_cursor;
         break;
     default:
         selected_cursor = -1;
     }
 
-    if(selected_cursor < 0)
+    if (selected_cursor < 0)
     {
         LOG_ERROR("Unknown cursor type.");
         return;
     }
 
-    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int) selected_cursor);
-    
+    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int)selected_cursor);
+
     LOG_INFO("Cursor updated.");
 }
