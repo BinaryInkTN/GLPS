@@ -123,11 +123,11 @@ void glps_x11_init(glps_WindowManager *wm)
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font)
     {
-        LOG_WARN("Failed to load fixed font, trying alternatives");
+        LOG_WARNING("Failed to load fixed font, trying alternatives");
         wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "9x15");
         if (!wm->x11_ctx->font)
         {
-            LOG_WARN("Failed to load any font, continuing without font");
+            LOG_WARNING("Failed to load any font, continuing without font");
         }
     }
 
@@ -351,7 +351,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 continue;
             }
             
-            LOG_DEBUG("Event for untracked window %lu", event.xany.window);
+            LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
 
