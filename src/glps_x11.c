@@ -16,6 +16,22 @@
 #define XC_top_side 138
 #define XC_xterm 152
 #define XC_X_cursor 0
+
+// Window manager state
+typedef struct {
+    bool is_window_manager;
+    Window root_window;
+    Atom wm_protocols;
+    Atom wm_delete_window;
+    Atom wm_state;
+    Atom net_active_window;
+    Atom net_supported;
+    Atom net_wm_name;
+    Atom net_wm_window_type;
+    Atom net_wm_window_type_normal;
+    Atom wm_take_focus;
+} glps_WindowManagerState;
+
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
     if (wm == NULL || wm->windows == NULL)
@@ -64,6 +80,58 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     wm->window_count--;
 }
 
+// Window manager function to manage client windows
+void __manage_client_window(glps_WindowManager *wm, Window client_win)
+{
+    if (!wm->wm_state.is_window_manager) return;
+
+    LOG_INFO("Managing client window: %lu", client_win);
+
+    // Add frame window
+    int screen = DefaultScreen(wm->x11_ctx->display);
+    Window frame_win = XCreateSimpleWindow(
+        wm->x11_ctx->display,
+        wm->wm_state.root_window,
+        100, 100, 400, 300, 1,
+        BlackPixel(wm->x11_ctx->display, screen),
+        WhitePixel(wm->x11_ctx->display, screen));
+
+    // Reparent client window
+    XReparentWindow(wm->x11_ctx->display, client_win, frame_win, 10, 30);
+
+    // Add window to our window list
+    if (wm->window_count < MAX_WINDOWS)
+    {
+        wm->windows[wm->window_count] = (glps_X11Window *)calloc(1, sizeof(glps_X11Window));
+        if (wm->windows[wm->window_count])
+        {
+            wm->windows[wm->window_count]->window = frame_win;
+            wm->windows[wm->window_count]->client_window = client_win;
+            wm->windows[wm->window_count]->is_managed_client = true;
+
+            // Create EGL surface for the frame window
+            if (wm->egl_ctx != NULL)
+            {
+                wm->windows[wm->window_count]->egl_surface =
+                    eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
+                                           (NativeWindowType)frame_win, NULL);
+            }
+
+            wm->window_count++;
+        }
+    }
+
+    // Map both windows
+    XMapWindow(wm->x11_ctx->display, frame_win);
+    XMapWindow(wm->x11_ctx->display, client_win);
+
+    // Set window manager protocols
+    XSetWMProtocols(wm->x11_ctx->display, client_win, 
+                    &wm->wm_state.wm_delete_window, 1);
+
+    XFlush(wm->x11_ctx->display);
+}
+
 void glps_x11_init(glps_WindowManager *wm)
 {
     if (wm == NULL)
@@ -86,7 +154,6 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
-   // wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
 
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display)
@@ -96,6 +163,21 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
+
+    // Initialize window manager state
+    wm->wm_state.is_window_manager = false;
+    wm->wm_state.root_window = RootWindow(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display));
+    
+    // Create standard atoms
+    wm->wm_state.wm_protocols = XInternAtom(wm->x11_ctx->display, "WM_PROTOCOLS", False);
+    wm->wm_state.wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
+    wm->wm_state.wm_state = XInternAtom(wm->x11_ctx->display, "WM_STATE", False);
+    wm->wm_state.wm_take_focus = XInternAtom(wm->x11_ctx->display, "WM_TAKE_FOCUS", False);
+    wm->wm_state.net_active_window = XInternAtom(wm->x11_ctx->display, "_NET_ACTIVE_WINDOW", False);
+    wm->wm_state.net_supported = XInternAtom(wm->x11_ctx->display, "_NET_SUPPORTED", False);
+    wm->wm_state.net_wm_name = XInternAtom(wm->x11_ctx->display, "_NET_WM_NAME", False);
+    wm->wm_state.net_wm_window_type = XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE", False);
+    wm->wm_state.net_wm_window_type_normal = XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE_NORMAL", False);
 
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font)
@@ -107,7 +189,7 @@ void glps_x11_init(glps_WindowManager *wm)
         exit(EXIT_FAILURE);
     }
 
-    wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
+    wm->x11_ctx->wm_delete_window = wm->wm_state.wm_delete_window;
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
@@ -133,8 +215,8 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
     wm->windows[wm->window_count]->fps_start_time= (struct timespec) {0} ; 
-
     wm->windows[wm->window_count]->fps_is_init= false ; 
+    wm->windows[wm->window_count]->is_managed_client = false;
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
         wm->x11_ctx->display,
@@ -216,6 +298,41 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
+void glps_x11_enable_window_manager(glps_WindowManager *wm)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
+    {
+        LOG_ERROR("Cannot enable window manager: invalid state");
+        return;
+    }
+
+    wm->wm_state.is_window_manager = true;
+
+    // Select root window events to detect new windows
+    XSelectInput(wm->x11_ctx->display, wm->wm_state.root_window, 
+                 SubstructureRedirectMask | SubstructureNotifyMask | 
+                 StructureNotifyMask | PropertyChangeMask);
+
+    // Set supported features
+    Atom supported_atoms[] = {
+        wm->wm_state.wm_protocols,
+        wm->wm_state.wm_delete_window,
+        wm->wm_state.wm_state,
+        wm->wm_state.wm_take_focus,
+        wm->wm_state.net_active_window,
+        wm->wm_state.net_supported,
+        wm->wm_state.net_wm_name,
+        wm->wm_state.net_wm_window_type,
+        wm->wm_state.net_wm_window_type_normal
+    };
+
+    XChangeProperty(wm->x11_ctx->display, wm->wm_state.root_window,
+                    wm->wm_state.net_supported, XA_ATOM, 32,
+                    PropModeReplace, (unsigned char*)supported_atoms,
+                    sizeof(supported_atoms) / sizeof(Atom));
+
+    LOG_INFO("Window manager mode enabled");
+}
 
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
 {
@@ -255,7 +372,6 @@ void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size
     XFlush(wm->x11_ctx->display);
     XSync(wm->x11_ctx->display, False);
 }
-
 bool glps_x11_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
@@ -272,11 +388,68 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     {
         XNextEvent(display, &event);
 
+        // Handle window manager events
+        if (wm->wm_state.is_window_manager)
+        {
+            switch (event.type)
+            {
+            case CreateNotify:
+                LOG_INFO("New window created: %lu", event.xcreatewindow.window);
+                // Don't manage our own windows
+                if (__get_window_id_by_xid(wm, event.xcreatewindow.window) < 0)
+                {
+                    __manage_client_window(wm, event.xcreatewindow.window);
+                }
+                continue;
+
+            case MapRequest:
+                LOG_INFO("Map request for window: %lu", event.xmaprequest.window);
+                XMapWindow(display, event.xmaprequest.window);
+                continue;
+
+            case ConfigureRequest:
+            {
+                XConfigureRequestEvent *cre = &event.xconfigurerequest;
+                XWindowChanges changes;
+                changes.x = cre->x;
+                changes.y = cre->y;
+                changes.width = cre->width;
+                changes.height = cre->height;
+                changes.border_width = cre->border_width;
+                changes.sibling = cre->above;
+                changes.stack_mode = cre->detail;
+                XConfigureWindow(display, cre->window, cre->value_mask, &changes);
+                continue;
+            }
+
+            case UnmapNotify:
+                LOG_INFO("Window unmapped: %lu", event.xunmap.window);
+                continue;
+
+            case DestroyNotify:
+                LOG_INFO("Window destroyed: %lu", event.xdestroywindow.window);
+                continue;
+            }
+        }
+
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
         if (window_id < 0)
         {
-            LOG_ERROR("Event for untracked window %lu", event.xany.window);
-            continue;
+            // Check if it's a client window event
+            for (size_t i = 0; i < wm->window_count; ++i)
+            {
+                if (wm->windows[i] && wm->windows[i]->client_window == event.xany.window)
+                {
+                    window_id = i;
+                    break;
+                }
+            }
+            
+            if (window_id < 0)
+            {
+                LOG_ERROR("Event for untracked window %lu", event.xany.window);
+                continue;
+            }
         }
 
         switch (event.type)
@@ -327,8 +500,10 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
-           XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
-                break;
+            if (wm->x11_ctx->cursor)
+            {
+                XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            }
             break;
 
         case ButtonPress:
@@ -452,8 +627,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             }
             break;
 
-      
-            
         default:
             break;
         }
@@ -461,6 +634,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     return (wm->window_count == 0);
 }
+
 
 void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 {

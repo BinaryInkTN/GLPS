@@ -351,7 +351,19 @@ typedef struct
 #endif
 
 #ifdef GLPS_USE_X11
-
+typedef struct glps_WindowManagerState {
+    bool is_window_manager;
+    Window root_window;
+    Atom wm_protocols;
+    Atom wm_delete_window;
+    Atom wm_state;
+    Atom net_active_window;
+    Atom net_supported;
+    Atom net_wm_name;
+    Atom net_wm_window_type;
+    Atom net_wm_window_type_normal;
+    Atom wm_take_focus;
+} glps_WindowManagerState;
 typedef struct
 {
   Display *display;      /**< X11 display connection. */
@@ -412,6 +424,7 @@ typedef struct
   glps_X11Context *x11_ctx;
   glps_X11Window **windows; /**< Array of X11 window pointers. */
 #endif
+  glps_WindowManagerState wm_state;
 
   char font_path[256];         /**< Path to the font file. */
   size_t window_count;         /**< Number of managed windows. */
