@@ -25,12 +25,12 @@
 #include <windows.h>
 #include <winuser.h>
 #include <wchar.h>
-#include <shlwapi.h>       // For wcsrchr (optional)
-#include <stdint.h>        // For uintptr_t
-#include <stdlib.h>        // For strdup
-#include <string.h>        // For strncpy, strcpy
-#include <winreg.h>        // For RegGetValueW, RRF_RT_REG_SZ
-#include <shellapi.h>      // For DragQueryFileW, DragFinish, etc.
+#include <shlwapi.h>  // For wcsrchr (optional)
+#include <stdint.h>   // For uintptr_t
+#include <stdlib.h>   // For strdup
+#include <string.h>   // For strncpy, strcpy
+#include <winreg.h>   // For RegGetValueW, RRF_RT_REG_SZ
+#include <shellapi.h> // For DragQueryFileW, DragFinish, etc.
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600 // Windows Vista or newer
 #endif
@@ -100,12 +100,12 @@ typedef enum
   GLPS_SCROLL_SOURCE_OTHER       /**< Other scroll source. */
 } GLPS_SCROLL_SOURCE;
 
-
 /**
  * @enum GLPS_CURSOR_TYPE
  * @brief Cursor types.
  */
-typedef enum {
+typedef enum
+{
   GLPS_CURSOR_ARROW,
   GLPS_CURSOR_IBEAM,
   GLPS_CURSOR_CROSSHAIR,
@@ -368,6 +368,8 @@ typedef struct
   Window window;                    /**< X11 window identifier. */
   bool fps_is_init;
   struct timespec fps_start_time;
+  bool is_desktop; // New field to mark desktop window
+
 } glps_X11Window;
 
 #endif
