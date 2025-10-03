@@ -601,7 +601,7 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
                            wm->egl_ctx->ctx))
         {
             // If we can't make context current, skip EGL operations but still call callback
-            LOG_DEBUG("Could not make EGL context current for window %zu", window_id);
+            LOG_CRITICAL("Could not make EGL context current for window %zu", window_id);
         }
     }
 
