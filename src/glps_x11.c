@@ -100,7 +100,9 @@ void glps_x11_init(glps_WindowManager *wm)
     XSelectInput(wm->x11_ctx->display, wm->x11_ctx->root,
                  SubstructureRedirectMask | SubstructureNotifyMask |
                      ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
-
+XSetWindowBackground(wm->x11_ctx->display, wm->x11_ctx->root, WhitePixel(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display)));
+XClearWindow(wm->x11_ctx->display, wm->x11_ctx->root);
+XFlush(wm->x11_ctx->display);
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font)
     {
