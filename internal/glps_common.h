@@ -25,12 +25,12 @@
 #include <windows.h>
 #include <winuser.h>
 #include <wchar.h>
-#include <shlwapi.h>       // For wcsrchr (optional)
-#include <stdint.h>        // For uintptr_t
-#include <stdlib.h>        // For strdup
-#include <string.h>        // For strncpy, strcpy
-#include <winreg.h>        // For RegGetValueW, RRF_RT_REG_SZ
-#include <shellapi.h>      // For DragQueryFileW, DragFinish, etc.
+#include <shlwapi.h>  // For wcsrchr (optional)
+#include <stdint.h>   // For uintptr_t
+#include <stdlib.h>   // For strdup
+#include <string.h>   // For strncpy, strcpy
+#include <winreg.h>   // For RegGetValueW, RRF_RT_REG_SZ
+#include <shellapi.h> // For DragQueryFileW, DragFinish, etc.
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0600 // Windows Vista or newer
 #endif
@@ -100,12 +100,12 @@ typedef enum
   GLPS_SCROLL_SOURCE_OTHER       /**< Other scroll source. */
 } GLPS_SCROLL_SOURCE;
 
-
 /**
  * @enum GLPS_CURSOR_TYPE
  * @brief Cursor types.
  */
-typedef enum {
+typedef enum
+{
   GLPS_CURSOR_ARROW,
   GLPS_CURSOR_IBEAM,
   GLPS_CURSOR_CROSSHAIR,
@@ -351,28 +351,31 @@ typedef struct
 #endif
 
 #ifdef GLPS_USE_X11
-typedef struct glps_WindowManagerState {
-    bool is_window_manager;
-    Window root_window;
-    Atom wm_protocols;
-    Atom wm_delete_window;
-    Atom wm_state;
-    Atom net_active_window;
-    Atom net_supported;
-    Atom net_wm_name;
-    Atom net_wm_window_type;
-    Atom net_wm_window_type_normal;
-    Atom wm_take_focus;
+typedef struct glps_WindowManagerState
+{
+  bool is_window_manager;
+  Window root_window;
+  Atom wm_protocols;
+  Atom wm_delete_window;
+  Atom wm_state;
+  Atom net_active_window;
+  Atom net_supported;
+  Atom net_wm_name;
+  Atom net_wm_window_type;
+  Atom net_wm_window_type_normal;
+  Atom wm_take_focus;
 } glps_WindowManagerState;
 typedef struct
 {
   Display *display;      /**< X11 display connection. */
   Window root;           /**< Root window. */
-  Window frame;         /**< Frame window for decorations. */
+  Window frame;          /**< Frame window for decorations. */
   GC gc;                 /**< Graphics context for rendering. */
   Atom wm_delete_window; /**< Atom for handling window close events. */
   XFontStruct *font;     /**< X11 font structure for text rendering. */
   Cursor cursor;
+  Window client_window;
+  bool is_managed_client; // True if this is a managed client window
 } glps_X11Context;
 
 typedef struct
