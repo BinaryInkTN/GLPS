@@ -100,9 +100,7 @@ void glps_x11_init(glps_WindowManager *wm)
     XSelectInput(wm->x11_ctx->display, wm->x11_ctx->root,
                  SubstructureRedirectMask | SubstructureNotifyMask |
                      ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
-XSetWindowBackground(wm->x11_ctx->display, wm->x11_ctx->root, WhitePixel(wm->x11_ctx->display, DefaultScreen(wm->x11_ctx->display)));
-XClearWindow(wm->x11_ctx->display, wm->x11_ctx->root);
-XFlush(wm->x11_ctx->display);
+
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font)
     {
@@ -288,6 +286,9 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         LOG_CRITICAL("Invalid Window Manager state. Exiting...");
         return true;
     }
+    XSelectInput(wm->x11_ctx->display, wm->x11_ctx->root,
+                 SubstructureRedirectMask | SubstructureNotifyMask |
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
     Display *display = wm->x11_ctx->display;
     XEvent event;
