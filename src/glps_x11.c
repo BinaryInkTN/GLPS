@@ -155,7 +155,6 @@ Window glps_x11_window_get_root(glps_WindowManager *wm)
     }
     return wm->x11_ctx->root;
 }
-
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
                                int width, int height)
 {
@@ -182,13 +181,22 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
     wm->windows[wm->window_count]->fps_is_init = false;
 
-    // Create the actual window
-    wm->windows[wm->window_count]->window = XCreateSimpleWindow(
+    // Create window WITHOUT reparenting for EGL compatibility
+    // Use override_redirect to prevent window manager interference
+    XSetWindowAttributes attrs;
+    attrs.override_redirect = True;  // Bypass window manager for EGL windows
+    attrs.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask | 
+                       KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | 
+                       PointerMotionMask | FocusChangeMask;
+    attrs.background_pixel = WhitePixel(wm->x11_ctx->display, screen);
+    attrs.border_pixel = BlackPixel(wm->x11_ctx->display, screen);
+
+    wm->windows[wm->window_count]->window = XCreateWindow(
         wm->x11_ctx->display,
-        wm->x11_ctx->root,  // Parent is root for window manager
+        wm->x11_ctx->root,
         100, 100, width, height, 2,
-        BlackPixel(wm->x11_ctx->display, screen),
-        WhitePixel(wm->x11_ctx->display, screen));
+        CopyFromParent, InputOutput, CopyFromParent,
+        CWOverrideRedirect | CWEventMask | CWBackPixel | CWBorderPixel, &attrs);
 
     if (wm->windows[wm->window_count]->window == 0)
     {
@@ -198,20 +206,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
 
-    // Set window background
-    XSetWindowBackground(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 
-                         WhitePixel(wm->x11_ctx->display, screen));
-    
-    // Set window attributes for better performance
-    XSetWindowAttributes swa;
-    swa.backing_store = WhenMapped;
-    swa.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask | 
-                     KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | 
-                     PointerMotionMask | FocusChangeMask;
-    
-    XChangeWindowAttributes(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 
-                           CWBackingStore | CWEventMask, &swa);
-    
     // Set window title
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
 
@@ -239,7 +233,13 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         XFree(class_hint);
     }
 
-    // Create EGL surface if EGL context exists
+    // Create EGL context if this is the first window
+    if (wm->window_count == 0 && wm->egl_ctx == NULL)
+    {
+        glps_egl_create_ctx(wm);
+    }
+
+    // Create EGL surface BEFORE mapping the window
     if (wm->egl_ctx != NULL)
     {
         wm->windows[wm->window_count]->egl_surface =
@@ -247,27 +247,32 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
                                    (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
         if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE)
         {
-            LOG_ERROR("Failed to create EGL surface");
-            XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-            free(wm->windows[wm->window_count]);
-            wm->windows[wm->window_count] = NULL;
-            return -1;
+            LOG_ERROR("Failed to create EGL surface for window %zu. Error: 0x%X", 
+                     wm->window_count, eglGetError());
+            // Continue without EGL - don't destroy the window
+            wm->windows[wm->window_count]->egl_surface = EGL_NO_SURFACE;
+        }
+        else
+        {
+            LOG_INFO("EGL surface created successfully for window %zu", wm->window_count);
+            
+            // Make EGL context current for this window
+            if (!eglMakeCurrent(wm->egl_ctx->dpy, 
+                               wm->windows[wm->window_count]->egl_surface, 
+                               wm->windows[wm->window_count]->egl_surface, 
+                               wm->egl_ctx->ctx))
+            {
+                LOG_ERROR("Failed to make EGL context current for window %zu. Error: 0x%X", 
+                         wm->window_count, eglGetError());
+            }
+            else
+            {
+                LOG_INFO("EGL context made current successfully for window %zu", wm->window_count);
+            }
         }
     }
 
-    // Create EGL context if this is the first window
-    if (wm->window_count == 0 && wm->egl_ctx == NULL)
-    {
-        glps_egl_create_ctx(wm);
-    }
-
-    // Make EGL context current for this window
-    if (wm->egl_ctx != NULL)
-    {
-        glps_egl_make_ctx_current(wm, wm->window_count);
-    }
-
-    // MAP THE WINDOW - This was missing!
+    // Map the window after EGL setup
     XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
     XFlush(wm->x11_ctx->display);
 
