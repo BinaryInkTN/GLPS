@@ -374,8 +374,6 @@ typedef struct
   Atom wm_delete_window; /**< Atom for handling window close events. */
   XFontStruct *font;     /**< X11 font structure for text rendering. */
   Cursor cursor;
-  Window client_window;
-  bool is_managed_client; // True if this is a managed client window
 } glps_X11Context;
 
 typedef struct
@@ -385,6 +383,10 @@ typedef struct
   Window window;                    /**< X11 window identifier. */
   bool fps_is_init;
   struct timespec fps_start_time;
+  Window client_window;
+
+  bool is_managed_client; // True if this is a managed client window
+
 } glps_X11Window;
 
 #endif
