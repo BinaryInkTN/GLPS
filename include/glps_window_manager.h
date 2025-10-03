@@ -164,7 +164,6 @@ void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
         void (*mouse_enter_callback)(size_t window_id, double mouse_x,
                                      double mouse_y, void *data),
         void *data);
-void glps_x11_enable_window_manager(glps_WindowManager *wm);
 
 /**
  * @brief Sets the callback for mouse leave events.
