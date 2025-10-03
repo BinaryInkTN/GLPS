@@ -155,8 +155,7 @@ Window glps_x11_window_get_root(glps_WindowManager *wm)
         exit(EXIT_FAILURE);
     }
     return wm->x11_ctx->root;
-}
-ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
+}ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
                                int width, int height)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
@@ -178,26 +177,28 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
-
+    
     wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
     wm->windows[wm->window_count]->fps_is_init = false;
 
-    // Create window WITHOUT reparenting for EGL compatibility
-    // Use override_redirect to prevent window manager interference
+    // For EGL windows in DE mode, use override_redirect to bypass window manager
     XSetWindowAttributes attrs;
-    attrs.override_redirect = True; // Bypass window manager for EGL windows
-    attrs.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask |
-                       KeyReleaseMask | ButtonPressMask | ButtonReleaseMask |
+    attrs.override_redirect = True;  // Critical for EGL in DE mode
+    attrs.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask | 
+                       KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | 
                        PointerMotionMask | FocusChangeMask;
     attrs.background_pixel = WhitePixel(wm->x11_ctx->display, screen);
     attrs.border_pixel = BlackPixel(wm->x11_ctx->display, screen);
+    attrs.colormap = XCreateColormap(wm->x11_ctx->display, wm->x11_ctx->root, 
+                                    DefaultVisual(wm->x11_ctx->display, screen), AllocNone);
 
     wm->windows[wm->window_count]->window = XCreateWindow(
         wm->x11_ctx->display,
         wm->x11_ctx->root,
         100, 100, width, height, 2,
         CopyFromParent, InputOutput, CopyFromParent,
-        CWOverrideRedirect | CWEventMask | CWBackPixel | CWBorderPixel, &attrs);
+        CWOverrideRedirect | CWEventMask | CWBackPixel | CWBorderPixel | CWColormap, 
+        &attrs);
 
     if (wm->windows[wm->window_count]->window == 0)
     {
@@ -207,19 +208,8 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
 
-    // Set window title
+    // Set window properties
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
-
-    // Create graphics context
-    wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
-    if (wm->x11_ctx->gc == NULL)
-    {
-        LOG_ERROR("Failed to create graphics context");
-        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-        free(wm->windows[wm->window_count]);
-        wm->windows[wm->window_count] = NULL;
-        return -1;
-    }
 
     // Set WM protocols
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
@@ -227,86 +217,48 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     // Set window class hints
     XClassHint *class_hint = XAllocClassHint();
-    if (class_hint)
-    {
+    if (class_hint) {
         class_hint->res_name = "glps_app";
         class_hint->res_class = "GLPS";
         XSetClassHint(wm->x11_ctx->display, wm->windows[wm->window_count]->window, class_hint);
         XFree(class_hint);
     }
 
-    // Create EGL context if this is the first window
+    // Create EGL context if first window
     if (wm->window_count == 0 && wm->egl_ctx == NULL)
     {
         glps_egl_create_ctx(wm);
     }
 
-    // Create EGL context if this is the first window
-    if (wm->window_count == 0 && wm->egl_ctx == NULL)
-    {
-        glps_egl_create_ctx(wm);
-    }
-
-    // Create EGL surface - CRITICAL: Do this BEFORE any window mapping or reparenting
+    // Create EGL surface for Gooey to use
     if (wm->egl_ctx != NULL)
     {
-        // Create EGL surface on the raw window (before any window manager interference)
         wm->windows[wm->window_count]->egl_surface =
             eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
                                    (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
-
+        
         if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE)
         {
             EGLint error = eglGetError();
-            LOG_ERROR("Failed to create EGL surface for window %zu. Error: 0x%X",
-                      wm->window_count, error);
-
-            // Try to diagnose the issue
-            if (error == 0x3009)
-            { // EGL_BAD_MATCH
-                LOG_ERROR("EGL_BAD_MATCH: Context and surface attributes don't match");
-                LOG_ERROR("This often happens when running as a window manager");
-            }
-
-            // Continue without EGL - don't destroy the window
+            LOG_ERROR("Failed to create EGL surface for window %zu. Error: 0x%X", 
+                     wm->window_count, error);
             wm->windows[wm->window_count]->egl_surface = EGL_NO_SURFACE;
         }
         else
         {
-            LOG_INFO("EGL surface created successfully for window %zu", wm->window_count);
-
-            // Try to make context current, but don't fail if it doesn't work
-            EGLBoolean result = eglMakeCurrent(wm->egl_ctx->dpy,
-                                               wm->windows[wm->window_count]->egl_surface,
-                                               wm->windows[wm->window_count]->egl_surface,
-                                               wm->egl_ctx->ctx);
-
-            if (!result)
-            {
-                EGLint error = eglGetError();
-                LOG_WARNING("Failed to make EGL context current for window %zu. Error: 0x%X",
-                            wm->window_count, error);
-                LOG_WARNING("Continuing without EGL context - window will still work");
-
-                // Clear any error state
-                eglGetError();
-            }
-            else
-            {
-                LOG_INFO("EGL context made current successfully for window %zu", wm->window_count);
-            }
+            LOG_INFO("EGL surface created for window %zu", wm->window_count);
         }
     }
 
     // Map the window
     XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
     XFlush(wm->x11_ctx->display);
-    LOG_INFO("Window created successfully: %s (ID: %zu, XID: %lu)",
-             title, wm->window_count, wm->windows[wm->window_count]->window);
 
+    LOG_INFO("Window created: %s (ID: %zu, XID: %lu)", 
+             title, wm->window_count, wm->windows[wm->window_count]->window);
+    
     return wm->window_count++;
 }
-
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
 {
     if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count)
@@ -558,70 +510,163 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     }
 
     return (wm->window_count == 0);
-}
-void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
+}ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
+                               int width, int height)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
-        window_id >= wm->window_count || wm->windows[window_id] == NULL)
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
     {
-        LOG_ERROR("Invalid parameters for window update");
-        return;
+        LOG_CRITICAL("Failed to create X11 window. Window manager and/or Display NULL.");
+        exit(EXIT_FAILURE);
     }
 
-    if (!wm->callbacks.window_frame_update_callback)
+    if (wm->window_count >= MAX_WINDOWS)
     {
-        return;
+        LOG_ERROR("Maximum number of windows reached");
+        return -1;
     }
 
-    static struct timespec last_time;
-    struct timespec current_time;
-    clock_gettime(CLOCK_MONOTONIC, &current_time);
-
-    if (last_time.tv_sec != 0 || last_time.tv_nsec != 0)
+    int screen = DefaultScreen(wm->x11_ctx->display);
+    wm->windows[wm->window_count] = (glps_X11Window *)calloc(1, sizeof(glps_X11Window));
+    if (wm->windows[wm->window_count] == NULL)
     {
-        long elapsed_ns = (current_time.tv_sec - last_time.tv_sec) * 1000000000 +
-                          (current_time.tv_nsec - last_time.tv_nsec);
+        LOG_ERROR("Failed to allocate window");
+        return -1;
+    }
+    
+    wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
+    wm->windows[wm->window_count]->fps_is_init = false;
 
-        if (elapsed_ns < NS_PER_FRAME)
+    // **CRITICAL FIX**: For EGL windows, use override_redirect and create as override window
+    XSetWindowAttributes attrs;
+    attrs.override_redirect = True;  // Bypass window manager completely
+    attrs.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask | 
+                       KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | 
+                       PointerMotionMask | FocusChangeMask;
+    attrs.background_pixel = WhitePixel(wm->x11_ctx->display, screen);
+    attrs.border_pixel = BlackPixel(wm->x11_ctx->display, screen);
+    attrs.colormap = XCreateColormap(wm->x11_ctx->display, wm->x11_ctx->root, 
+                                    DefaultVisual(wm->x11_ctx->display, screen), AllocNone);
+
+    wm->windows[wm->window_count]->window = XCreateWindow(
+        wm->x11_ctx->display,
+        wm->x11_ctx->root,  // Direct child of root
+        100, 100, width, height, 2,
+        CopyFromParent, InputOutput, CopyFromParent,
+        CWOverrideRedirect | CWEventMask | CWBackPixel | CWBorderPixel | CWColormap, 
+        &attrs);
+
+    if (wm->windows[wm->window_count]->window == 0)
+    {
+        LOG_ERROR("Failed to create X11 window");
+        free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
+        return -1;
+    }
+
+    // **IMPORTANT**: Set window properties BEFORE EGL surface creation
+    XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
+
+    // Set WM protocols
+    XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
+                    &wm->x11_ctx->wm_delete_window, 1);
+
+    // Set window class hints
+    XClassHint *class_hint = XAllocClassHint();
+    if (class_hint) {
+        class_hint->res_name = "glps_app";
+        class_hint->res_class = "GLPS";
+        XSetClassHint(wm->x11_ctx->display, wm->windows[wm->window_count]->window, class_hint);
+        XFree(class_hint);
+    }
+
+    // **CREATE EGL CONTEXT FIRST**
+    if (wm->window_count == 0 && wm->egl_ctx == NULL)
+    {
+        glps_egl_create_ctx(wm);
+    }
+
+    // **CREATE EGL SURFACE IMMEDIATELY AFTER WINDOW CREATION**
+    if (wm->egl_ctx != NULL)
+    {
+        LOG_INFO("Creating EGL surface for window %zu (XID: %lu)", 
+                 wm->window_count, wm->windows[wm->window_count]->window);
+        
+        wm->windows[wm->window_count]->egl_surface =
+            eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
+                                   (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
+        
+        if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE)
         {
-            struct timespec sleep_time = {
-                0,
-                NS_PER_FRAME - elapsed_ns};
-            nanosleep(&sleep_time, NULL);
+            EGLint error = eglGetError();
+            LOG_ERROR("Failed to create EGL surface for window %zu. Error: 0x%X", 
+                     wm->window_count, error);
+            
+            // Try to diagnose and fix the issue
+            if (error == 0x3009) { // EGL_BAD_MATCH
+                LOG_ERROR("EGL_BAD_MATCH - Context/surface mismatch");
+                LOG_ERROR("This usually means the EGL config doesn't match the window visual");
+                
+                // Try to query and log the window visual info for debugging
+                XWindowAttributes window_attrs;
+                if (XGetWindowAttributes(wm->x11_ctx->display, 
+                                        wm->windows[wm->window_count]->window, 
+                                        &window_attrs)) {
+                    LOG_ERROR("Window visual ID: %lu, depth: %d", 
+                             window_attrs.visual->visualid, window_attrs.depth);
+                }
+            }
+            
+            // Don't fail the window creation - continue without EGL for now
+            wm->windows[wm->window_count]->egl_surface = EGL_NO_SURFACE;
+        }
+        else
+        {
+            LOG_INFO("EGL surface created successfully for window %zu", wm->window_count);
+            
+            // **MAKE CONTEXT CURRENT IMMEDIATELY AFTER SURFACE CREATION**
+            EGLBoolean result = eglMakeCurrent(wm->egl_ctx->dpy, 
+                               wm->windows[wm->window_count]->egl_surface, 
+                               wm->windows[wm->window_count]->egl_surface, 
+                               wm->egl_ctx->ctx);
+            
+            if (!result)
+            {
+                EGLint error = eglGetError();
+                LOG_ERROR("Failed to make EGL context current. Error: 0x%X", error);
+                
+                // Try to recover by checking if we need to re-create the context
+                if (error == 0x3009) { // EGL_BAD_MATCH
+                    LOG_ERROR("Context/surface mismatch detected");
+                    LOG_ERROR("This often happens in window manager mode");
+                }
+            }
+            else
+            {
+                LOG_INFO("EGL context successfully made current for window %zu", wm->window_count);
+                
+                // Test that OpenGL is working
+                const GLubyte* renderer = glGetString(GL_RENDERER);
+                const GLubyte* version = glGetString(GL_VERSION);
+                if (renderer && version) {
+                    LOG_INFO("OpenGL Renderer: %s", renderer);
+                    LOG_INFO("OpenGL Version: %s", version);
+                } else {
+                    LOG_ERROR("OpenGL not functioning properly");
+                }
+            }
         }
     }
-    last_time = current_time;
 
-    // Make EGL context current before calling the update callback
-    if (wm->egl_ctx != NULL && wm->windows[window_id]->egl_surface != EGL_NO_SURFACE)
-    {
-        if (!eglMakeCurrent(wm->egl_ctx->dpy, 
-                           wm->windows[window_id]->egl_surface, 
-                           wm->windows[window_id]->egl_surface, 
-                           wm->egl_ctx->ctx))
-        {
-            // If we can't make context current, skip EGL operations but still call callback
-            LOG_CRITICAL("Could not make EGL context current for window %zu", window_id);
-        }
-    }
-
-    wm->callbacks.window_frame_update_callback(
-        window_id,
-        wm->callbacks.window_frame_update_data);
-
-    // Only swap buffers if we have a valid EGL context and surface
-    if (wm->egl_ctx != NULL && wm->windows[window_id]->egl_surface != EGL_NO_SURFACE)
-    {
-        // Make sure context is current before swapping
-        if (eglGetCurrentContext() == wm->egl_ctx->ctx)
-        {
-            glps_egl_swap_buffers(wm, window_id);
-        }
-    }
-
+    // **MAP THE WINDOW ONLY AFTER EGL SETUP IS COMPLETE**
+    XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
     XFlush(wm->x11_ctx->display);
-}
 
+    LOG_INFO("Window created: %s (ID: %zu, XID: %lu, EGL: %s)", 
+             title, wm->window_count, wm->windows[wm->window_count]->window,
+             (wm->windows[wm->window_count]->egl_surface != EGL_NO_SURFACE) ? "YES" : "NO");
+    
+    return wm->window_count++;
+}
 void glps_x11_destroy(glps_WindowManager *wm)
 {
     if (wm == NULL)
