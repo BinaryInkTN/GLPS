@@ -2,6 +2,16 @@
 #include "utils/logger/pico_logger.h"
 #include <EGL/egl.h>
 #include <assert.h>
+// Helper function to log EGL errors
+static void check_egl_error(const char *func, const char *call) {
+    EGLint error = eglGetError();
+    if (error != EGL_SUCCESS) {
+        LOG_ERROR("%s: EGL error in %s: 0x%x", func, call, error);
+        if (error == EGL_BAD_MATCH) {
+            LOG_ERROR("Possible visual or config mismatch");
+        }
+    }
+}
 
 void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
     wm->egl_ctx = calloc(1, sizeof(glps_EGLContext));
