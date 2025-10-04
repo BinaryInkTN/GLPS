@@ -124,10 +124,3 @@ void glps_egl_swap_buffers(glps_WindowManager *wm, size_t window_id) {
     }
 }
 
-// Helper function to log EGL errors (moved here for consistency)
-static void check_egl_error(const char *func, const char *call) {
-    EGLint error = eglGetError();
-    if (error != EGL_SUCCESS) {
-        LOG_ERROR("%s: EGL error in %s: 0x%x", func, call, error);
-    }
-}
