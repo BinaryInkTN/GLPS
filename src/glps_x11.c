@@ -24,7 +24,29 @@ static void check_egl_error(const char *func, const char *call) {
     EGLint error = eglGetError();
     if (error != EGL_SUCCESS) {
         LOG_ERROR("%s: EGL error in %s: 0x%x", func, call, error);
+        if (error == EGL_BAD_MATCH) {
+            LOG_ERROR("Possible visual or config mismatch");
+        }
     }
+}
+
+// Helper function to get X11 visual for EGL config
+static XVisualInfo* get_visual_for_egl_config(Display *display, EGLDisplay egl_dpy, EGLConfig egl_conf) {
+    EGLint visual_id;
+    if (!eglGetConfigAttrib(egl_dpy, egl_conf, EGL_NATIVE_VISUAL_ID, &visual_id)) {
+        LOG_ERROR("Failed to get EGL_NATIVE_VISUAL_ID");
+        return NULL;
+    }
+    XVisualInfo template;
+    template.visualid = visual_id;
+    int num_visuals;
+    XVisualInfo *visual = XGetVisualInfo(display, VisualIDMask, &template, &num_visuals);
+    if (!visual || num_visuals == 0) {
+        LOG_ERROR("No matching X11 visual found for EGL config (visual_id: %d)", visual_id);
+        XFree(visual);
+        return NULL;
+    }
+    return visual;
 }
 
 static void draw_desktop_background(glps_WindowManager *wm, size_t window_id);
@@ -81,14 +103,14 @@ void glps_x11_init(glps_WindowManager *wm) {
     }
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display) {
-        LOG_CRITICAL("Failed to open X display\n");
+        LOG_CRITICAL("Failed to open X display");
         free(wm->windows);
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
     wm->x11_ctx->font = XLoadQueryFont(wm->x11_ctx->display, "fixed");
     if (!wm->x11_ctx->font) {
-        LOG_CRITICAL("Failed to load system font\n");
+        LOG_CRITICAL("Failed to load system font");
         XCloseDisplay(wm->x11_ctx->display);
         free(wm->windows);
         free(wm->x11_ctx);
@@ -106,21 +128,37 @@ void glps_x11_init(glps_WindowManager *wm) {
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
-    glps_egl_create_ctx(wm); // Create shared EGL context
+    glps_egl_init(wm, (EGLNativeDisplayType)wm->x11_ctx->display);
+    glps_egl_create_ctx(wm);
     if (wm->egl_ctx->ctx == EGL_NO_CONTEXT) {
         LOG_CRITICAL("Failed to create EGL context");
-        free(wm->egl_ctx);
+        glps_egl_destroy(wm);
         XCloseDisplay(wm->x11_ctx->display);
         free(wm->windows);
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
 
-    // Create desktop window
+    // Get visual for EGL config
     int screen = DefaultScreen(wm->x11_ctx->display);
+    XVisualInfo *visual = get_visual_for_egl_config(wm->x11_ctx->display, wm->egl_ctx->dpy, wm->egl_ctx->conf);
+    if (!visual) {
+        LOG_CRITICAL("Failed to get compatible X11 visual");
+        glps_egl_destroy(wm);
+        XCloseDisplay(wm->x11_ctx->display);
+        free(wm->windows);
+        free(wm->x11_ctx);
+        exit(EXIT_FAILURE);
+    }
+    Colormap colormap = XCreateColormap(wm->x11_ctx->display, RootWindow(wm->x11_ctx->display, screen),
+                                       visual->visual, AllocNone);
+
+    // Create desktop window
     wm->windows[wm->window_count] = (glps_X11Window *)calloc(1, sizeof(glps_X11Window));
     if (wm->windows[wm->window_count] == NULL) {
         LOG_CRITICAL("Failed to allocate desktop window");
+        XFreeColormap(wm->x11_ctx->display, colormap);
+        XFree(visual);
         glps_egl_destroy(wm);
         XCloseDisplay(wm->x11_ctx->display);
         free(wm->windows);
@@ -130,17 +168,25 @@ void glps_x11_init(glps_WindowManager *wm) {
     wm->windows[wm->window_count]->is_desktop = true;
     wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
     wm->windows[wm->window_count]->fps_is_init = false;
-    wm->windows[wm->window_count]->window = XCreateSimpleWindow(
+
+    XSetWindowAttributes attr;
+    attr.colormap = colormap;
+    attr.background_pixel = DESKTOP_BG_COLOR;
+    attr.border_pixel = BlackPixel(wm->x11_ctx->display, screen);
+    attr.event_mask = ExposureMask | StructureNotifyMask;
+
+    wm->windows[wm->window_count]->window = XCreateWindow(
         wm->x11_ctx->display,
         RootWindow(wm->x11_ctx->display, screen),
         0, 0,
         XDisplayWidth(wm->x11_ctx->display, screen),
         XDisplayHeight(wm->x11_ctx->display, screen),
-        0,
-        BlackPixel(wm->x11_ctx->display, screen),
-        DESKTOP_BG_COLOR);
+        0, visual->depth, InputOutput, visual->visual,
+        CWColormap | CWBackPixel | CWBorderPixel | CWEventMask, &attr);
+    XFree(visual);
     if (wm->windows[wm->window_count]->window == 0) {
         LOG_CRITICAL("Failed to create desktop window");
+        XFreeColormap(wm->x11_ctx->display, colormap);
         free(wm->windows[wm->window_count]);
         glps_egl_destroy(wm);
         XCloseDisplay(wm->x11_ctx->display);
@@ -148,6 +194,7 @@ void glps_x11_init(glps_WindowManager *wm) {
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
+    XFreeColormap(wm->x11_ctx->display, colormap);
 
     // Set window type to desktop
     Atom net_wm_window_type = XInternAtom(wm->x11_ctx->display, "_NET_WM_WINDOW_TYPE", False);
@@ -189,6 +236,7 @@ void glps_x11_init(glps_WindowManager *wm) {
                               (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
     if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE) {
         LOG_CRITICAL("Failed to create EGL surface for desktop");
+        check_egl_error("glps_x11_init", "eglCreateWindowSurface");
         XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
         free(wm->windows[wm->window_count]);
         glps_egl_destroy(wm);
@@ -210,8 +258,8 @@ void glps_x11_init(glps_WindowManager *wm) {
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title, int width, int height) {
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL) {
-        LOG_CRITICAL("Failed to create X11 window. Window manager and/or Display NULL.");
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL || wm->egl_ctx == NULL) {
+        LOG_CRITICAL("Failed to create X11 window. Window manager, display, or EGL context NULL.");
         exit(EXIT_FAILURE);
     }
     if (wm->window_count >= MAX_WINDOWS) {
@@ -219,26 +267,47 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title, int wi
         return -1;
     }
     int screen = DefaultScreen(wm->x11_ctx->display);
+    XVisualInfo *visual = get_visual_for_egl_config(wm->x11_ctx->display, wm->egl_ctx->dpy, wm->egl_ctx->conf);
+    if (!visual) {
+        LOG_ERROR("Failed to get compatible X11 visual for floating window");
+        return -1;
+    }
+    Colormap colormap = XCreateColormap(wm->x11_ctx->display, RootWindow(wm->x11_ctx->display, screen),
+                                       visual->visual, AllocNone);
+
     wm->windows[wm->window_count] = (glps_X11Window *)calloc(1, sizeof(glps_X11Window));
     if (wm->windows[wm->window_count] == NULL) {
         LOG_ERROR("Failed to allocate window");
+        XFreeColormap(wm->x11_ctx->display, colormap);
+        XFree(visual);
         return -1;
     }
     wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
     wm->windows[wm->window_count]->fps_is_init = false;
     wm->windows[wm->window_count]->is_desktop = false;
-    wm->windows[wm->window_count]->window = XCreateSimpleWindow(
+
+    XSetWindowAttributes attr;
+    attr.colormap = colormap;
+    attr.background_pixel = WhitePixel(wm->x11_ctx->display, screen);
+    attr.border_pixel = BlackPixel(wm->x11_ctx->display, screen);
+    attr.event_mask = PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
+                      KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
+
+    wm->windows[wm->window_count]->window = XCreateWindow(
         wm->x11_ctx->display,
         RootWindow(wm->x11_ctx->display, screen),
-        10, 10, width, height, 0,
-        BlackPixel(wm->x11_ctx->display, screen),
-        WhitePixel(wm->x11_ctx->display, screen));
+        10, 10, width, height, 0, visual->depth, InputOutput, visual->visual,
+        CWColormap | CWBackPixel | CWBorderPixel | CWEventMask, &attr);
+    XFree(visual);
     if (wm->windows[wm->window_count]->window == 0) {
         LOG_ERROR("Failed to create X11 window");
+        XFreeColormap(wm->x11_ctx->display, colormap);
         free(wm->windows[wm->window_count]);
         wm->windows[wm->window_count] = NULL;
         return -1;
     }
+    XFreeColormap(wm->x11_ctx->display, colormap);
+
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
 
     // Remove decorations
@@ -256,23 +325,14 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title, int wi
                     (unsigned char *)&hints, 5);
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
                     &wm->x11_ctx->wm_delete_window, 1);
-    long event_mask = PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
-                      KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
-    int result = XSelectInput(wm->x11_ctx->display, wm->windows[wm->window_count]->window, event_mask);
-    if (result == BadWindow) {
-        LOG_ERROR("Failed to select input events");
-        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-        free(wm->windows[wm->window_count]);
-        wm->windows[wm->window_count] = NULL;
-        return -1;
-    }
 
     // Create EGL surface for floating window
     wm->windows[wm->window_count]->egl_surface =
         eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
                               (NativeWindowType)wm->windows[wm->window_count]->window, NULL);
     if (wm->windows[wm->window_count]->egl_surface == EGL_NO_SURFACE) {
-        LOG_ERROR("Failed to create EGL surface");
+        LOG_ERROR("Failed to create EGL surface for floating window");
+        check_egl_error("glps_x11_window_create", "eglCreateWindowSurface");
         XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
         free(wm->windows[wm->window_count]);
         wm->windows[wm->window_count] = NULL;
@@ -294,7 +354,6 @@ void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size
         LOG_ERROR("Invalid parameters for toggle_window_decorations");
         return;
     }
-    // Maintain compatibility, allow toggling decorations but default is off
     Atom motif_hints = XInternAtom(wm->x11_ctx->display, "_MOTIF_WM_HINTS", False);
     typedef struct {
         unsigned long flags;
@@ -326,7 +385,7 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             continue;
         }
         if (wm->windows[window_id]->is_desktop && event.type == Expose) {
-            glps_egl_make_ctx_current(wm, window_id); // Ensure context is current
+            glps_egl_make_ctx_current(wm, window_id);
             draw_desktop_background(wm, window_id);
             continue;
         }
@@ -458,7 +517,7 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             }
             break;
         case Expose:
-            glps_egl_make_ctx_current(wm, window_id); // Ensure context is current
+            glps_egl_make_ctx_current(wm, window_id);
             if (wm->callbacks.window_frame_update_callback) {
                 wm->callbacks.window_frame_update_callback(
                     (size_t)window_id,
@@ -467,6 +526,7 @@ bool glps_x11_should_close(glps_WindowManager *wm) {
             if (wm->windows[window_id]->is_desktop) {
                 draw_desktop_background(wm, window_id);
             }
+            glps_egl_swap_buffers(wm, window_id);
             break;
         default:
             break;
@@ -496,14 +556,9 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id) {
         }
     }
     last_time = current_time;
-    // Make context current before rendering
     glps_egl_make_ctx_current(wm, window_id);
     wm->callbacks.window_frame_update_callback(window_id, wm->callbacks.window_frame_update_data);
-    // Swap buffers for OpenGL rendering
-    if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE) {
-        eglSwapBuffers(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
-        check_egl_error("glps_x11_window_update", "eglSwapBuffers");
-    }
+    glps_egl_swap_buffers(wm, window_id);
     XFlush(wm->x11_ctx->display);
     if (wm->windows[window_id]->is_desktop) {
         draw_desktop_background(wm, window_id);
@@ -547,8 +602,6 @@ void glps_x11_destroy(glps_WindowManager *wm) {
     }
     if (wm->egl_ctx) {
         glps_egl_destroy(wm);
-        free(wm->egl_ctx);
-        wm->egl_ctx = NULL;
     }
 }
 
@@ -660,15 +713,12 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
 
 static void draw_desktop_background(glps_WindowManager *wm, size_t window_id) {
     if (wm->windows[window_id]->is_desktop) {
-        // Clear window with background color
         XSetWindowBackground(wm->x11_ctx->display, wm->windows[window_id]->window, DESKTOP_BG_COLOR);
         XClearWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
-        // Perform OpenGL rendering if callback exists
         if (wm->callbacks.window_frame_update_callback) {
             glps_egl_make_ctx_current(wm, window_id);
             wm->callbacks.window_frame_update_callback(window_id, wm->callbacks.window_frame_update_data);
-            eglSwapBuffers(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
-            check_egl_error("draw_desktop_background", "eglSwapBuffers");
+            glps_egl_swap_buffers(wm, window_id);
         }
         XFlush(wm->x11_ctx->display);
     }
