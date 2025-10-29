@@ -444,8 +444,14 @@ uint8_t glps_wm_get_platform(void ) {
 }
 
 void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
-{ 
+{
+#ifndef GLPS_USE_WIN32
   return (void*)(uintptr_t) wm->windows[window_id]->window;
+#else
+  return (void*)(uintptr_t) wm->windows[window_id]->hwnd;
+
+#endif
+
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,

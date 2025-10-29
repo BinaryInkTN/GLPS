@@ -40,7 +40,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "GLPS::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-GLPS-Debug-7e589bcba2c90cb69f6e.json",
+					"jsonFile" : "target-GLPS-Debug-35ecc795ac83fb212162.json",
 					"name" : "GLPS",
 					"projectIndex" : 0
 				}
@@ -50,12 +50,12 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/overflow/Documents/GLPS/cmake-build-debug",
-		"source" : "C:/Users/overflow/Documents/GLPS"
+		"build" : "C:/Users/USER/Desktop/GLPS/cmake-build-debug",
+		"source" : "C:/Users/USER/Desktop/GLPS"
 	},
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 7
+		"minor" : 8
 	}
 }

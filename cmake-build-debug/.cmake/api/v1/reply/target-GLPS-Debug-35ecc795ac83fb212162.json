@@ -109,11 +109,11 @@
 			[
 				{
 					"backtrace" : 6,
-					"path" : "C:/Users/overflow/Documents/GLPS/include"
+					"path" : "C:/Users/USER/Desktop/GLPS/include"
 				},
 				{
 					"backtrace" : 6,
-					"path" : "C:/Users/overflow/Documents/GLPS/internal"
+					"path" : "C:/Users/USER/Desktop/GLPS/internal"
 				}
 			],
 			"language" : "C",
@@ -150,10 +150,6 @@
 	{
 		"commandFragments" : 
 		[
-			{
-				"fragment" : "",
-				"role" : "flags"
-			},
 			{
 				"backtrace" : 3,
 				"fragment" : "-lopengl32",
