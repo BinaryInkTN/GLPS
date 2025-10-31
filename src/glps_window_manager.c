@@ -581,13 +581,19 @@ void glps_wm_destroy(glps_WindowManager *wm)
 
 void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
 {
-
+  if (wm == NULL || window_id >= wm->window_count ||
+      wm->windows[window_id] == NULL)
+  {
+    LOG_ERROR("Invalid window ID or window manager is NULL.");
+    return;
+  }
 #ifdef GLPS_USE_WAYLAND
   wl_update(wm, window_id);
 
 #endif
 
 #ifdef GLPS_USE_WIN32
+
   InvalidateRect(wm->windows[window_id]->hwnd, NULL, FALSE);
   UpdateWindow(wm->windows[window_id]->hwnd);
 
