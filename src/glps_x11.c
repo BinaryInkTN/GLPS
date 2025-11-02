@@ -697,6 +697,13 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
     
     LOG_INFO("Cursor updated.");
 }
+#include "glps_x11.h"
+#include "glps_egl_context.h"
+#include <X11/Xatom.h>
+#include <X11/extensions/shape.h>
+#include "utils/logger/pico_logger.h"
+
+// ... your existing code ...
 
 void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
 {
@@ -829,7 +836,7 @@ void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t w
     // Set the window to support ARGB visual if available
     XVisualInfo visual_template;
     visual_template.depth = 32;
-    visual_template.c_class = TrueColor;
+    visual_template.class = TrueColor;  // Fixed: use 'class' not 'c_class'
     
     int num_visuals;
     XVisualInfo* visual_list = XGetVisualInfo(display, VisualDepthMask | VisualClassMask, 
