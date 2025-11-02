@@ -23,4 +23,8 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id);
 void glps_x11_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id);
 void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor);
+void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius);
+void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
+void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
+
 #endif

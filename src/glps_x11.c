@@ -697,3 +697,150 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
     
     LOG_INFO("Cursor updated.");
 }
+
+void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+        return;
+    }
+
+    Display* display = wm->x11_ctx->display;
+    Window window = wm->windows[window_id]->window;
+
+    // KWin blur effect (KDE)
+    Atom atom_blur = XInternAtom(display, "_KDE_NET_WM_BLUR_BEHIND_REGION", False);
+    if (atom_blur != None) {
+        if (enable) {
+            // Create a region that covers the entire window
+            XRectangle rect;
+            rect.x = 0;
+            rect.y = 0;
+            
+            int width, height;
+            glps_x11_get_window_dimensions(wm, window_id, &width, &height);
+            rect.width = width;
+            rect.height = height;
+            
+            Region region = XCreateRegion();
+            XUnionRectWithRegion(&rect, region, region);
+            
+            XShapeCombineRegion(display, window, ShapeBounding, 0, 0, region, ShapeSet);
+            XDestroyRegion(region);
+            
+            // Set the blur property
+            unsigned long value = 1;
+            XChangeProperty(display, window, atom_blur, XA_CARDINAL, 32,
+                          PropModeReplace, (unsigned char*)&value, 1);
+        } else {
+            XDeleteProperty(display, window, atom_blur);
+        }
+    }
+
+    // GNOME Mutter blur (GNOME)
+    Atom atom_mutter_blur = XInternAtom(display, "_MUFFIN_BLUR_REGION", False);
+    if (atom_mutter_blur == None) {
+        atom_mutter_blur = XInternAtom(display, "_MUTTER_BLUR_REGION", False);
+    }
+    
+    if (atom_mutter_blur != None && enable) {
+        // Create blur region parameters
+        long blur_data[4] = {0, 0, 0, 0}; // x, y, width, height - 0 means full window
+        
+        // Get window dimensions for full window blur
+        int width, height;
+        glps_x11_get_window_dimensions(wm, window_id, &width, &height);
+        blur_data[2] = width;
+        blur_data[3] = height;
+        
+        XChangeProperty(display, window, atom_mutter_blur, XA_CARDINAL, 32,
+                       PropModeReplace, (unsigned char*)blur_data, 4);
+    } else if (atom_mutter_blur != None && !enable) {
+        XDeleteProperty(display, window, atom_mutter_blur);
+    }
+
+    // Set window transparency/compositing
+    Atom atom_composite = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+    if (atom_composite != None && enable) {
+        // Set some transparency (0xFFFFFFFF = fully opaque, 0x00000000 = fully transparent)
+        unsigned long opacity = 0xFFFFFFFF; // Fully opaque with blur
+        XChangeProperty(display, window, atom_composite, XA_CARDINAL, 32,
+                       PropModeReplace, (unsigned char*)&opacity, 1);
+    }
+
+    // Set the window to be composited
+    Atom atom_composite_manager = XInternAtom(display, "_NET_WM_CM_S0", False);
+    if (atom_composite_manager != None) {
+        // This indicates the window should be composited
+        Atom atom_composite_redirect = XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False);
+        if (atom_composite_redirect != None) {
+            unsigned long value = enable ? 0 : 1; // 0 = use compositor, 1 = bypass
+            XChangeProperty(display, window, atom_composite_redirect, XA_CARDINAL, 32,
+                          PropModeReplace, (unsigned char*)&value, 1);
+        }
+    }
+
+    // Set window background to transparent
+    XSetWindowAttributes attrs;
+    attrs.background_pixmap = ParentRelative;
+    XChangeWindowAttributes(display, window, CWBackPixmap, &attrs);
+
+    XFlush(display);
+}
+
+void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+        return;
+    }
+
+    Display* display = wm->x11_ctx->display;
+    Window window = wm->windows[window_id]->window;
+
+    Atom atom_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+    if (atom_opacity != None) {
+        // Clamp opacity between 0.0 and 1.0
+        if (opacity < 0.0f) opacity = 0.0f;
+        if (opacity > 1.0f) opacity = 1.0f;
+        
+        // Convert to 32-bit value (0x00000000 to 0xFFFFFFFF)
+        unsigned long opacity_value = (unsigned long)(opacity * 0xFFFFFFFF);
+        XChangeProperty(display, window, atom_opacity, XA_CARDINAL, 32,
+                       PropModeReplace, (unsigned char*)&opacity_value, 1);
+    }
+
+    XFlush(display);
+}
+
+void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t window_id)
+{
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+        return;
+    }
+
+    Display* display = wm->x11_ctx->display;
+    Window window = wm->windows[window_id]->window;
+
+    // Set window background to transparent
+    XSetWindowAttributes attrs;
+    attrs.background_pixmap = None;
+    attrs.background_pixel = 0;
+    XChangeWindowAttributes(display, window, CWBackPixmap | CWBackPixel, &attrs);
+
+    // Set the window to support ARGB visual if available
+    XVisualInfo visual_template;
+    visual_template.depth = 32;
+    visual_template.c_class = TrueColor;
+    
+    int num_visuals;
+    XVisualInfo* visual_list = XGetVisualInfo(display, VisualDepthMask | VisualClassMask, 
+                                             &visual_template, &num_visuals);
+    
+    if (visual_list != NULL && num_visuals > 0) {
+        // We found a 32-bit visual, set colormap
+        Colormap colormap = XCreateColormap(display, window, visual_list[0].visual, AllocNone);
+        XSetWindowColormap(display, window, colormap);
+        XFree(visual_list);
+    }
+
+    XFlush(display);
+}
