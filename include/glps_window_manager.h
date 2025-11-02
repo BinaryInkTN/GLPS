@@ -63,7 +63,9 @@ void glps_wm_window_set_frame_update_callback(
     void (*window_frame_update_callback)(size_t window_id, void *data),
     void *data);
 
-void glps_wm_window_make_transparent(glps_WindowManager *wm, size_t window_id);
+void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius);
+void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
+void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
 /**
  * @brief Allows user to set callback to handle window resize.
  * @param wm Pointer to the GLPS Window Manager.
