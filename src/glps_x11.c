@@ -2,11 +2,11 @@
 #include "glps_egl_context.h"
 #include <X11/Xatom.h>
 #include "utils/logger/pico_logger.h"
-#include "utils/uthash/uthash.h"
 
 #define MAX_EVENTS_PER_FRAME 64
 #define TARGET_FPS 60
 #define NS_PER_FRAME (1000000000 / TARGET_FPS)
+#define WINDOW_LOOKUP_SIZE 256
 
 #define XC_arrow 2
 #define XC_hand1 58
@@ -19,10 +19,10 @@
 typedef struct {
     Window xid;
     size_t window_id;
-    UT_hash_handle hh;
-} WindowLookup;
+} WindowLookupEntry;
 
-static WindowLookup* g_window_lookup = NULL;
+static WindowLookupEntry g_window_lookup[WINDOW_LOOKUP_SIZE];
+static size_t g_window_lookup_count = 0;
 static Cursor g_cursor_cache[7] = {0};
 static bool g_cursors_initialized = false;
 
@@ -30,45 +30,37 @@ static inline ssize_t __get_window_id_by_xid(const glps_WindowManager *wm, Windo
 {
     (void)wm;
     
-    if (g_window_lookup == NULL) {
-        return -1;
+    for (size_t i = 0; i < g_window_lookup_count; ++i) {
+        if (g_window_lookup[i].xid == xid) {
+            return (ssize_t)g_window_lookup[i].window_id;
+        }
     }
-
-    WindowLookup* found = NULL;
-    HASH_FIND(hh, g_window_lookup, &xid, sizeof(Window), found);
-    
-    return found ? (ssize_t)found->window_id : -1;
+    return -1;
 }
 
 static void __add_window_lookup(Window xid, size_t window_id)
 {
-    WindowLookup* entry = malloc(sizeof(WindowLookup));
-    if (entry == NULL) {
-        return;
+    if (g_window_lookup_count < WINDOW_LOOKUP_SIZE) {
+        g_window_lookup[g_window_lookup_count].xid = xid;
+        g_window_lookup[g_window_lookup_count].window_id = window_id;
+        g_window_lookup_count++;
     }
-    entry->xid = xid;
-    entry->window_id = window_id;
-    HASH_ADD(hh, g_window_lookup, xid, sizeof(Window), entry);
 }
 
 static void __remove_window_lookup(Window xid)
 {
-    WindowLookup* found = NULL;
-    HASH_FIND(hh, g_window_lookup, &xid, sizeof(Window), found);
-    if (found) {
-        HASH_DEL(g_window_lookup, found);
-        free(found);
+    for (size_t i = 0; i < g_window_lookup_count; ++i) {
+        if (g_window_lookup[i].xid == xid) {
+            g_window_lookup[i] = g_window_lookup[g_window_lookup_count - 1];
+            g_window_lookup_count--;
+            break;
+        }
     }
 }
 
 static void __cleanup_window_lookup(void)
 {
-    WindowLookup *current, *tmp;
-    HASH_ITER(hh, g_window_lookup, current, tmp) {
-        HASH_DEL(g_window_lookup, current);
-        free(current);
-    }
-    g_window_lookup = NULL;
+    g_window_lookup_count = 0;
 }
 
 static bool __initialize_cursors(Display* display)
