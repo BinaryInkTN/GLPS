@@ -432,26 +432,25 @@ void *glps_get_proc_addr(const char *name)
 
   return NULL;
 }
-uint8_t glps_wm_get_platform(void ) {
-  #ifdef GLPS_USE_X11
-    return 3 ; 
-  #elif defined(GLPS_USE_WIN32)
-    return 0 ; 
-  #elif defined(GLPS_USE_WAYLAND)
-    return 1 ; 
-  #endif  
-  
+uint8_t glps_wm_get_platform(void)
+{
+#ifdef GLPS_USE_X11
+  return 3;
+#elif defined(GLPS_USE_WIN32)
+  return 0;
+#elif defined(GLPS_USE_WAYLAND)
+  return 1;
+#endif
 }
 
-void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
+void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
 {
 #ifndef GLPS_USE_WIN32
-  return (void*)(uintptr_t) wm->windows[window_id]->window;
+  return (void *)(uintptr_t)wm->windows[window_id]->window;
 #else
-  return (void*)(uintptr_t) wm->windows[window_id]->hwnd;
+  return (void *)(uintptr_t)wm->windows[window_id]->hwnd;
 
 #endif
-
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
@@ -499,7 +498,7 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id)
 {
   if (!wm->windows[window_id]->fps_is_init)
   {
-#if  defined(GLPS_USE_WAYLAND) || defined(GPLPS_USE_X11)
+#if defined(GLPS_USE_WAYLAND) || defined(GPLPS_USE_X11)
     clock_gettime(CLOCK_MONOTONIC, &wm->windows[window_id]->fps_start_time);
 #endif
 
@@ -507,7 +506,7 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id)
     QueryPerformanceCounter(&wm->windows[window_id]->fps_start_time);
     QueryPerformanceFrequency(&wm->windows[window_id]->fps_freq);
 #endif
-   wm->windows[window_id]->fps_is_init = true;
+    wm->windows[window_id]->fps_is_init = true;
     return 0.0;
   }
   else
@@ -578,7 +577,12 @@ void glps_wm_destroy(glps_WindowManager *wm)
     wm = NULL;
   }
 }
-
+void glps_wm_window_make_transparent(glps_WindowManager *wm, size_t window_id)
+{
+  #ifdef GLPS_USE_X11
+  glps_x11_set_window_background_transparent(wm, window_id);
+  #endif
+}
 void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
 {
   if (wm == NULL || window_id >= wm->window_count ||
@@ -630,7 +634,8 @@ void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_
 #endif
 }
 
-void glps_wm_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type) {
+void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type)
+{
 #ifdef GLPS_USE_WIN32
   glps_win32_cursor_change(wm, cursor_type);
 #endif
