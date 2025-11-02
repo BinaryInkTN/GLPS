@@ -17,48 +17,54 @@
 #define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
 #endif
 
-static const char* special_keys[256] = {
-    [VK_ESCAPE] = "Escape", [VK_BACK] = "Backspace", [VK_RETURN] = "Enter",
-    [VK_TAB] = "Tab", [VK_DELETE] = "Delete", [VK_INSERT] = "Insert",
-    [VK_HOME] = "Home", [VK_END] = "End", [VK_PRIOR] = "PageUp",
-    [VK_NEXT] = "PageDown", [VK_LEFT] = "ArrowLeft", [VK_RIGHT] = "ArrowRight",
-    [VK_UP] = "ArrowUp", [VK_DOWN] = "ArrowDown", [VK_F1] = "F1",
-    [VK_F2] = "F2", [VK_F3] = "F3", [VK_F4] = "F4", [VK_F5] = "F5",
-    [VK_F6] = "F6", [VK_F7] = "F7", [VK_F8] = "F8", [VK_F9] = "F9",
-    [VK_F10] = "F10", [VK_F11] = "F11", [VK_F12] = "F12"
-};
+static const char *special_keys[256] = {
+    [VK_ESCAPE] = "Escape", [VK_BACK] = "Backspace", [VK_RETURN] = "Enter", [VK_TAB] = "Tab", [VK_DELETE] = "Delete", [VK_INSERT] = "Insert", [VK_HOME] = "Home", [VK_END] = "End", [VK_PRIOR] = "PageUp", [VK_NEXT] = "PageDown", [VK_LEFT] = "ArrowLeft", [VK_RIGHT] = "ArrowRight", [VK_UP] = "ArrowUp", [VK_DOWN] = "ArrowDown", [VK_F1] = "F1", [VK_F2] = "F2", [VK_F3] = "F3", [VK_F4] = "F4", [VK_F5] = "F5", [VK_F6] = "F6", [VK_F7] = "F7", [VK_F8] = "F8", [VK_F9] = "F9", [VK_F10] = "F10", [VK_F11] = "F11", [VK_F12] = "F12"};
 
-ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd) {
-    if (!wm) return -1;
-    for (SIZE_T i = 0; i < wm->window_count; ++i) {
-        if (wm->windows[i]->hwnd == hwnd) return i;
+ssize_t __get_window_id_from_hwnd(glps_WindowManager *wm, HWND hwnd)
+{
+    if (!wm)
+        return -1;
+    for (SIZE_T i = 0; i < wm->window_count; ++i)
+    {
+        if (wm->windows[i]->hwnd == hwnd)
+            return i;
     }
     return -1;
 }
 
-void glps_win32_attach_to_clipboard(glps_WindowManager *wm, char *mime, char *data) {
-    if (!OpenClipboard(NULL)) return;
+void glps_win32_attach_to_clipboard(glps_WindowManager *wm, char *mime, char *data)
+{
+    if (!OpenClipboard(NULL))
+        return;
     EmptyClipboard();
     HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, strlen(data) + 1);
-    if (hGlobal) {
+    if (hGlobal)
+    {
         char *pGlobal = (char *)GlobalLock(hGlobal);
-        if (pGlobal) {
+        if (pGlobal)
+        {
             strcpy(pGlobal, data);
             GlobalUnlock(hGlobal);
             SetClipboardData(CF_TEXT, hGlobal);
-        } else {
+        }
+        else
+        {
             GlobalFree(hGlobal);
         }
     }
     CloseClipboard();
 }
 
-void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data, size_t data_size) {
-    if (!OpenClipboard(NULL)) return;
+void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data, size_t data_size)
+{
+    if (!OpenClipboard(NULL))
+        return;
     HANDLE hData = GetClipboardData(CF_TEXT);
-    if (hData) {
+    if (hData)
+    {
         char *pText = (char *)GlobalLock(hData);
-        if (pText) {
+        if (pText)
+        {
             strncpy(data, pText, data_size - 1);
             data[data_size - 1] = '\0';
             GlobalUnlock(hData);
@@ -67,160 +73,190 @@ void glps_win32_get_from_clipboard(glps_WindowManager *wm, char *data, size_t da
     CloseClipboard();
 }
 
-static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
     glps_WindowManager *wm = (glps_WindowManager *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    if (!wm) return DefWindowProc(hwnd, msg, wParam, lParam);
+    if (!wm)
+        return DefWindowProc(hwnd, msg, wParam, lParam);
 
     ssize_t window_id = __get_window_id_from_hwnd(wm, hwnd);
     static bool key_states[256] = {false};
     static bool is_mouse_in_window = false;
 
-    switch (msg) {
-        case WM_DESTROY: {
-            if (window_id < 0) break;
-            bool is_parent = (window_id == 0);
-            glps_Win32Window* window = wm->windows[window_id];
-            if (!window) break;
-
-            if (window->hdc) {
-                wglMakeCurrent(NULL, NULL);
-                ReleaseDC(window->hwnd, window->hdc);
-            }
-
-            if (is_parent) {
-                for (SIZE_T j = 1; j < wm->window_count; j++) {
-                    if (wm->windows[j]) DestroyWindow(wm->windows[j]->hwnd);
-                }
-                if (wm->win32_ctx && wm->win32_ctx->hglrc) {
-                    wglDeleteContext(wm->win32_ctx->hglrc);
-                    wm->win32_ctx->hglrc = NULL;
-                }
-            }
-
-            free(window);
-            wm->windows[window_id] = NULL;
-
-            if (!is_parent) {
-                for (SIZE_T j = window_id; j < wm->window_count - 1; j++) {
-                    wm->windows[j] = wm->windows[j + 1];
-                }
-                wm->windows[--wm->window_count] = NULL;
-            } else {
-                wm->window_count = 0;
-                PostQuitMessage(0);
-            }
+    switch (msg)
+    {
+    case WM_DESTROY:
+    {
+        if (window_id < 0)
             break;
+        bool is_parent = (window_id == 0);
+        glps_Win32Window *window = wm->windows[window_id];
+        if (!window)
+            break;
+
+        if (window->hdc)
+        {
+            wglMakeCurrent(NULL, NULL);
+            ReleaseDC(window->hwnd, window->hdc);
         }
 
-        case WM_KEYDOWN:
-        case WM_KEYUP: {
-            if (window_id < 0 || wParam >= 256) break;
-            bool is_down = (msg == WM_KEYDOWN);
-
-            if (is_down ? (!(lParam & 0x40000000) && !key_states[wParam]) : true) {
-                key_states[wParam] = is_down;
-                if (wm->callbacks.keyboard_callback) {
-                    char char_value[32] = {0};
-                    const char* special = special_keys[wParam];
-                    if (special) {
-                        strncpy(char_value, special, sizeof(char_value));
-                    } else {
-                        BYTE keyboardState[256];
-                        GetKeyboardState(keyboardState);
-                        WCHAR unicodeChar = 0;
-                        if (ToUnicode(wParam, (lParam >> 16) & 0xFF, keyboardState, &unicodeChar, 1, 0) == 1)
-                            WideCharToMultiByte(CP_UTF8, 0, &unicodeChar, 1, char_value, sizeof(char_value), NULL, NULL);
-                    }
-                    unsigned long keycode = MapVirtualKey(wParam, MAPVK_VK_TO_VSC);
-                    wm->callbacks.keyboard_callback(window_id, is_down, char_value, keycode, wm->callbacks.keyboard_data);
-                }
+        if (is_parent)
+        {
+            for (SIZE_T j = 1; j < wm->window_count; j++)
+            {
+                if (wm->windows[j])
+                    DestroyWindow(wm->windows[j]->hwnd);
             }
-            break;
+            if (wm->win32_ctx && wm->win32_ctx->hglrc)
+            {
+                wglDeleteContext(wm->win32_ctx->hglrc);
+                wm->win32_ctx->hglrc = NULL;
+            }
         }
 
-        case WM_SETFOCUS:
-            if (window_id >= 0 && wm->callbacks.keyboard_enter_callback)
-                wm->callbacks.keyboard_enter_callback(window_id, wm->callbacks.keyboard_enter_data);
-            break;
+        free(window);
+        wm->windows[window_id] = NULL;
 
-        case WM_KILLFOCUS:
-            if (window_id >= 0 && wm->callbacks.keyboard_leave_callback)
-                wm->callbacks.keyboard_leave_callback(window_id, wm->callbacks.keyboard_leave_data);
-            break;
-
-        case WM_PAINT: {
-            PAINTSTRUCT ps;
-            BeginPaint(hwnd, &ps);
-            if (window_id >= 0 && wm->callbacks.window_frame_update_callback)
-                wm->callbacks.window_frame_update_callback(window_id, wm->callbacks.window_frame_update_data);
-            EndPaint(hwnd, &ps);
-            break;
+        if (!is_parent)
+        {
+            for (SIZE_T j = window_id; j < wm->window_count - 1; j++)
+            {
+                wm->windows[j] = wm->windows[j + 1];
+            }
+            wm->windows[--wm->window_count] = NULL;
         }
+        else
+        {
+            wm->window_count = 0;
+            PostQuitMessage(0);
+        }
+        break;
+    }
 
-        case WM_SIZE:
-            if (window_id >= 0) {
-                RECT rect;
-                if (GetClientRect(hwnd, &rect)) {
-                    int width = rect.right - rect.left;
-                    int height = rect.bottom - rect.top;
-                    if (wm->callbacks.window_resize_callback)
-                        wm->callbacks.window_resize_callback(window_id, width, height, wm->callbacks.window_resize_data);
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    {
+        if (window_id < 0 || wParam >= 256)
+            break;
+        bool is_down = (msg == WM_KEYDOWN);
+
+        if (is_down ? (!(lParam & 0x40000000) && !key_states[wParam]) : true)
+        {
+            key_states[wParam] = is_down;
+            if (wm->callbacks.keyboard_callback)
+            {
+                char char_value[32] = {0};
+                const char *special = special_keys[wParam];
+                if (special)
+                {
+                    strncpy(char_value, special, sizeof(char_value));
                 }
-            }
-            break;
-
-        case WM_SETCURSOR:
-            if (LOWORD(lParam) == HTCLIENT) {
-                SetCursor(wm->win32_ctx->user_cursor);
-                return TRUE;
-            }
-            break;
-
-        case WM_MOUSEMOVE:
-            if (window_id >= 0) {
-                double x = GET_X_LPARAM(lParam);
-                double y = GET_Y_LPARAM(lParam);
-                if (!is_mouse_in_window) {
-                    is_mouse_in_window = true;
-                    if (wm->callbacks.mouse_enter_callback)
-                        wm->callbacks.mouse_enter_callback(window_id, x, y, wm->callbacks.mouse_enter_data);
-                    TRACKMOUSEEVENT tme = {sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0};
-                    TrackMouseEvent(&tme);
+                else
+                {
+                    BYTE keyboardState[256];
+                    GetKeyboardState(keyboardState);
+                    WCHAR unicodeChar = 0;
+                    if (ToUnicode(wParam, (lParam >> 16) & 0xFF, keyboardState, &unicodeChar, 1, 0) == 1)
+                        WideCharToMultiByte(CP_UTF8, 0, &unicodeChar, 1, char_value, sizeof(char_value), NULL, NULL);
                 }
-                if (wm->callbacks.mouse_move_callback)
-                    wm->callbacks.mouse_move_callback(window_id, x, y, wm->callbacks.mouse_move_data);
+                unsigned long keycode = MapVirtualKey(wParam, MAPVK_VK_TO_VSC);
+                wm->callbacks.keyboard_callback(window_id, is_down, char_value, keycode, wm->callbacks.keyboard_data);
             }
-            break;
+        }
+        break;
+    }
 
-        case WM_MOUSELEAVE:
-            is_mouse_in_window = false;
-            if (wm->callbacks.mouse_leave_callback)
-                wm->callbacks.mouse_leave_callback(window_id, wm->callbacks.mouse_leave_data);
-            break;
+    case WM_SETFOCUS:
+        if (window_id >= 0 && wm->callbacks.keyboard_enter_callback)
+            wm->callbacks.keyboard_enter_callback(window_id, wm->callbacks.keyboard_enter_data);
+        break;
 
-        case WM_LBUTTONDOWN:
-        case WM_LBUTTONUP:
-            if (window_id >= 0 && wm->callbacks.mouse_click_callback)
-                wm->callbacks.mouse_click_callback(window_id, (msg == WM_LBUTTONDOWN), wm->callbacks.mouse_click_data);
-            break;
+    case WM_KILLFOCUS:
+        if (window_id >= 0 && wm->callbacks.keyboard_leave_callback)
+            wm->callbacks.keyboard_leave_callback(window_id, wm->callbacks.keyboard_leave_data);
+        break;
 
-        case WM_MOUSEWHEEL:
-            if (window_id >= 0) {
-                DOUBLE delta = (DOUBLE)(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
-                DWORD extra_info = GetMessageExtraInfo();
-                GLPS_SCROLL_SOURCE source = extra_info == 0 ? GLPS_SCROLL_SOURCE_WHEEL : GLPS_SCROLL_SOURCE_FINGER;
-                if (wm->callbacks.mouse_scroll_callback)
-                    wm->callbacks.mouse_scroll_callback(window_id, GLPS_SCROLL_V_AXIS, source, delta, -1, false, wm->callbacks.mouse_scroll_data);
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        BeginPaint(hwnd, &ps);
+        if (window_id >= 0 && wm->callbacks.window_frame_update_callback)
+            wm->callbacks.window_frame_update_callback(window_id, wm->callbacks.window_frame_update_data);
+        EndPaint(hwnd, &ps);
+        break;
+    }
+
+    case WM_SIZE:
+        if (window_id >= 0)
+        {
+            RECT rect;
+            if (GetClientRect(hwnd, &rect))
+            {
+                int width = rect.right - rect.left;
+                int height = rect.bottom - rect.top;
+                if (wm->callbacks.window_resize_callback)
+                    wm->callbacks.window_resize_callback(window_id, width, height, wm->callbacks.window_resize_data);
             }
-            break;
+        }
+        break;
 
-        default:
-            return DefWindowProc(hwnd, msg, wParam, lParam);
+    case WM_SETCURSOR:
+        if (LOWORD(lParam) == HTCLIENT)
+        {
+            SetCursor(wm->win32_ctx->user_cursor);
+            return TRUE;
+        }
+        break;
+
+    case WM_MOUSEMOVE:
+        if (window_id >= 0)
+        {
+            double x = GET_X_LPARAM(lParam);
+            double y = GET_Y_LPARAM(lParam);
+            if (!is_mouse_in_window)
+            {
+                is_mouse_in_window = true;
+                if (wm->callbacks.mouse_enter_callback)
+                    wm->callbacks.mouse_enter_callback(window_id, x, y, wm->callbacks.mouse_enter_data);
+                TRACKMOUSEEVENT tme = {sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd, 0};
+                TrackMouseEvent(&tme);
+            }
+            if (wm->callbacks.mouse_move_callback)
+                wm->callbacks.mouse_move_callback(window_id, x, y, wm->callbacks.mouse_move_data);
+        }
+        break;
+
+    case WM_MOUSELEAVE:
+        is_mouse_in_window = false;
+        if (wm->callbacks.mouse_leave_callback)
+            wm->callbacks.mouse_leave_callback(window_id, wm->callbacks.mouse_leave_data);
+        break;
+
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+        if (window_id >= 0 && wm->callbacks.mouse_click_callback)
+            wm->callbacks.mouse_click_callback(window_id, (msg == WM_LBUTTONDOWN), wm->callbacks.mouse_click_data);
+        break;
+
+    case WM_MOUSEWHEEL:
+        if (window_id >= 0)
+        {
+            DOUBLE delta = (DOUBLE)(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+            DWORD extra_info = GetMessageExtraInfo();
+            GLPS_SCROLL_SOURCE source = extra_info == 0 ? GLPS_SCROLL_SOURCE_WHEEL : GLPS_SCROLL_SOURCE_FINGER;
+            if (wm->callbacks.mouse_scroll_callback)
+                wm->callbacks.mouse_scroll_callback(window_id, GLPS_SCROLL_V_AXIS, source, delta, -1, false, wm->callbacks.mouse_scroll_data);
+        }
+        break;
+
+    default:
+        return DefWindowProc(hwnd, msg, wParam, lParam);
     }
     return 0;
 }
 
-bool glps_win32_should_close(glps_WindowManager* wm) {
+bool glps_win32_should_close(glps_WindowManager *wm)
+{
     static MSG msg;
     static DWORD last_frame_time = 0;
     static bool has_pending_messages = false;
@@ -228,42 +264,54 @@ bool glps_win32_should_close(glps_WindowManager* wm) {
     DWORD current_time = GetTickCount();
     bool needs_frame_update = wm->callbacks.window_frame_update_callback;
 
-    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-        if (msg.message == WM_QUIT) return true;
+    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    {
+        if (msg.message == WM_QUIT)
+            return true;
 
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        if (msg.message == WM_DESTROY) {
+        if (msg.message == WM_DESTROY)
+        {
             ssize_t window_id = __get_window_id_from_hwnd(wm, msg.hwnd);
             if (window_id >= 0 && wm->callbacks.window_close_callback)
                 wm->callbacks.window_close_callback((SIZE_T)window_id, wm->callbacks.window_close_data);
         }
 
         has_pending_messages = (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) != 0);
-    } else {
+    }
+    else
+    {
         has_pending_messages = false;
     }
 
-    if (needs_frame_update && (current_time - last_frame_time >= 16)) {
-        for (SIZE_T i = 0; i < wm->window_count; i++) {
-            if (wm->windows[i]) {
+    if (needs_frame_update && (current_time - last_frame_time >= 16))
+    {
+        for (SIZE_T i = 0; i < wm->window_count; i++)
+        {
+            if (wm->windows[i])
+            {
                 wm->callbacks.window_frame_update_callback(i, wm->callbacks.window_frame_update_data);
             }
         }
         last_frame_time = current_time;
     }
 
-    if (!has_pending_messages && !needs_frame_update) {
+    if (!has_pending_messages && !needs_frame_update)
+    {
         WaitMessage();
-    } else if (!has_pending_messages && needs_frame_update && (current_time - last_frame_time < 1)) {
+    }
+    else if (!has_pending_messages && needs_frame_update && (current_time - last_frame_time < 1))
+    {
         Sleep(1);
     }
 
     return false;
 }
 
-static void __init_window_class(glps_WindowManager *wm, const char *class_name) {
+static void __init_window_class(glps_WindowManager *wm, const char *class_name)
+{
     HINSTANCE hInstance = GetModuleHandle(NULL);
     wm->wc = (WNDCLASSEX){0};
     wm->wc.cbSize = sizeof(WNDCLASSEX);
@@ -279,12 +327,22 @@ static void __init_window_class(glps_WindowManager *wm, const char *class_name) 
     RegisterClassEx(&wm->wc);
 }
 
-void glps_win32_init(glps_WindowManager *wm) {
+void glps_win32_init(glps_WindowManager *wm)
+{
     wm->windows = calloc(MAX_WINDOWS, sizeof(glps_Win32Window *));
-    if (!wm->windows) { free(wm); return; }
+    if (!wm->windows)
+    {
+        free(wm);
+        return;
+    }
 
     wm->win32_ctx = malloc(sizeof(glps_Win32Context));
-    if (!wm->win32_ctx) { free(wm->windows); free(wm); return; }
+    if (!wm->win32_ctx)
+    {
+        free(wm->windows);
+        free(wm);
+        return;
+    }
     *wm->win32_ctx = (glps_Win32Context){0};
     wm->win32_ctx->user_cursor = LoadCursor(NULL, IDC_ARROW);
     wm->window_count = 0;
@@ -292,53 +350,73 @@ void glps_win32_init(glps_WindowManager *wm) {
     __init_window_class(wm, "glpsWindowClass");
 }
 
-static BOOL SetPixelFormatForOpenGL(HDC hdc) {
+static BOOL SetPixelFormatForOpenGL(HDC hdc)
+{
     static PIXELFORMATDESCRIPTOR pfd = {
         sizeof(PIXELFORMATDESCRIPTOR), 1,
         PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
         PFD_TYPE_RGBA, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 8, 0,
-        PFD_MAIN_PLANE, 0, 0, 0, 0
-    };
+        PFD_MAIN_PLANE, 0, 0, 0, 0};
 
     INT pixelFormat = ChoosePixelFormat(hdc, &pfd);
     return pixelFormat && SetPixelFormat(hdc, pixelFormat, &pfd);
 }
 
-void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id, int *width, int *height) {
-    if (window_id < wm->window_count && wm->windows[window_id]) {
+void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id, int *width, int *height)
+{
+    if (window_id < wm->window_count && wm->windows[window_id])
+    {
         RECT rect;
-        if (GetClientRect(wm->windows[window_id]->hwnd, &rect)) {
+        if (GetClientRect(wm->windows[window_id]->hwnd, &rect))
+        {
             *width = rect.right - rect.left;
             *height = rect.bottom - rect.top;
         }
     }
 }
 
-ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int width, int height) {
+ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int width, int height)
+{
     HINSTANCE hInstance = GetModuleHandle(NULL);
     glps_Win32Window *win32_window = calloc(1, sizeof(glps_Win32Window));
-    if (!win32_window) return -1;
+    if (!win32_window)
+        return -1;
 
-    RECT rect = { 0, 0, width, height };
+    RECT rect = {0, 0, width, height};
     AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 
-    win32_window->hwnd = CreateWindowEx(0, wm->wc.lpszClassName, title,
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-        rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, hInstance, NULL);
+    // CRITICAL: Create window WITHOUT WS_EX_LAYERED initially
+    // This ensures the window renders properly
+    win32_window->hwnd = CreateWindowEx(
+        0, // No extended styles - window will render normally
+        wm->wc.lpszClassName,
+        title,
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        rect.right - rect.left, rect.bottom - rect.top,
+        NULL, NULL, hInstance, NULL);
 
-    if (!win32_window->hwnd) { free(win32_window); return -1; }
+    if (!win32_window->hwnd)
+    {
+        free(win32_window);
+        return -1;
+    }
 
+    // Rest of your existing setup code...
     win32_window->hdc = GetDC(win32_window->hwnd);
-    if (!SetPixelFormatForOpenGL(win32_window->hdc)) {
+    if (!SetPixelFormatForOpenGL(win32_window->hdc))
+    {
         ReleaseDC(win32_window->hwnd, win32_window->hdc);
         DestroyWindow(win32_window->hwnd);
         free(win32_window);
         return -1;
     }
 
-    if (wm->window_count == 0) {
+    if (wm->window_count == 0)
+    {
         wm->win32_ctx->hglrc = wglCreateContext(win32_window->hdc);
-        if (!wm->win32_ctx->hglrc) {
+        if (!wm->win32_ctx->hglrc)
+        {
             ReleaseDC(win32_window->hwnd, win32_window->hdc);
             DestroyWindow(win32_window->hwnd);
             free(win32_window);
@@ -346,7 +424,8 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int 
         }
     }
 
-    if (!wglMakeCurrent(win32_window->hdc, wm->win32_ctx->hglrc)) {
+    if (!wglMakeCurrent(win32_window->hdc, wm->win32_ctx->hglrc))
+    {
         ReleaseDC(win32_window->hwnd, win32_window->hdc);
         DestroyWindow(win32_window->hwnd);
         free(win32_window);
@@ -369,12 +448,17 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int 
     return wm->window_count++;
 }
 
-void glps_win32_destroy(glps_WindowManager *wm) {
-    if (!wm) return;
+void glps_win32_destroy(glps_WindowManager *wm)
+{
+    if (!wm)
+        return;
 
-    for (size_t i = 0; i < wm->window_count; ++i) {
-        if (wm->windows[i]) {
-            if (wm->windows[i]->hwnd) {
+    for (size_t i = 0; i < wm->window_count; ++i)
+    {
+        if (wm->windows[i])
+        {
+            if (wm->windows[i]->hwnd)
+            {
                 DragAcceptFiles(wm->windows[i]->hwnd, FALSE);
                 DestroyWindow(wm->windows[i]->hwnd);
             }
@@ -383,33 +467,39 @@ void glps_win32_destroy(glps_WindowManager *wm) {
     }
 
     free(wm->windows);
-    if (wm->win32_ctx) {
-        if (wm->win32_ctx->hglrc) wglDeleteContext(wm->win32_ctx->hglrc);
+    if (wm->win32_ctx)
+    {
+        if (wm->win32_ctx->hglrc)
+            wglDeleteContext(wm->win32_ctx->hglrc);
         free(wm->win32_ctx);
     }
     free(wm);
 }
 
-HDC glps_win32_get_window_hdc(glps_WindowManager *wm, size_t window_id) {
+HDC glps_win32_get_window_hdc(glps_WindowManager *wm, size_t window_id)
+{
     if (window_id < wm->window_count && wm->windows[window_id])
         return wm->windows[window_id]->hdc;
     return NULL;
 }
 
-void glps_win32_swap_buffers(glps_WindowManager *wm, size_t window_id) {
+void glps_win32_swap_buffers(glps_WindowManager *wm, size_t window_id)
+{
     if (window_id < wm->window_count && wm->windows[window_id] && wm->windows[window_id]->hdc)
         SwapBuffers(wm->windows[window_id]->hdc);
 }
 
-void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type) {
-    if (!wm || !wm->win32_ctx) return;
+void glps_win32_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type)
+{
+    if (!wm || !wm->win32_ctx)
+        return;
     static const LPCSTR cursor_ids[] = {
         IDC_ARROW, IDC_IBEAM, IDC_CROSS, IDC_HAND,
-        IDC_SIZEWE, IDC_SIZENS, IDC_NO
-    };
+        IDC_SIZEWE, IDC_SIZENS, IDC_NO};
     wm->win32_ctx->user_cursor = LoadCursor(NULL, cursor_ids[cursor_type]);
     SetCursor(wm->win32_ctx->user_cursor);
-}void glps_win32_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
+}
+void glps_win32_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
 {
     if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
         return;
@@ -417,59 +507,14 @@ void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_ty
 
     HWND hwnd = wm->windows[window_id]->hwnd;
     
-    // Windows 11 acrylic blur effect (requires Windows 11)
-    HMODULE hUser32 = LoadLibraryA("user32.dll");
-    if (hUser32) {
-        typedef BOOL (WINAPI* SETWINDOWCOMPOSITIONATTRIBUTE)(HWND, PVOID);
-        SETWINDOWCOMPOSITIONATTRIBUTE SetWindowCompositionAttribute = 
-            (SETWINDOWCOMPOSITIONATTRIBUTE)GetProcAddress(hUser32, "SetWindowCompositionAttribute");
-        
-        if (SetWindowCompositionAttribute) {
-            struct WINDOWCOMPOSITIONATTRIBDATA {
-                DWORD dwAttrib;
-                PVOID pvData;
-                SIZE_T cbData;
-            };
-            
-            struct ACCENTPOLICY {
-                DWORD dwAccentState;
-                DWORD dwAccentFlags;
-                DWORD dwGradientColor;
-                DWORD dwAnimationId;
-            };
-            
-            struct ACCENTPOLICY policy;
-            if (enable) {
-                // ACCENT_ENABLE_ACRYLICBLURBEHIND - Windows 11 acrylic effect
-                policy.dwAccentState = 4; // ACCENT_ENABLE_ACRYLICBLURBEHIND
-                policy.dwAccentFlags = 2; // Draws left and right borders
-                policy.dwGradientColor = (blur_radius << 24) | 0xFFFFFF; // Alpha + color
-                policy.dwAnimationId = 0;
-            } else {
-                policy.dwAccentState = 0; // ACCENT_DISABLED
-                policy.dwAccentFlags = 0;
-                policy.dwGradientColor = 0;
-                policy.dwAnimationId = 0;
-            }
-            
-            struct WINDOWCOMPOSITIONATTRIBDATA data;
-            data.dwAttrib = 19; // WCA_ACCENT_POLICY
-            data.pvData = &policy;
-            data.cbData = sizeof(policy);
-            
-            SetWindowCompositionAttribute(hwnd, &data);
-        }
-        FreeLibrary(hUser32);
-    }
-    
-    // Alternative: DWM blur effect (Windows Vista/7/8/10)
+    // Use DWM blur effect (works without WS_EX_LAYERED)
     HMODULE hDwmApi = LoadLibraryA("dwmapi.dll");
     if (hDwmApi) {
         typedef HRESULT (WINAPI* DWMENABLEBLURBEHINDWINDOW)(HWND, const void*);
         DWMENABLEBLURBEHINDWINDOW DwmEnableBlurBehindWindow = 
             (DWMENABLEBLURBEHINDWINDOW)GetProcAddress(hDwmApi, "DwmEnableBlurBehindWindow");
         
-        if (DwmEnableBlurBehindWindow && enable) {
+        if (DwmEnableBlurBehindWindow) {
             struct DWM_BLURBEHIND {
                 DWORD dwFlags;
                 BOOL fEnable;
@@ -479,7 +524,7 @@ void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_ty
             
             struct DWM_BLURBEHIND bb = {0};
             bb.dwFlags = 0x00000001; // DWM_BB_ENABLE
-            bb.fEnable = TRUE;
+            bb.fEnable = enable;
             bb.hRgnBlur = NULL; // Apply to entire window
             bb.fTransitionOnMaximized = FALSE;
             
@@ -502,13 +547,17 @@ void glps_win32_set_window_opacity(glps_WindowManager *wm, size_t window_id, flo
     if (opacity > 1.0f) opacity = 1.0f;
     
     HWND hwnd = wm->windows[window_id]->hwnd;
-    
     BYTE alpha = (BYTE)(opacity * 255);
+    LONG_PTR current_style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
     
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, 
-                     GetWindowLongPtr(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-    
-    SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+    if (alpha < 255) {
+        // Enable layered window for transparency
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style | WS_EX_LAYERED);
+        SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+    } else {
+        // Disable layered window for normal rendering
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style & ~WS_EX_LAYERED);
+    }
     
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
@@ -522,27 +571,13 @@ void glps_win32_set_window_background_transparent(glps_WindowManager *wm, size_t
 
     HWND hwnd = wm->windows[window_id]->hwnd;
     
+    // Remove background brush
     SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)NULL);
     
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, 
-                     GetWindowLongPtr(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-    
-    SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
-    
-    HBRUSH hBrush = (HBRUSH)GetClassLongPtr(hwnd, GCLP_HBRBACKGROUND);
-    if (hBrush) {
-        SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)GetStockObject(NULL_BRUSH));
-    }
+    // Make sure we're not using layered window for this (it breaks rendering)
+    LONG_PTR current_style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style & ~WS_EX_LAYERED);
     
     InvalidateRect(hwnd, NULL, TRUE);
-    RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
     UpdateWindow(hwnd);
-}
-
-void glps_win32_set_window_glass_effect(glps_WindowManager *wm, size_t window_id, 
-                                       float opacity, int blur_radius)
-{
-    glps_win32_set_window_background_transparent(wm, window_id);
-    glps_win32_set_window_opacity(wm, window_id, opacity);
-    glps_win32_set_window_blur(wm, window_id, true, blur_radius);
 }
