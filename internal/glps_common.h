@@ -61,7 +61,7 @@
 #include <EGL/eglext.h>
 #include <X11/cursorfont.h>
 #include <time.h>
-
+#include <X11/extensions/shape.h> 
 #endif
 
 #define MAX_WINDOWS 100
