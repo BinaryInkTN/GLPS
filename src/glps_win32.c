@@ -409,4 +409,140 @@ void glps_win32_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_ty
     };
     wm->win32_ctx->user_cursor = LoadCursor(NULL, cursor_ids[cursor_type]);
     SetCursor(wm->win32_ctx->user_cursor);
+}void glps_win32_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
+{
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+        return;
+    }
+
+    HWND hwnd = wm->windows[window_id]->hwnd;
+    
+    // Windows 11 acrylic blur effect (requires Windows 11)
+    HMODULE hUser32 = LoadLibraryA("user32.dll");
+    if (hUser32) {
+        typedef BOOL (WINAPI* SETWINDOWCOMPOSITIONATTRIBUTE)(HWND, PVOID);
+        SETWINDOWCOMPOSITIONATTRIBUTE SetWindowCompositionAttribute = 
+            (SETWINDOWCOMPOSITIONATTRIBUTE)GetProcAddress(hUser32, "SetWindowCompositionAttribute");
+        
+        if (SetWindowCompositionAttribute) {
+            struct WINDOWCOMPOSITIONATTRIBDATA {
+                DWORD dwAttrib;
+                PVOID pvData;
+                SIZE_T cbData;
+            };
+            
+            struct ACCENTPOLICY {
+                DWORD dwAccentState;
+                DWORD dwAccentFlags;
+                DWORD dwGradientColor;
+                DWORD dwAnimationId;
+            };
+            
+            struct ACCENTPOLICY policy;
+            if (enable) {
+                // ACCENT_ENABLE_ACRYLICBLURBEHIND - Windows 11 acrylic effect
+                policy.dwAccentState = 4; // ACCENT_ENABLE_ACRYLICBLURBEHIND
+                policy.dwAccentFlags = 2; // Draws left and right borders
+                policy.dwGradientColor = (blur_radius << 24) | 0xFFFFFF; // Alpha + color
+                policy.dwAnimationId = 0;
+            } else {
+                policy.dwAccentState = 0; // ACCENT_DISABLED
+                policy.dwAccentFlags = 0;
+                policy.dwGradientColor = 0;
+                policy.dwAnimationId = 0;
+            }
+            
+            struct WINDOWCOMPOSITIONATTRIBDATA data;
+            data.dwAttrib = 19; // WCA_ACCENT_POLICY
+            data.pvData = &policy;
+            data.cbData = sizeof(policy);
+            
+            SetWindowCompositionAttribute(hwnd, &data);
+        }
+        FreeLibrary(hUser32);
+    }
+    
+    // Alternative: DWM blur effect (Windows Vista/7/8/10)
+    HMODULE hDwmApi = LoadLibraryA("dwmapi.dll");
+    if (hDwmApi) {
+        typedef HRESULT (WINAPI* DWMENABLEBLURBEHINDWINDOW)(HWND, const void*);
+        DWMENABLEBLURBEHINDWINDOW DwmEnableBlurBehindWindow = 
+            (DWMENABLEBLURBEHINDWINDOW)GetProcAddress(hDwmApi, "DwmEnableBlurBehindWindow");
+        
+        if (DwmEnableBlurBehindWindow && enable) {
+            struct DWM_BLURBEHIND {
+                DWORD dwFlags;
+                BOOL fEnable;
+                HRGN hRgnBlur;
+                BOOL fTransitionOnMaximized;
+            };
+            
+            struct DWM_BLURBEHIND bb = {0};
+            bb.dwFlags = 0x00000001; // DWM_BB_ENABLE
+            bb.fEnable = TRUE;
+            bb.hRgnBlur = NULL; // Apply to entire window
+            bb.fTransitionOnMaximized = FALSE;
+            
+            DwmEnableBlurBehindWindow(hwnd, &bb);
+        }
+        FreeLibrary(hDwmApi);
+    }
+    
+    InvalidateRect(hwnd, NULL, TRUE);
+    UpdateWindow(hwnd);
+}
+
+void glps_win32_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity)
+{
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+        return;
+    }
+
+    if (opacity < 0.0f) opacity = 0.0f;
+    if (opacity > 1.0f) opacity = 1.0f;
+    
+    HWND hwnd = wm->windows[window_id]->hwnd;
+    
+    BYTE alpha = (BYTE)(opacity * 255);
+    
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, 
+                     GetWindowLongPtr(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+    
+    SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+    
+    InvalidateRect(hwnd, NULL, TRUE);
+    UpdateWindow(hwnd);
+}
+
+void glps_win32_set_window_background_transparent(glps_WindowManager *wm, size_t window_id)
+{
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+        return;
+    }
+
+    HWND hwnd = wm->windows[window_id]->hwnd;
+    
+    SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)NULL);
+    
+    SetWindowLongPtr(hwnd, GWL_EXSTYLE, 
+                     GetWindowLongPtr(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+    
+    SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
+    
+    HBRUSH hBrush = (HBRUSH)GetClassLongPtr(hwnd, GCLP_HBRBACKGROUND);
+    if (hBrush) {
+        SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)GetStockObject(NULL_BRUSH));
+    }
+    
+    InvalidateRect(hwnd, NULL, TRUE);
+    RedrawWindow(hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+    UpdateWindow(hwnd);
+}
+
+void glps_win32_set_window_glass_effect(glps_WindowManager *wm, size_t window_id, 
+                                       float opacity, int blur_radius)
+{
+    glps_win32_set_window_background_transparent(wm, window_id);
+    glps_win32_set_window_opacity(wm, window_id, opacity);
+    glps_win32_set_window_blur(wm, window_id, true, blur_radius);
 }
