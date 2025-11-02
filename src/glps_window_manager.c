@@ -580,7 +580,7 @@ void glps_wm_destroy(glps_WindowManager *wm)
 void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius) {
 #ifdef GLPS_USE_X11
     glps_x11_set_window_blur(wm, window_id, enable, blur_radius);
-#elif defined(_WIN32)
+#elif defined(GLPS_USE_WIN32)
     glps_win32_set_window_blur(wm, window_id, enable, blur_radius);
 #endif
 }
@@ -588,7 +588,7 @@ void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enab
 void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity) {
 #ifdef GLPS_USE_X11
     glps_x11_set_window_opacity(wm, window_id, opacity);
-#elif defined(_WIN32)
+#elif defined(GLPS_USE_WIN32)
     glps_win32_set_window_opacity(wm, window_id, opacity);
 #endif
 }
@@ -596,7 +596,7 @@ void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float 
 void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id) {
 #ifdef GLPS_USE_X11
     glps_x11_set_window_background_transparent(wm, window_id);
-#elif defined(_WIN32)
+#elif defined(GLPS_USE_WIN32)
     glps_win32_set_window_background_transparent(wm, window_id);
 #endif
 }
