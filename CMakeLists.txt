@@ -95,6 +95,7 @@ elseif(UNIX AND NOT APPLE)
             include/glps_audio_stream.h
             internal/utils/audio/dr_mp3.h
             include/glps_timer.h
+            internal/utils/uthash/uthash.h
         )
         
         file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
