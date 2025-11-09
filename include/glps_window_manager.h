@@ -15,8 +15,8 @@
  */
 glps_WindowManager *glps_wm_init(void);
 
-uint8_t glps_wm_get_platform(void );
-void* glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
+uint8_t glps_wm_get_platform(void);
+void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
 /**
  * @brief Creates a new window with the specified title and dimensions.
  * @param wm Pointer to the GLPS Window Manager.
@@ -155,18 +155,18 @@ void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
                                                              unsigned long keycode,
                                                              void *data),
                                    void *data);
-    /* ======= Mouse/Trackpad Events ======= */
+/* ======= Mouse/Trackpad Events ======= */
 
-    /**
-     * @brief Sets the callback for mouse enter events.
-     * @param wm Pointer to the GLPS Window Manager.
-     * @param mouse_enter_callback Function to call when the mouse enters a window.
-     */
-    void glps_wm_set_mouse_enter_callback(
-        glps_WindowManager *wm,
-        void (*mouse_enter_callback)(size_t window_id, double mouse_x,
-                                     double mouse_y, void *data),
-        void *data);
+/**
+ * @brief Sets the callback for mouse enter events.
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param mouse_enter_callback Function to call when the mouse enters a window.
+ */
+void glps_wm_set_mouse_enter_callback(
+    glps_WindowManager *wm,
+    void (*mouse_enter_callback)(size_t window_id, double mouse_x,
+                                 double mouse_y, void *data),
+    void *data);
 
 /**
  * @brief Sets the callback for mouse leave events.
@@ -244,7 +244,7 @@ void glps_wm_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
                                 size_t data_size);
 
-void glps_wm_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE cursor_type);
+void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type);
 /* ======= Drag & Drop ======= */
 /**
  * @brief Attaches data to Clipboard.
@@ -267,6 +267,10 @@ void glps_wm_start_drag_n_drop(
 double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id);
 
 void *glps_get_proc_addr(const char *name);
-
+Display *glps_wm_get_display(glps_WindowManager *wm);
+#ifdef GLPS_USE_VULKAN
+void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR* surface);
+glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void);
+#endif
 void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id);
 #endif // GLPS_WINDOW_MANAGER_H

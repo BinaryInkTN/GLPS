@@ -52,8 +52,18 @@
 #include <xkbcommon/xkbcommon.h>
 #endif
 
-#ifdef GLPS_USE_X11
+// Vulkan
+#ifdef GLPS_USE_VULKAN
+#include <vulkan/vulkan.h>
 
+typedef struct {
+    uint32_t count;
+    const char** names;
+} glps_VulkanExtensionArray;
+#endif
+
+
+#ifdef GLPS_USE_X11
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -62,7 +72,13 @@
 #include <X11/cursorfont.h>
 #include <time.h>
 #include <X11/extensions/shape.h> 
+#ifdef GLPS_USE_VULKAN
+#include <vulkan/vulkan_xlib.h>
 #endif
+#endif
+
+
+
 
 #define MAX_WINDOWS 100
 

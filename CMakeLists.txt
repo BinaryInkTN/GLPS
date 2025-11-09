@@ -7,7 +7,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+option(GLPS_INCLUDE_VULKAN "Enable Vulkan support in GLPS" OFF)
 
+if(GLPS_INCLUDE_VULKAN)
+    add_definitions(-DGLPS_USE_VULKAN)
+    find_package(Vulkan REQUIRED)
+endif()
 
 # Platform detection and configuration
 if(WIN32)

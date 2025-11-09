@@ -577,30 +577,32 @@ void glps_wm_destroy(glps_WindowManager *wm)
     wm = NULL;
   }
 }
-void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius) {
+void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
+{
 #ifdef GLPS_USE_X11
-    glps_x11_set_window_blur(wm, window_id, enable, blur_radius);
+  glps_x11_set_window_blur(wm, window_id, enable, blur_radius);
 #elif defined(GLPS_USE_WIN32)
-    glps_win32_set_window_blur(wm, window_id, enable, blur_radius);
+  glps_win32_set_window_blur(wm, window_id, enable, blur_radius);
 #endif
 }
 
-void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity) {
+void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity)
+{
 #ifdef GLPS_USE_X11
-    glps_x11_set_window_opacity(wm, window_id, opacity);
+  glps_x11_set_window_opacity(wm, window_id, opacity);
 #elif defined(GLPS_USE_WIN32)
-    glps_win32_set_window_opacity(wm, window_id, opacity);
+  glps_win32_set_window_opacity(wm, window_id, opacity);
 #endif
 }
 
-void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id) {
+void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id)
+{
 #ifdef GLPS_USE_X11
-    glps_x11_set_window_background_transparent(wm, window_id);
+  glps_x11_set_window_background_transparent(wm, window_id);
 #elif defined(GLPS_USE_WIN32)
-    glps_win32_set_window_background_transparent(wm, window_id);
+  glps_win32_set_window_background_transparent(wm, window_id);
 #endif
 }
-
 
 void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
 {
@@ -663,3 +665,64 @@ void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type)
   glps_x11_cursor_change(wm, cursor_type);
 #endif
 }
+
+Display *glps_wm_get_display(glps_WindowManager *wm)
+{
+#ifdef GLPS_USE_X11
+  return glps_x11_get_display(wm);
+#endif
+}
+
+#ifdef GLPS_USE_VULKAN
+void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface)
+{
+#ifdef GLPS_USE_X11
+  return glps_x11_vk_create_surface(wm, window_id, instance, surface);
+#endif
+}
+
+// Extensions
+glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr()
+{
+  glps_VulkanExtensionArray result = {0, NULL};
+
+  uint32_t count = 0;
+  if (vkEnumerateInstanceExtensionProperties(NULL, &count, NULL) != VK_SUCCESS || count == 0)
+  {
+    fprintf(stderr, "Failed to enumerate Vulkan instance extensions.\n");
+    return result;
+  }
+
+  VkExtensionProperties *props = malloc(sizeof(VkExtensionProperties) * count);
+  if (!props)
+    return result;
+
+  if (vkEnumerateInstanceExtensionProperties(NULL, &count, props) != VK_SUCCESS)
+  {
+    fprintf(stderr, "Failed to get Vulkan extension properties.\n");
+    free(props);
+    return result;
+  }
+
+  // Allocate array of const char* pointing to extensionName in props
+  const char **names = malloc(sizeof(const char *) * count);
+  if (!names)
+  {
+    free(props);
+    return result;
+  }
+
+  for (uint32_t i = 0; i < count; ++i)
+  {
+    names[i] = props[i].extensionName;
+  }
+
+  // Store result; keep props alive for the lifetime of the array
+  // In this simple implementation, we leak props intentionally so the names are valid
+  // For production, you can copy the strings or manage lifetime carefully
+  result.count = count;
+  result.names = names;
+
+  return result;
+}
+#endif

@@ -130,9 +130,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
-    wm->windows[wm->window_count]->fps_start_time= (struct timespec) {0} ; 
+    wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
 
-    wm->windows[wm->window_count]->fps_is_init= false ; 
+    wm->windows[wm->window_count]->fps_is_init = false;
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
         wm->x11_ctx->display,
@@ -325,8 +325,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
-           XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
-                break;
+            XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            break;
             break;
 
         case ButtonPress:
@@ -676,59 +676,69 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
         selected_cursor = XC_top_side;
         break;
     case GLPS_CURSOR_NOT_ALLOWED:
-    selected_cursor = XC_X_cursor;
+        selected_cursor = XC_X_cursor;
         break;
     default:
         selected_cursor = -1;
     }
 
-    if(selected_cursor < 0)
+    if (selected_cursor < 0)
     {
         LOG_ERROR("Unknown cursor type.");
         return;
     }
 
-    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int) selected_cursor);
-    
+    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int)selected_cursor);
+
     LOG_INFO("Cursor updated.");
 }
 
 void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count)
+    {
         return;
     }
 
-    Display* display = wm->x11_ctx->display;
+    Display *display = wm->x11_ctx->display;
     Window window = wm->windows[window_id]->window;
 
     Atom atom_blur = XInternAtom(display, "_KDE_NET_WM_BLUR_BEHIND_REGION", False);
-    if (atom_blur != None) {
-        if (enable) {
+    if (atom_blur != None)
+    {
+        if (enable)
+        {
             unsigned long value = 1;
             XChangeProperty(display, window, atom_blur, XA_CARDINAL, 32,
-                          PropModeReplace, (unsigned char*)&value, 1);
-        } else {
+                            PropModeReplace, (unsigned char *)&value, 1);
+        }
+        else
+        {
             XDeleteProperty(display, window, atom_blur);
         }
     }
 
     Atom atom_mutter_blur = XInternAtom(display, "_MUFFIN_BLUR_REGION", False);
-    if (atom_mutter_blur == None) {
+    if (atom_mutter_blur == None)
+    {
         atom_mutter_blur = XInternAtom(display, "_MUTTER_BLUR_REGION", False);
     }
-    
-    if (atom_mutter_blur != None) {
-        if (enable) {
+
+    if (atom_mutter_blur != None)
+    {
+        if (enable)
+        {
             long blur_data[4] = {0, 0, 0, 0};
             int width, height;
             glps_x11_get_window_dimensions(wm, window_id, &width, &height);
             blur_data[2] = width;
             blur_data[3] = height;
-            
+
             XChangeProperty(display, window, atom_mutter_blur, XA_CARDINAL, 32,
-                           PropModeReplace, (unsigned char*)blur_data, 4);
-        } else {
+                            PropModeReplace, (unsigned char *)blur_data, 4);
+        }
+        else
+        {
             XDeleteProperty(display, window, atom_mutter_blur);
         }
     }
@@ -738,21 +748,25 @@ void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool ena
 
 void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count)
+    {
         return;
     }
 
-    Display* display = wm->x11_ctx->display;
+    Display *display = wm->x11_ctx->display;
     Window window = wm->windows[window_id]->window;
 
     Atom atom_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
-    if (atom_opacity != None) {
-        if (opacity < 0.0f) opacity = 0.0f;
-        if (opacity > 1.0f) opacity = 1.0f;
-        
+    if (atom_opacity != None)
+    {
+        if (opacity < 0.0f)
+            opacity = 0.0f;
+        if (opacity > 1.0f)
+            opacity = 1.0f;
+
         unsigned long opacity_value = (unsigned long)(opacity * 0xFFFFFFFF);
         XChangeProperty(display, window, atom_opacity, XA_CARDINAL, 32,
-                       PropModeReplace, (unsigned char*)&opacity_value, 1);
+                        PropModeReplace, (unsigned char *)&opacity_value, 1);
     }
 
     XFlush(display);
@@ -760,27 +774,33 @@ void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float
 
 void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t window_id)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count) {
+    if (wm == NULL || wm->x11_ctx == NULL || window_id >= wm->window_count)
+    {
         return;
     }
 
-    Display* display = wm->x11_ctx->display;
+    Display *display = wm->x11_ctx->display;
     Window window = wm->windows[window_id]->window;
 
     XWindowAttributes window_attrs;
-    if (!XGetWindowAttributes(display, window, &window_attrs)) {
+    if (!XGetWindowAttributes(display, window, &window_attrs))
+    {
         return;
     }
 
-    if (window_attrs.depth == 32) {
+    if (window_attrs.depth == 32)
+    {
         XSetWindowAttributes attrs;
         attrs.background_pixmap = None;
-        
+
         Status status = XChangeWindowAttributes(display, window, CWBackPixmap, &attrs);
-        if (status == 0) {
+        if (status == 0)
+        {
             LOG_ERROR("Failed to set window background to transparent");
         }
-    } else {
+    }
+    else
+    {
         LOG_WARNING("Window depth %d doesn't support transparency. Need 32-bit depth.", window_attrs.depth);
     }
 
@@ -788,42 +808,48 @@ void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t w
 }
 
 bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *title,
-                                       int width, int height, bool transparent)
+                                        int width, int height, bool transparent)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL) {
+    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
+    {
         return false;
     }
 
-    if (wm->window_count >= MAX_WINDOWS) {
+    if (wm->window_count >= MAX_WINDOWS)
+    {
         LOG_ERROR("Maximum number of windows reached");
         return false;
     }
 
-    Display* display = wm->x11_ctx->display;
+    Display *display = wm->x11_ctx->display;
     int screen = DefaultScreen(display);
-    
+
     XVisualInfo visual_template;
     visual_template.depth = 32;
     visual_template.class = TrueColor;
-    
+
     int num_visuals;
-    XVisualInfo* visual_list = XGetVisualInfo(display, VisualDepthMask | VisualClassMask, 
-                                             &visual_template, &num_visuals);
-    
-    Visual* visual = NULL;
+    XVisualInfo *visual_list = XGetVisualInfo(display, VisualDepthMask | VisualClassMask,
+                                              &visual_template, &num_visuals);
+
+    Visual *visual = NULL;
     int depth = 0;
     Colormap colormap = None;
-    
-    if (visual_list != NULL && num_visuals > 0 && transparent) {
+
+    if (visual_list != NULL && num_visuals > 0 && transparent)
+    {
         visual = visual_list[0].visual;
         depth = visual_list[0].depth;
         colormap = XCreateColormap(display, RootWindow(display, screen), visual, AllocNone);
         XFree(visual_list);
-    } else {
+    }
+    else
+    {
         visual = DefaultVisual(display, screen);
         depth = DefaultDepth(display, screen);
         colormap = DefaultColormap(display, screen);
-        if (transparent) {
+        if (transparent)
+        {
             LOG_WARNING("Transparent window requested but no 32-bit visual available");
         }
     }
@@ -832,24 +858,27 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
     attrs.colormap = colormap;
     attrs.background_pixmap = None;
     attrs.border_pixel = 0;
-    attrs.event_mask = PointerMotionMask | ButtonPressMask | ButtonReleaseMask | 
-                      KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
-    
+    attrs.event_mask = PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
+                       KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
+
     unsigned long attrs_mask = CWColormap | CWBackPixmap | CWBorderPixel | CWEventMask;
-    
-    if (!transparent) {
+
+    if (!transparent)
+    {
         attrs.background_pixel = WhitePixel(display, screen);
         attrs_mask |= CWBackPixel;
     }
 
     Window window = XCreateWindow(display, RootWindow(display, screen),
-                                10, 10, width, height, 1,
-                                depth, InputOutput, visual,
-                                attrs_mask, &attrs);
-    
-    if (window == 0) {
+                                  10, 10, width, height, 1,
+                                  depth, InputOutput, visual,
+                                  attrs_mask, &attrs);
+
+    if (window == 0)
+    {
         LOG_ERROR("Failed to create X11 window");
-        if (colormap != None && colormap != DefaultColormap(display, screen)) {
+        if (colormap != None && colormap != DefaultColormap(display, screen))
+        {
             XFreeColormap(display, colormap);
         }
         return false;
@@ -857,10 +886,12 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
 
     size_t window_index = wm->window_count;
     wm->windows[window_index] = calloc(1, sizeof(glps_X11Window));
-    if (wm->windows[window_index] == NULL) {
+    if (wm->windows[window_index] == NULL)
+    {
         LOG_ERROR("Failed to allocate window");
         XDestroyWindow(display, window);
-        if (colormap != None && colormap != DefaultColormap(display, screen)) {
+        if (colormap != None && colormap != DefaultColormap(display, screen))
+        {
             XFreeColormap(display, colormap);
         }
         return false;
@@ -873,15 +904,18 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
     XStoreName(display, window, title);
     XSetWMProtocols(display, window, &wm->x11_ctx->wm_delete_window, 1);
 
-    if (wm->egl_ctx != NULL) {
+    if (wm->egl_ctx != NULL)
+    {
         EGLSurface egl_surface = eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
-                                                       (NativeWindowType)window, NULL);
-        if (egl_surface == EGL_NO_SURFACE) {
+                                                        (NativeWindowType)window, NULL);
+        if (egl_surface == EGL_NO_SURFACE)
+        {
             LOG_ERROR("Failed to create EGL surface");
             XDestroyWindow(display, window);
             free(wm->windows[window_index]);
             wm->windows[window_index] = NULL;
-            if (colormap != None && colormap != DefaultColormap(display, screen)) {
+            if (colormap != None && colormap != DefaultColormap(display, screen))
+            {
                 XFreeColormap(display, colormap);
             }
             return false;
@@ -889,11 +923,13 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
         wm->windows[window_index]->egl_surface = egl_surface;
     }
 
-    if (window_index == 0 && wm->egl_ctx == NULL) {
+    if (window_index == 0 && wm->egl_ctx == NULL)
+    {
         glps_egl_create_ctx(wm);
     }
 
-    if (wm->egl_ctx != NULL) {
+    if (wm->egl_ctx != NULL)
+    {
         glps_egl_make_ctx_current(wm, window_index);
     }
 
@@ -904,3 +940,30 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
 
     return true;
 }
+
+Display *glps_x11_get_display(glps_WindowManager *wm)
+{
+    if (!wm)
+        return NULL;
+
+    return wm->x11_ctx->display;
+}
+
+#ifdef GLPS_USE_VULKAN
+
+void glps_x11_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface)
+{
+    // 2. Get X11 Display & Window from GLPS
+    Display *xdisplay = wm->x11_ctx->display;
+    Window xwindow = wm->windows[window_id]->window; // make sure this is a real X11 Window
+
+    // 3. Create Xlib surface
+    VkXlibSurfaceCreateInfoKHR surface_info = {
+        .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+        .dpy = xdisplay,
+        .window = xwindow};
+
+    vkCreateXlibSurfaceKHR(*instance, &surface_info, NULL, surface);
+}
+
+#endif
