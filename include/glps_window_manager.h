@@ -14,21 +14,21 @@
 
 /**
  * @brief Initializes the GLPS Window Manager.
- * 
+ *
  * @return Pointer to the initialized GLPS Window Manager instance.
  */
 glps_WindowManager *glps_wm_init(void);
 
 /**
  * @brief Retrieves the platform identifier used by GLPS.
- * 
+ *
  * @return Platform ID as a uint8_t.
  */
 uint8_t glps_wm_get_platform(void);
 
 /**
  * @brief Gets the native window pointer for a given window.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  * @return Pointer to the native window object (platform-specific).
@@ -37,7 +37,7 @@ void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Creates a new window.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param title Title of the new window.
  * @param width Width of the window in pixels.
@@ -49,7 +49,7 @@ size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
 
 /**
  * @brief Sets whether a window is resizable.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param state True if window should be resizable, false otherwise.
  * @param window_id ID of the window.
@@ -58,7 +58,7 @@ void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t wind
 
 /**
  * @brief Retrieves the dimensions of a window.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  * @param width Pointer to store window width.
@@ -69,7 +69,7 @@ void glps_wm_window_get_dimensions(glps_WindowManager *wm, size_t window_id,
 
 /**
  * @brief Sets a callback for window resize events.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_resize_callback Function called on resize.
  * @param data User data passed to the callback.
@@ -82,7 +82,7 @@ void glps_wm_window_set_resize_callback(
 
 /**
  * @brief Sets a callback for frame updates.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_frame_update_callback Function called each frame.
  * @param data User data passed to the callback.
@@ -94,7 +94,7 @@ void glps_wm_window_set_frame_update_callback(
 
 /**
  * @brief Enables or disables window blur.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  * @param enable True to enable blur, false to disable.
@@ -104,7 +104,7 @@ void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enab
 
 /**
  * @brief Sets window opacity.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  * @param opacity Opacity value (0.0 to 1.0).
@@ -113,7 +113,7 @@ void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float 
 
 /**
  * @brief Makes the window background transparent.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  */
@@ -121,7 +121,7 @@ void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t wi
 
 /**
  * @brief Sets a callback for window close events.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_close_callback Function called when window closes.
  * @param data User data passed to the callback.
@@ -132,7 +132,7 @@ void glps_wm_window_set_close_callback(
 
 /**
  * @brief Sets the OpenGL context of a window as the current context.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  */
@@ -140,7 +140,7 @@ void glps_wm_set_window_ctx_curr(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Swaps the front and back buffers for a window.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  */
@@ -148,7 +148,7 @@ void glps_wm_swap_buffers(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Sets the swap interval for buffer swaps.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param swap_interval Number of vertical refreshes between swaps.
  */
@@ -156,7 +156,7 @@ void glps_wm_swap_interval(glps_WindowManager *wm, unsigned int swap_interval);
 
 /**
  * @brief Updates a window (polls events, refreshes).
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  */
@@ -164,7 +164,7 @@ void glps_wm_window_update(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Destroys a window.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @param window_id ID of the window.
  */
@@ -172,14 +172,14 @@ void glps_wm_window_destroy(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Cleans up and destroys the GLPS Window Manager.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  */
 void glps_wm_destroy(glps_WindowManager *wm);
 
 /**
  * @brief Returns the total number of windows.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @return Total window count.
  */
@@ -187,7 +187,7 @@ size_t glps_wm_get_window_count(glps_WindowManager *wm);
 
 /**
  * @brief Checks if any window should close.
- * 
+ *
  * @param wm Pointer to the GLPS Window Manager.
  * @return True if the window should close, false otherwise.
  */
@@ -211,7 +211,7 @@ void glps_wm_set_keyboard_leave_callback(
 
 /**
  * @brief Sets the callback for key press/release events.
- * 
+ *
  * @note Some keys may not return proper values on certain platforms.
  */
 void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
@@ -320,22 +320,54 @@ double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id);
  * @brief Returns the address of an OpenGL/Vulkan procedure.
  */
 void *glps_get_proc_addr(const char *name);
-
 /**
  * @brief Returns the X11 Display pointer.
  */
-Display *glps_wm_get_display(glps_WindowManager *wm);
+void *glps_wm_get_display(glps_WindowManager *wm);
 
 #ifdef GLPS_USE_VULKAN
+
 /**
  * @brief Creates a Vulkan surface for a window.
  */
-void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR* surface);
+void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface);
 
 /**
- * @brief Returns required Vulkan extensions for the window manager.
+ * @brief Retrieves available Vulkan instance extensions with proper memory management
+ *
+ * @return glps_VulkanExtensionArray Array of extension names. Caller must free with glps_wm_vk_free_extensions_arr()
+ *
+ * @note This function is thread-safe as Vulkan enumeration functions are required to be thread-safe
+ * @note Returns empty array (count=0, names=NULL) on failure
  */
 glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void);
+/**
+ * @brief Frees memory allocated by glps_wm_vk_get_extensions_arr()
+ *
+ * @param extensions Pointer to extensions array to free
+ *
+ * @note Safe to call with NULL or empty array
+ * @note After calling, the extensions array should not be used
+ */
+void glps_wm_vk_free_extensions_arr(glps_VulkanExtensionArray *extensions);
+/**
+ * @brief Checks if required extensions are available
+ *
+ * @param required_extensions Array of required extension names
+ * @param required_count Number of required extensions
+ * @param missing_extensions Output array for missing extensions (optional, can be NULL)
+ * @param missing_count Output count of missing extensions (optional, can be NULL)
+ *
+ * @return true if all required extensions are available, false otherwise
+ *
+ * @note If missing_extensions is provided, it must be at least required_count in size
+ * @note Caller is responsible for allocating missing_extensions array if used
+ */
+bool glps_wm_vk_check_extensions_supported(
+    const char **required_extensions,
+    uint32_t required_count,
+    const char **missing_extensions,
+    uint32_t *missing_count);
 #endif
 
 /**

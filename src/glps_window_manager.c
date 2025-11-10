@@ -666,10 +666,10 @@ void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type)
 #endif
 }
 
-Display *glps_wm_get_display(glps_WindowManager *wm)
+void *glps_wm_get_display(glps_WindowManager *wm)
 {
 #ifdef GLPS_USE_X11
-  return glps_x11_get_display(wm);
+  return (void *)glps_x11_get_display(wm);
 #endif
 }
 
@@ -681,48 +681,166 @@ void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInsta
 #endif
 }
 
-// Extensions
-glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr()
+glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
 {
   glps_VulkanExtensionArray result = {0, NULL};
+  VkExtensionProperties *props = NULL;
+  const char **names = NULL;
 
+  // First call: get extension count
   uint32_t count = 0;
-  if (vkEnumerateInstanceExtensionProperties(NULL, &count, NULL) != VK_SUCCESS || count == 0)
+  VkResult vk_result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
+
+  if (vk_result != VK_SUCCESS)
   {
-    fprintf(stderr, "Failed to enumerate Vulkan instance extensions.\n");
+    LOG_ERROR("[VULKAN] Failed to enumerate instance extensions count: %d\n", vk_result);
     return result;
   }
 
-  VkExtensionProperties *props = malloc(sizeof(VkExtensionProperties) * count);
+  if (count == 0)
+  {
+    LOG_ERROR("[VULKAN] No instance extensions available\n");
+    return result;
+  }
+
+  // Allocate memory for extension properties
+  props = (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * count);
   if (!props)
-    return result;
-
-  if (vkEnumerateInstanceExtensionProperties(NULL, &count, props) != VK_SUCCESS)
   {
-    fprintf(stderr, "Failed to get Vulkan extension properties.\n");
-    free(props);
-    return result;
+    LOG_ERROR("[VULKAN] Memory allocation failed for extension properties (%u extensions)\n", count);
+    goto cleanup;
   }
 
-  // Allocate array of const char* pointing to extensionName in props
-  const char **names = malloc(sizeof(const char *) * count);
+  // Second call: get actual extension data
+  vk_result = vkEnumerateInstanceExtensionProperties(NULL, &count, props);
+  if (vk_result != VK_SUCCESS)
+  {
+    LOG_ERROR("[VULKAN] Failed to get extension properties: %d\n", vk_result);
+    goto cleanup;
+  }
+
+  // Allocate memory for extension names array
+  names = (const char **)malloc(sizeof(const char *) * count);
   if (!names)
   {
-    free(props);
-    return result;
+    LOG_ERROR("[VULKAN] Memory allocation failed for extension names array\n");
+    goto cleanup;
   }
 
+  // Allocate and copy extension names
   for (uint32_t i = 0; i < count; ++i)
   {
-    names[i] = props[i].extensionName;
+    size_t name_len = strlen(props[i].extensionName) + 1;
+    char *name_copy = (char *)malloc(name_len);
+    if (!name_copy)
+    {
+      LOG_ERROR("[VULKAN] Memory allocation failed for extension name %u\n", i);
+      // Free already allocated names on partial failure
+      for (uint32_t j = 0; j < i; ++j)
+      {
+        free((void *)names[j]);
+      }
+      goto cleanup;
+    }
+    memcpy(name_copy, props[i].extensionName, name_len);
+    names[i] = name_copy;
   }
 
-  // Store result; keep props alive for the lifetime of the array
-  // In this simple implementation, we leak props intentionally so the names are valid
-  // For production, you can copy the strings or manage lifetime carefully
+  // Success - populate result
   result.count = count;
   result.names = names;
 
+cleanup:
+  // Free temporary properties array (names are now independent copies)
+  free(props);
+
+  // If we failed, ensure we don't leak the names array
+  if (result.count == 0 && names)
+  {
+    free(names);
+  }
+
   return result;
+}
+
+void glps_wm_vk_free_extensions_arr(glps_VulkanExtensionArray *extensions)
+{
+  if (!extensions || !extensions->names)
+  {
+    return;
+  }
+
+  // Free each individual extension name string
+  for (uint32_t i = 0; i < extensions->count; ++i)
+  {
+    free((void *)extensions->names[i]);
+  }
+
+  // Free the names array itself
+  free(extensions->names);
+
+  // Reset the structure to prevent use-after-free
+  extensions->count = 0;
+  extensions->names = NULL;
+}
+
+bool glps_wm_vk_check_extensions_supported(
+    const char **required_extensions,
+    uint32_t required_count,
+    const char **missing_extensions,
+    uint32_t *missing_count)
+{
+  if (!required_extensions || required_count == 0)
+  {
+    return true;
+  }
+
+  glps_VulkanExtensionArray available = glps_wm_vk_get_extensions_arr();
+  if (available.count == 0)
+  {
+    if (missing_count)
+      *missing_count = required_count;
+    return false;
+  }
+
+  uint32_t actual_missing = 0;
+
+  // Check each required extension
+  for (uint32_t i = 0; i < required_count; ++i)
+  {
+    bool found = false;
+    const char *req_ext = required_extensions[i];
+
+    if (!req_ext)
+      continue;
+
+    // Linear search through available extensions
+    for (uint32_t j = 0; j < available.count; ++j)
+    {
+      if (strcmp(req_ext, available.names[j]) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found)
+    {
+      if (missing_extensions && actual_missing < required_count)
+      {
+        missing_extensions[actual_missing] = req_ext;
+      }
+      actual_missing++;
+    }
+  }
+
+  if (missing_count)
+  {
+    *missing_count = actual_missing;
+  }
+
+  glps_wm_vk_free_extensions_arr(&available);
+
+  return (actual_missing == 0);
 }
 #endif
