@@ -386,7 +386,7 @@
     },
     {
       "name": "glps_wm_toggle_window_decorations",
-      "brief": "Toggles window decorations (titlebar, borders, etc.).",
+      "brief": "Checks if required extensions are available",
       "description": "",
       "file": "glps_window_manager.h",
       "url": "#api-glps_wm_toggle_window_decorations",
@@ -401,8 +401,16 @@
       "type": "function"
     },
     {
+      "name": "glps_wm_vk_free_extensions_arr",
+      "brief": "Frees memory allocated by glps_wm_vk_get_extensions_arr()",
+      "description": "",
+      "file": "glps_window_manager.h",
+      "url": "#api-glps_wm_vk_free_extensions_arr",
+      "type": "function"
+    },
+    {
       "name": "glps_wm_vk_get_extensions_arr",
-      "brief": "Returns required Vulkan extensions for the window manager.",
+      "brief": "Retrieves available Vulkan instance extensions with proper memory management",
       "description": "",
       "file": "glps_window_manager.h",
       "url": "#api-glps_wm_vk_get_extensions_arr",
