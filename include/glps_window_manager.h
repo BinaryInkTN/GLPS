@@ -1,7 +1,10 @@
 /**
  * @file glps_window_manager.h
- * @brief Header file for the GLPS window manager, handling window creation,
- * rendering, and input events.
+ * @brief Header file for the GLPS Window Manager.
+ *
+ * This module provides an abstraction for creating and managing windows,
+ * handling rendering contexts, input events, clipboard, drag & drop, and
+ * platform-specific operations for OpenGL and Vulkan.
  */
 
 #ifndef GLPS_WINDOW_MANAGER_H
@@ -11,40 +14,65 @@
 
 /**
  * @brief Initializes the GLPS Window Manager.
- * @return Pointer to the initialized GLPS Window Manager.
+ * 
+ * @return Pointer to the initialized GLPS Window Manager instance.
  */
 glps_WindowManager *glps_wm_init(void);
 
-uint8_t glps_wm_get_platform(void);
-void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
 /**
- * @brief Creates a new window with the specified title and dimensions.
+ * @brief Retrieves the platform identifier used by GLPS.
+ * 
+ * @return Platform ID as a uint8_t.
+ */
+uint8_t glps_wm_get_platform(void);
+
+/**
+ * @brief Gets the native window pointer for a given window.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param window_id ID of the window.
+ * @return Pointer to the native window object (platform-specific).
+ */
+void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
+
+/**
+ * @brief Creates a new window.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
  * @param title Title of the new window.
- * @param width Width of the new window in pixels.
- * @param height Height of the new window in pixels.
- * @return The ID of the created window.
+ * @param width Width of the window in pixels.
+ * @param height Height of the window in pixels.
+ * @return ID of the created window.
  */
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
                              int width, int height);
 
+/**
+ * @brief Sets whether a window is resizable.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param state True if window should be resizable, false otherwise.
+ * @param window_id ID of the window.
+ */
 void glps_wm_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
 
 /**
- * @brief Gets dimensions of a window.
+ * @brief Retrieves the dimensions of a window.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_id ID of the window to get dimensions of.
- * @param width Window width pointer.
- * @param height Window height pointer.
+ * @param window_id ID of the window.
+ * @param width Pointer to store window width.
+ * @param height Pointer to store window height.
  */
 void glps_wm_window_get_dimensions(glps_WindowManager *wm, size_t window_id,
                                    int *width, int *height);
 
 /**
- * @brief Allows user to set callback to handle window resize.
+ * @brief Sets a callback for window resize events.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_resize_callback user-set window resize callback.
- * @param data Additional data to pass to the callback.
+ * @param window_resize_callback Function called on resize.
+ * @param data User data passed to the callback.
  */
 void glps_wm_window_set_resize_callback(
     glps_WindowManager *wm,
@@ -53,80 +81,122 @@ void glps_wm_window_set_resize_callback(
     void *data);
 
 /**
- * @brief Allows user to set callback to handle window frame update.
+ * @brief Sets a callback for frame updates.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_frame_update_callback user-set window frame update callback.
- * @param data Additional data to pass to the callback.
+ * @param window_frame_update_callback Function called each frame.
+ * @param data User data passed to the callback.
  */
 void glps_wm_window_set_frame_update_callback(
     glps_WindowManager *wm,
     void (*window_frame_update_callback)(size_t window_id, void *data),
     void *data);
 
-void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius);
-void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
-void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
 /**
- * @brief Allows user to set callback to handle window resize.
+ * @brief Enables or disables window blur.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_close_callback user-set window close callback.
- * @param data Additional data to pass to the callback.
+ * @param window_id ID of the window.
+ * @param enable True to enable blur, false to disable.
+ * @param blur_radius Blur radius in pixels.
+ */
+void glps_wm_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius);
+
+/**
+ * @brief Sets window opacity.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param window_id ID of the window.
+ * @param opacity Opacity value (0.0 to 1.0).
+ */
+void glps_wm_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
+
+/**
+ * @brief Makes the window background transparent.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param window_id ID of the window.
+ */
+void glps_wm_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
+
+/**
+ * @brief Sets a callback for window close events.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param window_close_callback Function called when window closes.
+ * @param data User data passed to the callback.
  */
 void glps_wm_window_set_close_callback(
     glps_WindowManager *wm,
     void (*window_close_callback)(size_t window_id, void *data), void *data);
 
 /**
- * @brief Sets the OpenGL context of a specific window as the current context.
+ * @brief Sets the OpenGL context of a window as the current context.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_id ID of the window to set the context for.
+ * @param window_id ID of the window.
  */
 void glps_wm_set_window_ctx_curr(glps_WindowManager *wm, size_t window_id);
 
 /**
- * @brief Swaps the front and back buffers for the specified window.
+ * @brief Swaps the front and back buffers for a window.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_id ID of the window to swap buffers for.
+ * @param window_id ID of the window.
  */
 void glps_wm_swap_buffers(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Sets the swap interval for buffer swaps.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param swap_interval Number of vertical refreshes between buffer swaps.
+ * @param swap_interval Number of vertical refreshes between swaps.
  */
 void glps_wm_swap_interval(glps_WindowManager *wm, unsigned int swap_interval);
 
+/**
+ * @brief Updates a window (polls events, refreshes).
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @param window_id ID of the window.
+ */
 void glps_wm_window_update(glps_WindowManager *wm, size_t window_id);
 
 /**
- * @brief Destroys the specified window.
+ * @brief Destroys a window.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @param window_id ID of the window to destroy.
+ * @param window_id ID of the window.
  */
 void glps_wm_window_destroy(glps_WindowManager *wm, size_t window_id);
 
 /**
  * @brief Cleans up and destroys the GLPS Window Manager.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
  */
 void glps_wm_destroy(glps_WindowManager *wm);
 
 /**
- * @brief Returns the total window count.
+ * @brief Returns the total number of windows.
+ * 
  * @param wm Pointer to the GLPS Window Manager.
- * @return total window count.
+ * @return Total window count.
  */
 size_t glps_wm_get_window_count(glps_WindowManager *wm);
 
+/**
+ * @brief Checks if any window should close.
+ * 
+ * @param wm Pointer to the GLPS Window Manager.
+ * @return True if the window should close, false otherwise.
+ */
 bool glps_wm_should_close(glps_WindowManager *wm);
 
-/* ======= Events: I/O Devices ======= */
+/* ======= Keyboard Events ======= */
 
 /**
  * @brief Sets the callback for keyboard focus gain events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param keyboard_enter_callback Function to call on keyboard focus gain.
  */
 void glps_wm_set_keyboard_enter_callback(
     glps_WindowManager *wm,
@@ -134,20 +204,16 @@ void glps_wm_set_keyboard_enter_callback(
 
 /**
  * @brief Sets the callback for keyboard focus loss events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param keyboard_leave_callback Function to call on keyboard focus loss.
  */
 void glps_wm_set_keyboard_leave_callback(
     glps_WindowManager *wm,
     void (*keyboard_leave_callback)(size_t window_id, void *data), void *data);
 
 /**
- * @brief Sets the callback for key press and release events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param keyboard_callback Function to call on key events.
- * @note There is a known issue with some keys not returning values.
+ * @brief Sets the callback for key press/release events.
+ * 
+ * @note Some keys may not return proper values on certain platforms.
  */
-
 void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
                                    void (*keyboard_callback)(size_t window_id,
                                                              bool state,
@@ -155,12 +221,11 @@ void glps_wm_set_keyboard_callback(glps_WindowManager *wm,
                                                              unsigned long keycode,
                                                              void *data),
                                    void *data);
+
 /* ======= Mouse/Trackpad Events ======= */
 
 /**
  * @brief Sets the callback for mouse enter events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_enter_callback Function to call when the mouse enters a window.
  */
 void glps_wm_set_mouse_enter_callback(
     glps_WindowManager *wm,
@@ -170,8 +235,6 @@ void glps_wm_set_mouse_enter_callback(
 
 /**
  * @brief Sets the callback for mouse leave events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_leave_callback Function to call when the mouse leaves a window.
  */
 void glps_wm_set_mouse_leave_callback(
     glps_WindowManager *wm,
@@ -179,8 +242,6 @@ void glps_wm_set_mouse_leave_callback(
 
 /**
  * @brief Sets the callback for mouse movement events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_move_callback Function to call on mouse movement.
  */
 void glps_wm_set_mouse_move_callback(
     glps_WindowManager *wm,
@@ -190,9 +251,6 @@ void glps_wm_set_mouse_move_callback(
 
 /**
  * @brief Sets the callback for mouse button events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_click_callback Function to call on mouse button press or
- * release.
  */
 void glps_wm_set_mouse_click_callback(
     glps_WindowManager *wm,
@@ -201,8 +259,6 @@ void glps_wm_set_mouse_click_callback(
 
 /**
  * @brief Sets the callback for mouse scroll events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mouse_scroll_callback Function to call on mouse scroll events.
  */
 void glps_wm_set_scroll_callback(
     glps_WindowManager *wm,
@@ -214,9 +270,7 @@ void glps_wm_set_scroll_callback(
 /* ======= Touchscreen Events ======= */
 
 /**
- * @brief Sets the callback for touch events.
- * @param wm Pointer to the GLPS Window Manager.
- * @param touch_callback Function to call on touch events.
+ * @brief Sets the callback for touch input events.
  */
 void glps_wm_set_touch_callback(
     glps_WindowManager *wm,
@@ -226,36 +280,28 @@ void glps_wm_set_touch_callback(
     void *data);
 
 /* ======= Clipboard ======= */
+
 /**
- * @brief Attaches data to Clipboard.
- * @param wm Pointer to the GLPS Window Manager.
- * @param mime The mime type.
- * @param data The data to attach to the Clipboard.
+ * @brief Attaches data to the clipboard.
  */
 void glps_wm_attach_to_clipboard(glps_WindowManager *wm, char *mime,
                                  char *data);
+
 /**
- * @brief Gets data from clipboard.
- * @param wm Pointer to the GLPS Window Manager.
- * @param  data The data attached to the Clipboard.
- * @param data_size The size of the data buffer you're saving Clipboard content
- * to.
+ * @brief Retrieves data from the clipboard.
  */
 void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
                                 size_t data_size);
 
-void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type);
-/* ======= Drag & Drop ======= */
 /**
- * @brief Attaches data to Clipboard.
- * @param wm Pointer to the window manager struct.
- * @param origin_window The id of the window where the drag & drop operation is
- * initiated.
- * @param mime Mime type of data.
- * @param buff The data buffer.
- * @param drag_n_drop_callback The callback that gets called when a drag & drop
- * operation happens.
- * @param data Additional data set by the user.
+ * @brief Changes the mouse cursor type.
+ */
+void glps_wm_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_type);
+
+/* ======= Drag & Drop ======= */
+
+/**
+ * @brief Starts a drag & drop operation.
  */
 void glps_wm_start_drag_n_drop(
     glps_WindowManager *wm, size_t origin_window_id,
@@ -264,13 +310,37 @@ void glps_wm_start_drag_n_drop(
     void *data);
 
 /* ======= Utilities ======= */
+
+/**
+ * @brief Returns the FPS of a window.
+ */
 double glps_wm_get_fps(glps_WindowManager *wm, size_t window_id);
 
+/**
+ * @brief Returns the address of an OpenGL/Vulkan procedure.
+ */
 void *glps_get_proc_addr(const char *name);
+
+/**
+ * @brief Returns the X11 Display pointer.
+ */
 Display *glps_wm_get_display(glps_WindowManager *wm);
+
 #ifdef GLPS_USE_VULKAN
+/**
+ * @brief Creates a Vulkan surface for a window.
+ */
 void glps_wm_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR* surface);
+
+/**
+ * @brief Returns required Vulkan extensions for the window manager.
+ */
 glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void);
 #endif
+
+/**
+ * @brief Toggles window decorations (titlebar, borders, etc.).
+ */
 void glps_wm_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id);
+
 #endif // GLPS_WINDOW_MANAGER_H
