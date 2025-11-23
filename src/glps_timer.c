@@ -83,17 +83,26 @@ void glps_timer_destroy(glps_timer *timer)
     timer = NULL;  
   }
 }
+
 void glps_timer_check_and_call(glps_timer *timer)
 {
   if (timer && timer->is_valid && timer->callback)
   {
     uint64_t current_time = now_ms();
+    
+    if (current_time < timer->start_time_ms) {
+      timer->start_time_ms = current_time;
+      return;
+    }
+    
     uint64_t elapsed = current_time - timer->start_time_ms;
     
-    if (elapsed >= timer->duration_ms)
+    while (elapsed >= timer->duration_ms)
     {
       timer->callback(timer->callback_arg);
-      timer->is_valid = false; 
+      
+      timer->start_time_ms += timer->duration_ms;
+      elapsed = current_time - timer->start_time_ms;
     }
   }
 }
