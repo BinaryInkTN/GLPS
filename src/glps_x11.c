@@ -308,7 +308,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         if (window_id < 0 || window_id >= (ssize_t)wm->window_count || 
             wm->windows[window_id] == NULL)
         {
-            LOG_DEBUG("Event for untracked or invalid window %lu", event.xany.window);
+            LOG_INFO("Event for untracked or invalid window %lu", event.xany.window);
             continue;
         }
 
