@@ -15,14 +15,13 @@ typedef void (*timer_callback)(void *arg);
  * @brief Represents a high-resolution timer in GLPS.
  */
 typedef struct glps_timer {
-    uint64_t start_time_ms;    /**< Start time of the timer in milliseconds. */
-    uint64_t end_time_ms;      /**< End time of the timer in milliseconds. */
-    uint64_t duration_ms;      /**< Duration of the timer in milliseconds. */
-    timer_callback callback;   /**< Function to call when the timer expires. */
-    void *callback_arg;        /**< Argument to pass to the callback function. */
-    bool is_valid;             /**< Indicates if the timer is currently valid/active. */
+  uint64_t start_time_ms;
+  uint64_t duration_ms;
+  uint64_t end_time_ms;
+  timer_callback callback;
+  void *callback_arg;
+  bool is_valid;
 } glps_timer;
-
 /**
  * @brief Initializes a new timer.
  * 

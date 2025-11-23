@@ -56,9 +56,16 @@ void glps_timer_stop(glps_timer *timer)
 
 double glps_timer_elapsed_ms(glps_timer *timer)
 {
-  if (!timer)
+  if (!timer || !timer->is_valid) 
     return 0.0;
-  return (double)(timer->end_time_ms - timer->start_time_ms);
+  
+  uint64_t end_time = (timer->end_time_ms != UINT64_MAX) ? 
+                     timer->end_time_ms : now_ms();
+  
+  if (end_time < timer->start_time_ms) 
+    return 0.0;
+    
+  return (double)(end_time - timer->start_time_ms);
 }
 
 double glps_timer_elapsed_us(glps_timer *timer)
@@ -73,7 +80,7 @@ void glps_timer_destroy(glps_timer *timer)
   if (timer != NULL)
   {
     free(timer);
-    timer = NULL;
+    timer = NULL;  
   }
 }
 void glps_timer_check_and_call(glps_timer *timer)
@@ -81,12 +88,12 @@ void glps_timer_check_and_call(glps_timer *timer)
   if (timer && timer->is_valid && timer->callback)
   {
     uint64_t current_time = now_ms();
-    if (current_time >= timer->end_time_ms)
-      return;
-
-    if (current_time - timer->start_time_ms >= timer->duration_ms)
+    uint64_t elapsed = current_time - timer->start_time_ms;
+    
+    if (elapsed >= timer->duration_ms)
     {
       timer->callback(timer->callback_arg);
+      timer->is_valid = false; 
     }
   }
 }
