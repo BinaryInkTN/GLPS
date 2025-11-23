@@ -41,14 +41,6 @@ void __remove_window(glps_WindowManager *wm, Window xid)
         return;
     }
 
-    // Notify application about window removal
-    if (wm->callbacks.window_close_callback)
-    {
-        wm->callbacks.window_close_callback(
-            (size_t)window_id,
-            wm->callbacks.window_close_data);
-    }
-
     if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
     {
         eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
@@ -63,7 +55,6 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     free(wm->windows[window_id]);
     wm->windows[window_id] = NULL;
 
-    // Compact the windows array
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
@@ -115,8 +106,6 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
-    wm->x11_ctx->gc = NULL;
-    wm->x11_ctx->cursor = None;
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
@@ -125,7 +114,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
     {
         LOG_CRITICAL("Failed to create X11 window. Window manager and/or Display NULL.");
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     if (wm->window_count >= MAX_WINDOWS)
@@ -142,6 +131,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
     wm->windows[wm->window_count]->fps_start_time = (struct timespec){0};
+
     wm->windows[wm->window_count]->fps_is_init = false;
 
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
@@ -165,18 +155,14 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     XChangeWindowAttributes(wm->x11_ctx->display, wm->windows[wm->window_count]->window, CWBackingStore, &swa);
     XStoreName(wm->x11_ctx->display, wm->windows[wm->window_count]->window, title);
 
-    // Create GC only if it doesn't exist
+    wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
     if (wm->x11_ctx->gc == NULL)
     {
-        wm->x11_ctx->gc = XCreateGC(wm->x11_ctx->display, wm->windows[wm->window_count]->window, 0, NULL);
-        if (wm->x11_ctx->gc == NULL)
-        {
-            LOG_ERROR("Failed to create graphics context");
-            XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-            free(wm->windows[wm->window_count]);
-            wm->windows[wm->window_count] = NULL;
-            return -1;
-        }
+        LOG_ERROR("Failed to create graphics context");
+        XDestroyWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+        free(wm->windows[wm->window_count]);
+        wm->windows[wm->window_count] = NULL;
+        return -1;
     }
 
     XSetWMProtocols(wm->x11_ctx->display, wm->windows[wm->window_count]->window,
@@ -202,12 +188,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         return -1;
     }
 
-    // Create EGL context for first window
-    if (wm->window_count == 0 && wm->egl_ctx == NULL)
-    {
-        glps_egl_create_ctx(wm);
-    }
-
     if (wm->egl_ctx != NULL)
     {
         wm->windows[wm->window_count]->egl_surface =
@@ -223,6 +203,12 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         }
     }
 
+    if (wm->window_count == 0)
+    {
+        glps_egl_create_ctx(wm);
+        glps_egl_make_ctx_current(wm, 0);
+    }
+
     XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
     XFlush(wm->x11_ctx->display);
 
@@ -231,13 +217,6 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
 {
-    if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
-        window_id >= wm->window_count || wm->windows[window_id] == NULL)
-    {
-        LOG_ERROR("Invalid parameters for toggle_window_decorations");
-        return;
-    }
-
     Atom motif_hints = XInternAtom(wm->x11_ctx->display, "_MOTIF_WM_HINTS", False);
 
     if (motif_hints != None)
@@ -294,7 +273,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
         if (window_id < 0)
         {
-            // Event for untracked window - might be a system window, ignore
+            LOG_ERROR("Event for untracked window %lu", event.xany.window);
             continue;
         }
 
@@ -304,6 +283,12 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
             {
                 LOG_INFO("Window close request for window %zd", window_id);
+                if (wm->callbacks.window_close_callback)
+                {
+                    wm->callbacks.window_close_callback(
+                        (size_t)window_id,
+                        wm->callbacks.window_close_data);
+                }
                 __remove_window(wm, event.xclient.window);
                 return (wm->window_count == 0);
             }
@@ -311,6 +296,12 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         case DestroyNotify:
             LOG_INFO("Window %zd destroyed", window_id);
+            if (wm->callbacks.window_close_callback)
+            {
+                wm->callbacks.window_close_callback(
+                    (size_t)window_id,
+                    wm->callbacks.window_close_data);
+            }
             __remove_window(wm, event.xdestroywindow.window);
             return (wm->window_count == 0);
 
@@ -334,10 +325,8 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     event.xmotion.y,
                     wm->callbacks.mouse_move_data);
             }
-            if (wm->x11_ctx->cursor != None)
-            {
-                XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
-            }
+            XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            break;
             break;
 
         case ButtonPress:
@@ -442,6 +431,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     break;
                 }
 
+                LOG_INFO("%lu", keycode);
                 wm->callbacks.keyboard_callback(
                     (size_t)window_id,
                     false,
@@ -547,10 +537,6 @@ void glps_x11_destroy(glps_WindowManager *wm)
         if (wm->x11_ctx->gc && wm->x11_ctx->display)
         {
             XFreeGC(wm->x11_ctx->display, wm->x11_ctx->gc);
-        }
-        if (wm->x11_ctx->cursor != None && wm->x11_ctx->display)
-        {
-            XFreeCursor(wm->x11_ctx->display, wm->x11_ctx->cursor);
         }
         if (wm->x11_ctx->display)
         {
@@ -700,12 +686,6 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
     {
         LOG_ERROR("Unknown cursor type.");
         return;
-    }
-
-    // Free previous cursor if it exists
-    if (wm->x11_ctx->cursor != None)
-    {
-        XFreeCursor(wm->x11_ctx->display, wm->x11_ctx->cursor);
     }
 
     wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, (unsigned int)selected_cursor);
@@ -963,7 +943,7 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
 
 Display *glps_x11_get_display(glps_WindowManager *wm)
 {
-    if (!wm || !wm->x11_ctx)
+    if (!wm)
         return NULL;
 
     return wm->x11_ctx->display;
@@ -973,27 +953,17 @@ Display *glps_x11_get_display(glps_WindowManager *wm)
 
 void glps_x11_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface)
 {
-    if (!wm || !wm->x11_ctx || window_id >= wm->window_count || !instance || !surface)
-    {
-        LOG_ERROR("Invalid parameters for Vulkan surface creation");
-        return;
-    }
-
+    // 2. Get X11 Display & Window from GLPS
     Display *xdisplay = wm->x11_ctx->display;
-    Window xwindow = wm->windows[window_id]->window;
+    Window xwindow = wm->windows[window_id]->window; // make sure this is a real X11 Window
 
+    // 3. Create Xlib surface
     VkXlibSurfaceCreateInfoKHR surface_info = {
         .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
-        .pNext = NULL,
-        .flags = 0,
         .dpy = xdisplay,
         .window = xwindow};
 
-    VkResult result = vkCreateXlibSurfaceKHR(*instance, &surface_info, NULL, surface);
-    if (result != VK_SUCCESS)
-    {
-        LOG_ERROR("Failed to create Vulkan Xlib surface: %d", result);
-    }
+    vkCreateXlibSurfaceKHR(*instance, &surface_info, NULL, surface);
 }
 
-#endif
+#endif 
