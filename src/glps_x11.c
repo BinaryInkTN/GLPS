@@ -56,8 +56,8 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     }
 
     // Clean up EGL surface
-    if (wm->windows[window_id] != NULL && 
-        wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && 
+    if (wm->windows[window_id] != NULL &&
+        wm->windows[window_id]->egl_surface != EGL_NO_SURFACE &&
         wm->egl_ctx != NULL && wm->egl_ctx->dpy != EGL_NO_DISPLAY)
     {
         eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
@@ -65,7 +65,7 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     }
 
     // Clean up X11 window
-    if (wm->windows[window_id] != NULL && 
+    if (wm->windows[window_id] != NULL &&
         wm->x11_ctx != NULL && wm->x11_ctx->display != NULL)
     {
         XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
@@ -96,7 +96,7 @@ void glps_x11_init(glps_WindowManager *wm)
     wm->windows = NULL;
     wm->egl_ctx = NULL;
     wm->window_count = 0;
-    
+
     // Initialize callbacks to NULL
     memset(&wm->callbacks, 0, sizeof(wm->callbacks));
 
@@ -124,7 +124,8 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     // Initialize all window pointers to NULL
-    for (int i = 0; i < MAX_WINDOWS; i++) {
+    for (int i = 0; i < MAX_WINDOWS; i++)
+    {
         wm->windows[i] = NULL;
     }
 
@@ -152,7 +153,7 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
-    
+
     LOG_INFO("X11 initialized successfully");
 }
 
@@ -180,7 +181,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         LOG_ERROR("Failed to allocate window");
         return -1;
     }
-    
+
     // Initialize window structure
     wm->windows[wm->window_count]->window = 0;
     wm->windows[wm->window_count]->egl_surface = EGL_NO_SURFACE;
@@ -207,11 +208,11 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     // Set window properties
     XSetWindowBackground(wm->x11_ctx->display, window, 0xFFFFFF);
-    
+
     XSetWindowAttributes swa;
     swa.backing_store = WhenMapped;
     XChangeWindowAttributes(wm->x11_ctx->display, window, CWBackingStore, &swa);
-    
+
     XStoreName(wm->x11_ctx->display, window, title);
 
     // Create GC for this specific window
@@ -227,9 +228,12 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     // Store GC in window-specific structure if available, or use shared one
     // For now, we'll use the shared GC but this could be improved
-    if (wm->x11_ctx->gc == NULL) {
+    if (wm->x11_ctx->gc == NULL)
+    {
         wm->x11_ctx->gc = gc;
-    } else {
+    }
+    else
+    {
         XFreeGC(wm->x11_ctx->display, gc); // Use existing GC
     }
 
@@ -260,15 +264,10 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     // Create EGL context for first window
     if (wm->window_count == 0)
     {
-        if (wm->egl_ctx == NULL) {
+        if (wm->egl_ctx == NULL)
+        {
             LOG_INFO("Creating EGL context for first window");
-            if (!glps_egl_create_ctx(wm)) {
-                LOG_ERROR("Failed to create EGL context");
-                XDestroyWindow(wm->x11_ctx->display, window);
-                free(wm->windows[wm->window_count]);
-                wm->windows[wm->window_count] = NULL;
-                return -1;
-            }
+            glps_egl_create_ctx(wm);
         }
     }
 
@@ -276,7 +275,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     if (wm->egl_ctx != NULL && wm->egl_ctx->dpy != EGL_NO_DISPLAY)
     {
         EGLSurface egl_surface = eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
-                                                       (NativeWindowType)window, NULL);
+                                                        (NativeWindowType)window, NULL);
         if (egl_surface == EGL_NO_SURFACE)
         {
             LOG_ERROR("Failed to create EGL surface");
@@ -286,11 +285,9 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
             return -1;
         }
         wm->windows[wm->window_count]->egl_surface = egl_surface;
-        
+
         // Make context current for this window
-        if (!glps_egl_make_ctx_current(wm, wm->window_count)) {
-            LOG_WARNING("Failed to make EGL context current for window %zu", wm->window_count);
-        }
+        glps_egl_make_ctx_current(wm, wm->window_count);
     }
 
     // Map the window
