@@ -122,7 +122,7 @@ void glps_x11_init(glps_WindowManager *wm)
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
-                               int width, int height)
+                               int x, int y, int width, int height)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL)
     {
@@ -150,7 +150,7 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
     wm->windows[wm->window_count]->window = XCreateSimpleWindow(
         wm->x11_ctx->display,
         RootWindow(wm->x11_ctx->display, screen),
-        10, 10, width, height, 1,
+        x, y, width, height, 1,
         BlackPixel(wm->x11_ctx->display, screen),
         WhitePixel(wm->x11_ctx->display, screen));
 
@@ -285,7 +285,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     Display *display = wm->x11_ctx->display;
     int pending_events = XPending(display);
-    
+
     // Early return if no events
     if (pending_events == 0)
     {
@@ -294,8 +294,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
     // Process events efficiently
     int events_processed = 0;
-    const int max_events = (pending_events < MAX_EVENTS_PER_FRAME) ? 
-                          pending_events : MAX_EVENTS_PER_FRAME;
+    const int max_events = (pending_events < MAX_EVENTS_PER_FRAME) ? pending_events : MAX_EVENTS_PER_FRAME;
 
     while (events_processed < max_events)
     {
@@ -305,7 +304,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
 
         // Find window ID efficiently
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
-        if (window_id < 0 || window_id >= (ssize_t)wm->window_count || 
+        if (window_id < 0 || window_id >= (ssize_t)wm->window_count ||
             wm->windows[window_id] == NULL)
         {
             LOG_INFO("Event for untracked or invalid window %lu", event.xany.window);
@@ -319,7 +318,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             if ((Atom)event.xclient.data.l[0] == wm->x11_ctx->wm_delete_window)
             {
                 LOG_INFO("Window close request for window %zd", window_id);
-                
+
                 // Call user callback before removal
                 if (wm->callbacks.window_close_callback)
                 {
@@ -327,7 +326,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                         (size_t)window_id,
                         wm->callbacks.window_close_data);
                 }
-                
+
                 // Remove window and check if we should exit
                 Window window_to_remove = event.xclient.window;
                 __remove_window(wm, window_to_remove);
@@ -343,7 +342,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                     (size_t)window_id,
                     wm->callbacks.window_close_data);
             }
-            
+
             Window window_to_remove = event.xdestroywindow.window;
             __remove_window(wm, window_to_remove);
             return (wm->window_count == 0);

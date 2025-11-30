@@ -6,7 +6,7 @@
 void glps_x11_init(glps_WindowManager *wm);
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
-                               int width, int height);
+                               int x, int y, int width, int height);
 
 void glps_x11_destroy(glps_WindowManager *wm);
 void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,
@@ -26,11 +26,10 @@ void glps_x11_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor
 void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius);
 void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
 void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
-Display *glps_x11_get_display(glps_WindowManager* wm);
-
+Display *glps_x11_get_display(glps_WindowManager *wm);
 
 #ifdef GLPS_USE_VULKAN
-void glps_x11_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR* surface);
+void glps_x11_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface);
 #endif
 
 #endif

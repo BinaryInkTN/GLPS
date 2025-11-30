@@ -135,8 +135,9 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 
 bool glps_wl_init(glps_WindowManager *wm);
 
+
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
-                              int width, int height);
+                              int x, int y, int width, int height);
 
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id);
 

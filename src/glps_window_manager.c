@@ -454,20 +454,20 @@ void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
-                             int width, int height)
+                             int x, int y, int width, int height)
 {
 
   ssize_t window_id;
 #ifdef GLPS_USE_WAYLAND
-  window_id = glps_wl_window_create(wm, title, width, height);
+  window_id = glps_wl_window_create(wm, title, x, y, width, height);
 #endif
 
 #ifdef GLPS_USE_WIN32
-  window_id = glps_win32_window_create(wm, title, width, height);
+  window_id = glps_win32_window_create(wm, title, x, y, width, height);
 #endif
 
 #ifdef GLPS_USE_X11
-  window_id = glps_x11_window_create(wm, title, width, height);
+  window_id = glps_x11_window_create(wm, title, x, y, width, height);
 #endif
 
   if (window_id < 0)

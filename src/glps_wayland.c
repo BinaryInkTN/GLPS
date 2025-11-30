@@ -1444,7 +1444,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
 }
 
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
-                              int width, int height)
+                              int x, int y, int width, int height)
 {
   glps_WaylandWindow *window = malloc(sizeof(glps_WaylandWindow));
   if (window == NULL)

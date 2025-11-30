@@ -374,9 +374,13 @@ void glps_win32_get_window_dimensions(glps_WindowManager *wm, size_t window_id, 
         }
     }
 }
-
-ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int width, int height)
+ssize_t glps_win32_window_create(glps_WindowManager *wm, int x, int y, const char *title, int width, int height)
 {
+    if (!wm || !title || width <= 0 || height <= 0)
+    {
+        return -1;
+    }
+
     HINSTANCE hInstance = GetModuleHandle(NULL);
     glps_Win32Window *win32_window = calloc(1, sizeof(glps_Win32Window));
     if (!win32_window)
@@ -384,16 +388,19 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int 
 
     RECT rect = {0, 0, width, height};
     AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+    int window_width = rect.right - rect.left;
+    int window_height = rect.bottom - rect.top;
 
-    // CRITICAL: Create window WITHOUT WS_EX_LAYERED initially
-    // This ensures the window renders properly
+    int window_x = (x != CW_USEDEFAULT) ? x : CW_USEDEFAULT;
+    int window_y = (y != CW_USEDEFAULT) ? y : CW_USEDEFAULT;
+
     win32_window->hwnd = CreateWindowEx(
-        0, // No extended styles - window will render normally
+        0,
         wm->wc.lpszClassName,
         title,
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        rect.right - rect.left, rect.bottom - rect.top,
+        window_x, window_y,
+        window_width, window_height,
         NULL, NULL, hInstance, NULL);
 
     if (!win32_window->hwnd)
@@ -402,35 +409,22 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int 
         return -1;
     }
 
-    // Rest of your existing setup code...
     win32_window->hdc = GetDC(win32_window->hwnd);
+    if (!win32_window->hdc)
+        goto cleanup_window;
+
     if (!SetPixelFormatForOpenGL(win32_window->hdc))
-    {
-        ReleaseDC(win32_window->hwnd, win32_window->hdc);
-        DestroyWindow(win32_window->hwnd);
-        free(win32_window);
-        return -1;
-    }
+        goto cleanup_dc;
 
     if (wm->window_count == 0)
     {
         wm->win32_ctx->hglrc = wglCreateContext(win32_window->hdc);
         if (!wm->win32_ctx->hglrc)
-        {
-            ReleaseDC(win32_window->hwnd, win32_window->hdc);
-            DestroyWindow(win32_window->hwnd);
-            free(win32_window);
-            return -1;
-        }
+            goto cleanup_dc;
     }
 
     if (!wglMakeCurrent(win32_window->hdc, wm->win32_ctx->hglrc))
-    {
-        ReleaseDC(win32_window->hwnd, win32_window->hdc);
-        DestroyWindow(win32_window->hwnd);
-        free(win32_window);
-        return -1;
-    }
+        goto cleanup_dc;
 
     ShowWindow(win32_window->hwnd, SW_SHOW);
     UpdateWindow(win32_window->hwnd);
@@ -440,12 +434,25 @@ ssize_t glps_win32_window_create(glps_WindowManager *wm, const char *title, int 
     GetClientRect(win32_window->hwnd, &client_rect);
     win32_window->properties.width = client_rect.right - client_rect.left;
     win32_window->properties.height = client_rect.bottom - client_rect.top;
-    strncpy(win32_window->properties.title, title, sizeof(win32_window->properties.title) - 1);
+
+    size_t title_len = strlen(title);
+    size_t copy_len = (title_len < sizeof(win32_window->properties.title) - 1)
+                          ? title_len
+                          : sizeof(win32_window->properties.title) - 1;
+    memcpy(win32_window->properties.title, title, copy_len);
+    win32_window->properties.title[copy_len] = '\0';
 
     wm->windows[wm->window_count] = win32_window;
     SetWindowLongPtr(win32_window->hwnd, GWLP_USERDATA, (LONG_PTR)wm);
 
     return wm->window_count++;
+
+cleanup_dc:
+    ReleaseDC(win32_window->hwnd, win32_window->hdc);
+cleanup_window:
+    DestroyWindow(win32_window->hwnd);
+    free(win32_window);
+    return -1;
 }
 
 void glps_win32_destroy(glps_WindowManager *wm)
@@ -501,83 +508,94 @@ void glps_win32_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE cursor_ty
 }
 void glps_win32_set_window_blur(glps_WindowManager *wm, size_t window_id, bool enable, int blur_radius)
 {
-    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id])
+    {
         return;
     }
 
     HWND hwnd = wm->windows[window_id]->hwnd;
-    
+
     // Use DWM blur effect (works without WS_EX_LAYERED)
     HMODULE hDwmApi = LoadLibraryA("dwmapi.dll");
-    if (hDwmApi) {
-        typedef HRESULT (WINAPI* DWMENABLEBLURBEHINDWINDOW)(HWND, const void*);
-        DWMENABLEBLURBEHINDWINDOW DwmEnableBlurBehindWindow = 
+    if (hDwmApi)
+    {
+        typedef HRESULT(WINAPI * DWMENABLEBLURBEHINDWINDOW)(HWND, const void *);
+        DWMENABLEBLURBEHINDWINDOW DwmEnableBlurBehindWindow =
             (DWMENABLEBLURBEHINDWINDOW)GetProcAddress(hDwmApi, "DwmEnableBlurBehindWindow");
-        
-        if (DwmEnableBlurBehindWindow) {
-            struct DWM_BLURBEHIND {
+
+        if (DwmEnableBlurBehindWindow)
+        {
+            struct DWM_BLURBEHIND
+            {
                 DWORD dwFlags;
                 BOOL fEnable;
                 HRGN hRgnBlur;
                 BOOL fTransitionOnMaximized;
             };
-            
+
             struct DWM_BLURBEHIND bb = {0};
             bb.dwFlags = 0x00000001; // DWM_BB_ENABLE
             bb.fEnable = enable;
             bb.hRgnBlur = NULL; // Apply to entire window
             bb.fTransitionOnMaximized = FALSE;
-            
+
             DwmEnableBlurBehindWindow(hwnd, &bb);
         }
         FreeLibrary(hDwmApi);
     }
-    
+
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
 }
 
 void glps_win32_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity)
 {
-    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id])
+    {
         return;
     }
 
-    if (opacity < 0.0f) opacity = 0.0f;
-    if (opacity > 1.0f) opacity = 1.0f;
-    
+    if (opacity < 0.0f)
+        opacity = 0.0f;
+    if (opacity > 1.0f)
+        opacity = 1.0f;
+
     HWND hwnd = wm->windows[window_id]->hwnd;
     BYTE alpha = (BYTE)(opacity * 255);
     LONG_PTR current_style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-    
-    if (alpha < 255) {
+
+    if (alpha < 255)
+    {
         // Enable layered window for transparency
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style | WS_EX_LAYERED);
         SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
-    } else {
+    }
+    else
+    {
         // Disable layered window for normal rendering
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style & ~WS_EX_LAYERED);
     }
-    
+
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
 }
 
 void glps_win32_set_window_background_transparent(glps_WindowManager *wm, size_t window_id)
 {
-    if (!wm || window_id >= wm->window_count || !wm->windows[window_id]) {
+    if (!wm || window_id >= wm->window_count || !wm->windows[window_id])
+    {
         return;
     }
 
     HWND hwnd = wm->windows[window_id]->hwnd;
-    
+
     // Remove background brush
     SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)NULL);
-    
+
     // Make sure we're not using layered window for this (it breaks rendering)
     LONG_PTR current_style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
     SetWindowLongPtr(hwnd, GWL_EXSTYLE, current_style & ~WS_EX_LAYERED);
-    
+
     InvalidateRect(hwnd, NULL, TRUE);
     UpdateWindow(hwnd);
 }

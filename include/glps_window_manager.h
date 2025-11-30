@@ -40,12 +40,14 @@ void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id);
  *
  * @param wm Pointer to the GLPS Window Manager.
  * @param title Title of the new window.
+ * @param x x of the window in pixels.
+ * @param y y of the window in pixels.
  * @param width Width of the window in pixels.
  * @param height Height of the window in pixels.
  * @return ID of the created window.
  */
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
-                             int width, int height);
+                             int x, int y, int width, int height);
 
 /**
  * @brief Sets whether a window is resizable.
