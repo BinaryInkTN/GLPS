@@ -18,8 +18,9 @@ void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
                              EGL_ALPHA_SIZE,
                              8,
                              EGL_RENDERABLE_TYPE,
-                             EGL_OPENGL_BIT,
-                             EGL_NONE};
+                            //  EGL_OPENGL_BIT,
+                            EGL_OPENGL_ES3_BIT,
+                            EGL_NONE};
 
   EGLint major, minor, n;
 
