@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WAYLAND_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wayland/wayland-protocols.git"
-WLR_PROTOCOLS_GIT="https://gitlab.freedesktop.org/wlroots/wlr-protocols.git"
+WLR_PROTOCOLS_GIT="https://github.com/LizardByte-infrastructure/wlr-protocols.git"
 OUTPUTS=(xdg-shell xdg-dialog xdg-decorations xdg-toplevel-tag wlr-data-control-unstable-v1)
 
 SCRIPT_PATH=$0 
@@ -17,7 +17,7 @@ WLR_PROTOCOLS_DIR="${SCRIPT_PATH}/wlr-protocols"
 
 WAYLAND_PROTOCOLS=(
     "stable/xdg-shell/xdg-shell.xml"
-    "unstable/xdg-dialog/xdg-dialog-unstable-v1.xml"
+    "staging/xdg-dialog/xdg-dialog-v1.xml"
     "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
     "staging/xdg-toplevel-tag/xdg-toplevel-tag-v1.xml"
 )
