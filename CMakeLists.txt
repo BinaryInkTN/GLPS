@@ -17,7 +17,7 @@ endif()
 # Platform detection and configuration
 if(WIN32)
     message(STATUS "Building for Windows")
-    
+
     # Windows-specific settings
     set(GLPS_SOURCES
         src/glps_wgl_context.c
@@ -40,21 +40,21 @@ if(WIN32)
 
     add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
-    target_compile_definitions(${PROJECT_NAME} 
-        PRIVATE 
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
             GLPS_USE_WIN32
             _CRT_SECURE_NO_WARNINGS
     )
-    
-    target_compile_options(${PROJECT_NAME} 
-        PRIVATE 
+
+    target_compile_options(${PROJECT_NAME}
+        PRIVATE
             -mwindows
             -Wall
             -Wextra
     )
-    
-    target_link_libraries(${PROJECT_NAME} 
-        PRIVATE 
+
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
             opengl32
             gdi32
             user32
@@ -70,13 +70,15 @@ elseif(UNIX AND NOT APPLE)
     )
 
     if(CURRENT_SESSION_TYPE STREQUAL "wayland")
+        # Wayland
+        pkg_check_modules(WAYLAND wayland-client wayland-egl)
 
-    # First try Wayland
-    pkg_check_modules(WAYLAND wayland-client wayland-egl egl)
-    
-    if(WAYLAND_FOUND)
-        message(STATUS "Building for Linux Wayland")
-        
+        # EGL (use CMake, not pkg-config)
+        find_package(EGL)
+
+        if(WAYLAND_FOUND AND EGL_FOUND)
+            message(STATUS "Building for Linux Wayland")
+
         set(GLPS_SOURCES
             src/glps_wayland.c
             src/glps_window_manager.c
@@ -86,7 +88,7 @@ elseif(UNIX AND NOT APPLE)
             src/glps_audio_stream.c
             src/glps_timer.c
         )
-        
+
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
         list(APPEND GLPS_SOURCES ${XDG_GLPS_SOURCES})
 
@@ -102,36 +104,36 @@ elseif(UNIX AND NOT APPLE)
             include/glps_timer.h
             internal/utils/uthash/uthash.h
         )
-        
+
         file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
         list(APPEND GLPS_HEADERS ${XDG_GLPS_HEADERS})
 
         add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
-        target_compile_definitions(${PROJECT_NAME} 
-            PRIVATE 
+        target_compile_definitions(${PROJECT_NAME}
+            PRIVATE
                 GLPS_USE_WAYLAND
         )
-        
-        target_compile_options(${PROJECT_NAME} 
-            PRIVATE 
+
+        target_compile_options(${PROJECT_NAME}
+            PRIVATE
                 -Wall
                 -Wextra
                 -Wno-unused-variable
                 -Wno-unused-parameter
         )
-        
-        target_link_libraries(${PROJECT_NAME} 
-            PRIVATE 
-                m 
-                EGL 
+
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+                m
+                EGL
                 ${WAYLAND_LIBRARIES}
-                xkbcommon 
-                pthread 
-                asound 
+                xkbcommon
+                pthread
+                asound
                 rt
         )
-        
+
         # Install Wayland protocols if needed
         if(NOT EXISTS "/usr/share/wayland-protocols")
             message(STATUS "Installing Wayland protocols...")
@@ -144,10 +146,10 @@ elseif(UNIX AND NOT APPLE)
     else()
         # Fall back to X11
         message(STATUS "Building for X11")
-        
+
         find_package(X11 REQUIRED)
         find_library(EGL_LIBRARY EGL REQUIRED)
-        
+
         set(GLPS_SOURCES
             src/glps_egl_context.c
             src/glps_x11.c
@@ -174,35 +176,35 @@ elseif(UNIX AND NOT APPLE)
 
         add_library(${PROJECT_NAME} SHARED ${GLPS_SOURCES} ${GLPS_HEADERS})
 
-        target_compile_definitions(${PROJECT_NAME} 
-            PRIVATE 
+        target_compile_definitions(${PROJECT_NAME}
+            PRIVATE
                 GLPS_USE_X11
         )
-        
-        target_compile_options(${PROJECT_NAME} 
-            PRIVATE 
+
+        target_compile_options(${PROJECT_NAME}
+            PRIVATE
                 -Wall
                 -Wextra
                 -Wno-unused-variable
                 -Wno-unused-parameter
         )
-        
-        target_link_libraries(${PROJECT_NAME} 
-            PRIVATE 
+
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
                 ${X11_LIBRARIES}
                 ${EGL_LIBRARY}
-                pthread 
-                asound 
+                pthread
+                asound
                 rt
         )
-        
+
         # Install ALSA if needed
         execute_process(
             COMMAND ${PROJECT_SOURCE_DIR}/scripts/alsa.sh
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         )
     endif()
-    
+
     # Common Linux includes
     target_include_directories(${PROJECT_NAME} SYSTEM
         PRIVATE
