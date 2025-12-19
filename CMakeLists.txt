@@ -81,17 +81,17 @@ elseif(UNIX AND NOT APPLE)
 
         message(STATUS "Building for Linux Wayland")
 
-        # Install Wayland protocols if not already installed
+        # Check for Wayland protocols
         if(NOT EXISTS "/usr/share/wayland-protocols")
-            message(STATUS "Installing Wayland protocols...")
-            execute_process(
-                COMMAND ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh
+            message(WARNING "Wayland protocols not found. They will need to be installed before building.")
+            # Optionally, you could add a custom target to install them
+            add_custom_target(install_wayland_protocols
+                COMMAND ${CMAKE_COMMAND} -E env ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                RESULT_VARIABLE WAYLAND_PROTO_RESULT
+                COMMENT "Installing Wayland protocols..."
             )
-            if(NOT WAYLAND_PROTO_RESULT EQUAL 0)
-                message(FATAL_ERROR "Failed to install Wayland protocols!")
-            endif()
+        else()
+            message(STATUS "Wayland protocols found at /usr/share/wayland-protocols")
         endif()
 
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
@@ -106,7 +106,6 @@ elseif(UNIX AND NOT APPLE)
             src/glps_audio_stream.c
             src/glps_timer.c
             ${XDG_GLPS_SOURCES}
-            ${XDG_GLPS_HEADERS}
         )
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE
