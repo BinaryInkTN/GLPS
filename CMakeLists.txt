@@ -58,10 +58,27 @@ if(WIN32)
 # Linux (Wayland / X11)
 # =================================================
 elseif(UNIX AND NOT APPLE)
-
     message(STATUS "Configuring Linux backend")
 
     find_package(PkgConfig REQUIRED)
+
+    # -------------------------------------------------
+    # Detect current display server from XDG_SESSION_TYPE
+    # -------------------------------------------------
+    if(DEFINED ENV{XDG_SESSION_TYPE})
+        message(STATUS "XDG_SESSION_TYPE: $ENV{XDG_SESSION_TYPE}")
+        if("$ENV{XDG_SESSION_TYPE}" STREQUAL "wayland")
+            set(CURRENT_SESSION_TYPE "wayland")
+        elseif("$ENV{XDG_SESSION_TYPE}" STREQUAL "x11")
+            set(CURRENT_SESSION_TYPE "x11")
+        else()
+            message(WARNING "Unknown XDG_SESSION_TYPE: $ENV{XDG_SESSION_TYPE}. Will detect automatically.")
+            set(CURRENT_SESSION_TYPE "auto")
+        endif()
+    else()
+        message(WARNING "XDG_SESSION_TYPE not set. Will detect automatically.")
+        set(CURRENT_SESSION_TYPE "auto")
+    endif()
 
     # -------------------------------------------------
     # Wayland detection
@@ -75,10 +92,39 @@ elseif(UNIX AND NOT APPLE)
     endif()
 
     # -------------------------------------------------
+    # Decision logic based on session type and availability
+    # -------------------------------------------------
+    set(USE_WAYLAND FALSE)
+    
+    if(CURRENT_SESSION_TYPE STREQUAL "wayland")
+        if(GLPS_USE_WAYLAND_BACKEND)
+            message(STATUS "Using Wayland backend (current session is Wayland)")
+            set(USE_WAYLAND TRUE)
+        else()
+            message(WARNING "Current session is Wayland but Wayland dependencies not found. Falling back to X11.")
+        endif()
+    elseif(CURRENT_SESSION_TYPE STREQUAL "x11")
+        if(GLPS_USE_WAYLAND_BACKEND AND NOT GLPS_FORCE_WAYLAND)
+            message(STATUS "Current session is X11, using X11 backend")
+        else()
+            message(STATUS "Using X11 backend (current session is X11)")
+        endif()
+    else()  # auto-detect
+        if(GLPS_USE_WAYLAND_BACKEND AND GLPS_FORCE_WAYLAND)
+            message(STATUS "Using Wayland backend (forced)")
+            set(USE_WAYLAND TRUE)
+        elseif(GLPS_USE_WAYLAND_BACKEND)
+            message(STATUS "Using Wayland backend (auto-detected)")
+            set(USE_WAYLAND TRUE)
+        else()
+            message(STATUS "Using X11 backend (auto-detected)")
+        endif()
+    endif()
+
+    # -------------------------------------------------
     # Wayland backend
     # -------------------------------------------------
-    if(GLPS_USE_WAYLAND_BACKEND)
-
+    if(USE_WAYLAND)
         message(STATUS "Building for Linux Wayland")
 
         # Define required protocol files
@@ -188,7 +234,6 @@ elseif(UNIX AND NOT APPLE)
     # X11 fallback
     # -------------------------------------------------
     else()
-
         message(STATUS "Building for X11")
 
         find_package(X11 REQUIRED)
@@ -239,7 +284,6 @@ elseif(UNIX AND NOT APPLE)
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
-
 
 # =================================================
 # Common include paths
