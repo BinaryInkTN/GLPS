@@ -62,21 +62,21 @@ elseif(UNIX AND NOT APPLE)
     message(STATUS "Configuring Linux backend")
 
     find_package(PkgConfig REQUIRED)
-    find_package(EGL REQUIRED)
 
-    # -------------------------------
+    # -------------------------------------------------
     # Wayland detection
-    # -------------------------------
+    # -------------------------------------------------
     pkg_check_modules(WAYLAND wayland-client wayland-egl)
+    find_library(EGL_LIBRARY EGL)
 
     set(GLPS_USE_WAYLAND_BACKEND OFF)
-    if(GLPS_FORCE_WAYLAND OR (WAYLAND_FOUND AND EGL_FOUND))
+    if(GLPS_FORCE_WAYLAND OR (WAYLAND_FOUND AND EGL_LIBRARY))
         set(GLPS_USE_WAYLAND_BACKEND ON)
     endif()
 
-    # -------------------------------
+    # -------------------------------------------------
     # Wayland backend
-    # -------------------------------
+    # -------------------------------------------------
     if(GLPS_USE_WAYLAND_BACKEND)
 
         message(STATUS "Building for Linux Wayland")
@@ -112,7 +112,7 @@ elseif(UNIX AND NOT APPLE)
         )
 
         target_link_libraries(${PROJECT_NAME} PRIVATE
-            EGL::EGL
+            ${EGL_LIBRARY}
             ${WAYLAND_LIBRARIES}
             xkbcommon
             pthread
@@ -121,14 +121,15 @@ elseif(UNIX AND NOT APPLE)
             m
         )
 
-    # -------------------------------
+    # -------------------------------------------------
     # X11 fallback
-    # -------------------------------
+    # -------------------------------------------------
     else()
 
         message(STATUS "Building for X11")
 
         find_package(X11 REQUIRED)
+        find_library(EGL_LIBRARY EGL REQUIRED)
 
         add_library(${PROJECT_NAME} SHARED
             src/glps_x11.c
@@ -152,17 +153,17 @@ elseif(UNIX AND NOT APPLE)
         )
 
         target_link_libraries(${PROJECT_NAME} PRIVATE
-            X11::X11
-            EGL::EGL
+            ${X11_LIBRARIES}
+            ${EGL_LIBRARY}
             pthread
             asound
             rt
         )
     endif()
 
-    # -------------------------------
+    # -------------------------------------------------
     # Common Linux includes
-    # -------------------------------
+    # -------------------------------------------------
     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
         /usr/include/glib-2.0
         /usr/lib/glib-2.0/include
@@ -175,6 +176,7 @@ elseif(UNIX AND NOT APPLE)
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
+
 
 # =================================================
 # Common include paths
