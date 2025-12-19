@@ -81,6 +81,19 @@ elseif(UNIX AND NOT APPLE)
 
         message(STATUS "Building for Linux Wayland")
 
+        # Install Wayland protocols if not already installed
+        if(NOT EXISTS "/usr/share/wayland-protocols")
+            message(STATUS "Installing Wayland protocols...")
+            execute_process(
+                COMMAND ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                RESULT_VARIABLE WAYLAND_PROTO_RESULT
+            )
+            if(NOT WAYLAND_PROTO_RESULT EQUAL 0)
+                message(FATAL_ERROR "Failed to install Wayland protocols!")
+            endif()
+        endif()
+
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
         file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
 
