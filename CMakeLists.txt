@@ -81,17 +81,68 @@ elseif(UNIX AND NOT APPLE)
 
         message(STATUS "Building for Linux Wayland")
 
-        # Check for Wayland protocols
-        if(NOT EXISTS "/usr/share/wayland-protocols")
-            message(WARNING "Wayland protocols not found. They will need to be installed before building.")
-            # Optionally, you could add a custom target to install them
-            add_custom_target(install_wayland_protocols
-                COMMAND ${CMAKE_COMMAND} -E env ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh
+        # Define required protocol files
+        set(REQUIRED_PROTOCOLS
+            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-shell.xml"
+            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-decoration-unstable-v1.xml"
+            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-output-unstable-v1.xml"
+        )
+
+        # Check if protocol files exist
+        set(PROTOCOLS_MISSING FALSE)
+        set(MISSING_PROTOCOLS_LIST "")
+
+        foreach(PROTOCOL ${REQUIRED_PROTOCOLS})
+            if(NOT EXISTS ${PROTOCOL})
+                set(PROTOCOLS_MISSING TRUE)
+                list(APPEND MISSING_PROTOCOLS_LIST ${PROTOCOL})
+            endif()
+        endforeach()
+
+        # If protocols are missing, install them automatically
+        if(PROTOCOLS_MISSING)
+            message(STATUS "Wayland protocol files missing, installing automatically...")
+
+            # Create the internal/xdg directory if it doesn't exist
+            if(NOT EXISTS "${PROJECT_SOURCE_DIR}/internal/xdg/")
+                file(MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/internal/xdg")
+                message(STATUS "Created directory: ${PROJECT_SOURCE_DIR}/internal/xdg/")
+            endif()
+
+            # Execute the installation script
+            execute_process(
+                COMMAND bash "${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh"
                 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                COMMENT "Installing Wayland protocols..."
+                RESULT_VARIABLE INSTALL_RESULT
+                OUTPUT_VARIABLE INSTALL_OUTPUT
+                ERROR_VARIABLE INSTALL_ERROR
             )
+
+            if(NOT INSTALL_RESULT EQUAL 0)
+                message(WARNING "Failed to install Wayland protocols automatically")
+                message(WARNING "Install script output: ${INSTALL_OUTPUT}")
+                message(WARNING "Install script error: ${INSTALL_ERROR}")
+                message(WARNING "Please run the script manually: ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh")
+            else()
+                message(STATUS "Successfully installed Wayland protocols")
+
+                # Verify the installation
+                set(INSTALL_SUCCESS TRUE)
+                foreach(PROTOCOL ${REQUIRED_PROTOCOLS})
+                    if(NOT EXISTS ${PROTOCOL})
+                        set(INSTALL_SUCCESS FALSE)
+                        message(WARNING "Protocol file still missing after installation: ${PROTOCOL}")
+                    endif()
+                endforeach()
+
+                if(INSTALL_SUCCESS)
+                    message(STATUS "All Wayland protocol files are now available")
+                else()
+                    message(WARNING "Some protocol files are still missing after installation")
+                endif()
+            endif()
         else()
-            message(STATUS "Wayland protocols found at /usr/share/wayland-protocols")
+            message(STATUS "All required Wayland protocol files found")
         endif()
 
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")

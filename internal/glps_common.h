@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <time.h>
 // Platform-specific includes
 #ifdef GLPS_USE_WIN32
 #ifndef _WIN32_WINNT
@@ -56,7 +56,7 @@
 #include <X11/extensions/shape.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <time.h>
+
 #endif
 
 #ifdef GLPS_USE_VULKAN
@@ -83,7 +83,7 @@ typedef enum {
 } GLPS_SCROLL_AXES;
 
 /**
- * @enum GLPS_SCROLL_SOURCE  
+ * @enum GLPS_SCROLL_SOURCE
  * @brief Scroll source definitions.
  */
 typedef enum {
@@ -126,9 +126,9 @@ struct glps_Callback {
     // Keyboard events
     void (*keyboard_enter_callback)(size_t window_id, void *data);
     void (*keyboard_leave_callback)(size_t window_id, void *data);
-    void (*keyboard_callback)(size_t window_id, bool state, const char *value, 
+    void (*keyboard_callback)(size_t window_id, bool state, const char *value,
                              unsigned long keycode, void *data);
-    
+
     // Mouse events
     void (*mouse_enter_callback)(size_t window_id, double mouse_x, double mouse_y, void *data);
     void (*mouse_leave_callback)(size_t window_id, void *data);
@@ -137,15 +137,15 @@ struct glps_Callback {
     void (*mouse_scroll_callback)(size_t window_id, GLPS_SCROLL_AXES axe,
                                  GLPS_SCROLL_SOURCE source, double value,
                                  int discrete, bool is_stopped, void *data);
-    
+
     // Touch events
     void (*touch_callback)(size_t window_id, int id, double touch_x, double touch_y,
                           bool state, double major, double minor, double orientation, void *data);
-    
+
     // Drag & drop
     void (*drag_n_drop_callback)(size_t window_id, char *mime_type, char *data,
                                 int x, int y, void *user_data);
-    
+
     // Window events
     void (*window_resize_callback)(size_t window_id, int width, int height, void *data);
     void (*window_close_callback)(size_t window_id, void *data);
