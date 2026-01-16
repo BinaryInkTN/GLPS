@@ -294,7 +294,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
                 }
                 Window window_to_remove = event.xclient.window;
                 __remove_window(wm, window_to_remove);
-                return (wm->window_count == 0);
             }
             break;
 
@@ -305,7 +304,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             }
             Window window_to_remove = event.xdestroywindow.window;
             __remove_window(wm, window_to_remove);
-            return (wm->window_count == 0);
+            break;
 
         case ConfigureNotify:
             if (wm->callbacks.window_resize_callback)
@@ -400,8 +399,6 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             }
             break;
         }
-
-        if (wm->window_count == 0) return true;
     }
 
     return false;
