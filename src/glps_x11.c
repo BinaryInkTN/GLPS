@@ -87,7 +87,7 @@ void glps_x11_init(glps_WindowManager *wm)
     }
      if (!XInitThreads()) {
         fprintf(stderr, "Failed to initialize X11 threads!\n");
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display)
@@ -510,6 +510,10 @@ void glps_x11_destroy(glps_WindowManager *wm)
     {
         glps_egl_destroy(wm);
     }
+
+    // Final guard: ensure fields reflect the destroyed state so repeated calls are safe
+    wm->window_count = 0;
+    wm->windows = NULL;
 }
 
 void glps_x11_get_window_dimensions(glps_WindowManager *wm, size_t window_id,

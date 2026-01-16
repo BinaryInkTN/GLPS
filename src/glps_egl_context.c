@@ -91,6 +91,8 @@ void *glps_egl_get_proc_addr(const char* name) { return eglGetProcAddress; }
 
 void glps_egl_destroy(glps_WindowManager *wm) {
 
+  if (wm == NULL || wm->egl_ctx == NULL) return;
+
   if (wm->egl_ctx->ctx) {
     eglDestroyContext(wm->egl_ctx->dpy, wm->egl_ctx->ctx);
     wm->egl_ctx->ctx = EGL_NO_CONTEXT;
