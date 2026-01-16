@@ -491,11 +491,6 @@ void glps_x11_destroy(glps_WindowManager *wm)
         wm->x11_ctx = NULL;
     }
 
-    if (wm->egl_ctx)
-    {
-        glps_egl_destroy(wm);
-    }
-
     // Final guard: ensure fields reflect the destroyed state so repeated calls are safe
     wm->window_count = 0;
     wm->windows = NULL;
