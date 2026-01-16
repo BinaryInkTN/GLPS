@@ -194,14 +194,16 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         }
     }
 
+    XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
+    XFlush(wm->x11_ctx->display);
+
     if (wm->window_count == 0)
     {
         glps_egl_create_ctx(wm);
         glps_egl_make_ctx_current(wm, 0);
     }
 
-    XMapWindow(wm->x11_ctx->display, wm->windows[wm->window_count]->window);
-    XFlush(wm->x11_ctx->display);
+ 
 
     return wm->window_count++;
 }
