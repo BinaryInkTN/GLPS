@@ -71,17 +71,6 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     }
     wm->window_count = write_index;
 
-    if (wm->window_count > 0 && wm->window_count < MAX_WINDOWS / 2 && wm->window_capacity > MAX_WINDOWS)
-    {
-        glps_X11Window **new_array = (glps_X11Window **)realloc(wm->windows, 
-            (wm->window_count + 1) * sizeof(glps_X11Window *));
-        if (new_array != NULL)
-        {
-            wm->windows = new_array;
-            wm->window_capacity = wm->window_count + 1;
-        }
-    }
-
     if (wm->window_count == 0 && wm->egl_ctx != NULL)
     {
         glps_egl_destroy(wm);
@@ -114,7 +103,6 @@ void glps_x11_init(glps_WindowManager *wm)
         wm->x11_ctx = NULL;
         exit(EXIT_FAILURE);
     }
-    wm->window_capacity = MAX_WINDOWS;
     
     if (!XInitThreads()) {
         fprintf(stderr, "Failed to initialize X11 threads!\n");
@@ -167,23 +155,10 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
         exit(EXIT_FAILURE);
     }
 
-    if (wm->window_count >= wm->window_capacity)
+    if (wm->window_count >= MAX_WINDOWS)
     {
-        size_t new_capacity = wm->window_capacity * 2;
-        glps_X11Window **new_array = (glps_X11Window **)realloc(wm->windows, 
-            new_capacity * sizeof(glps_X11Window *));
-        if (new_array == NULL)
-        {
-            LOG_ERROR("Maximum number of windows reached and reallocation failed");
-            return -1;
-        }
-        wm->windows = new_array;
-        wm->window_capacity = new_capacity;
-        
-        for (size_t i = wm->window_count; i < wm->window_capacity; ++i)
-        {
-            wm->windows[i] = NULL;
-        }
+        LOG_ERROR("Maximum number of windows reached");
+        return -1;
     }
 
     size_t window_index = wm->window_count;
@@ -362,7 +337,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
         events_processed++;
 
         ssize_t window_id = __get_window_id_by_xid(wm, event.xany.window);
-        if (window_id < 0 || window_id >= (ssize_t)wm->window_count || wm->windows[window_id] == NULL) continue;
+        if (window_id < 0 || window_id >= wm->window_count || wm->windows[window_id] == NULL) continue;
 
         switch (event.type)
         {
@@ -399,7 +374,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             {
                 wm->callbacks.mouse_move_callback((size_t)window_id, event.xmotion.x, event.xmotion.y, wm->callbacks.mouse_move_data);
             }
-            if (window_id < wm->window_count && wm->windows[window_id] != NULL && wm->x11_ctx->cursor)
+            if (window_id >= 0 && window_id < wm->window_count && wm->windows[window_id] != NULL && wm->x11_ctx->cursor)
             {
                 XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
             }
@@ -547,7 +522,6 @@ void glps_x11_destroy(glps_WindowManager *wm)
         free(wm->windows);
         wm->windows = NULL;
         wm->window_count = 0;
-        wm->window_capacity = 0;
     }
 
     if (wm->x11_ctx)
@@ -795,24 +769,10 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
                                         int width, int height, bool transparent)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL) return false;
-    
-    if (wm->window_count >= wm->window_capacity)
+    if (wm->window_count >= MAX_WINDOWS)
     {
-        size_t new_capacity = wm->window_capacity * 2;
-        glps_X11Window **new_array = (glps_X11Window **)realloc(wm->windows, 
-            new_capacity * sizeof(glps_X11Window *));
-        if (new_array == NULL)
-        {
-            LOG_ERROR("Maximum number of windows reached");
-            return false;
-        }
-        wm->windows = new_array;
-        wm->window_capacity = new_capacity;
-        
-        for (size_t i = wm->window_count; i < wm->window_capacity; ++i)
-        {
-            wm->windows[i] = NULL;
-        }
+        LOG_ERROR("Maximum number of windows reached");
+        return false;
     }
 
     Display *display = wm->x11_ctx->display;
@@ -894,7 +854,6 @@ bool glps_x11_create_window_with_visual(glps_WindowManager *wm, const char *titl
     new_window->fps_start_time = (struct timespec){0};
     new_window->fps_is_init = false;
     new_window->egl_surface = EGL_NO_SURFACE;
-    new_window->colormap = custom_colormap ? colormap : None;
 
     XStoreName(display, window, title);
     XSetWMProtocols(display, window, &wm->x11_ctx->wm_delete_window, 1);
