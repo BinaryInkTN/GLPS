@@ -108,6 +108,9 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
+    
+    // Initialize default cursor (arrow)
+    wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
 }
 
 ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
@@ -323,7 +326,10 @@ bool glps_x11_should_close(glps_WindowManager *wm)
             {
                 wm->callbacks.mouse_move_callback((size_t)window_id, event.xmotion.x, event.xmotion.y, wm->callbacks.mouse_move_data);
             }
-            XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            if (window_id < wm->window_count && wm->windows[window_id] != NULL && wm->x11_ctx->cursor)
+            {
+                XDefineCursor(wm->x11_ctx->display, wm->windows[window_id]->window, wm->x11_ctx->cursor);
+            }
             break;
 
         case ButtonPress:
@@ -473,6 +479,10 @@ void glps_x11_destroy(glps_WindowManager *wm)
         if (wm->x11_ctx->gc && wm->x11_ctx->display)
         {
             XFreeGC(wm->x11_ctx->display, wm->x11_ctx->gc);
+        }
+        if (wm->x11_ctx->cursor && wm->x11_ctx->display)
+        {
+            XFreeCursor(wm->x11_ctx->display, wm->x11_ctx->cursor);
         }
         if (wm->x11_ctx->display)
         {
