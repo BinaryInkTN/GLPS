@@ -84,7 +84,10 @@ void glps_x11_init(glps_WindowManager *wm)
         free(wm->x11_ctx);
         exit(EXIT_FAILURE);
     }
-
+     if (!XInitThreads()) {
+        fprintf(stderr, "Failed to initialize X11 threads!\n");
+        return EXIT_FAILURE;
+    }
     wm->x11_ctx->display = XOpenDisplay(NULL);
     if (!wm->x11_ctx->display)
     {
