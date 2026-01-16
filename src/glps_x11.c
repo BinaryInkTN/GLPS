@@ -27,29 +27,37 @@ static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 
     return -1;
 }
-
 void __remove_window(glps_WindowManager *wm, Window xid)
 {
+    if (!wm || !wm->windows || wm->window_count == 0) return;
+
     ssize_t window_id = __get_window_id_by_xid(wm, xid);
     if (window_id < 0) return;
 
+    // Unbind EGL surface if currently bound
     if (wm->egl_ctx != NULL && eglGetCurrentSurface(EGL_DRAW) == wm->windows[window_id]->egl_surface)
     {
         eglMakeCurrent(wm->egl_ctx->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
 
+    // Destroy EGL surface if valid
     if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
     {
         eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
+        wm->windows[window_id]->egl_surface = EGL_NO_SURFACE;
     }
 
-    if (wm->x11_ctx != NULL && wm->x11_ctx->display != NULL)
+    // Destroy X11 window if valid
+    if (wm->x11_ctx && wm->x11_ctx->display && wm->windows[window_id]->window)
     {
         XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
+        wm->windows[window_id]->window = 0;
     }
 
+    // Free window structure
     free(wm->windows[window_id]);
 
+    // Shift remaining windows in array
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
@@ -57,6 +65,7 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     wm->windows[wm->window_count - 1] = NULL;
     wm->window_count--;
 
+    // Destroy EGL context if last window
     if (wm->window_count == 0 && wm->egl_ctx != NULL)
     {
         glps_egl_destroy(wm);
@@ -109,7 +118,7 @@ void glps_x11_init(glps_WindowManager *wm)
     }
 
     wm->x11_ctx->wm_delete_window = XInternAtom(wm->x11_ctx->display, "WM_DELETE_WINDOW", False);
-    
+
     // Initialize default cursor (arrow)
     wm->x11_ctx->cursor = XCreateFontCursor(wm->x11_ctx->display, XC_arrow);
 }
@@ -260,7 +269,7 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     static struct timespec last_frame = {0};
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-    
+
     long elapsed = (now.tv_sec - last_frame.tv_sec) * 1000000000 + (now.tv_nsec - last_frame.tv_nsec);
     if (elapsed < NS_PER_FRAME && last_frame.tv_sec != 0)
     {
@@ -272,19 +281,19 @@ bool glps_x11_should_close(glps_WindowManager *wm)
     if (wm->window_count == 0) return true;
 
     Display *display = wm->x11_ctx->display;
-    
+
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(ConnectionNumber(display), &fds);
-    
+
     struct timeval tv = {0, 0};
-    
+
     int ready = select(ConnectionNumber(display) + 1, &fds, NULL, NULL, &tv);
     if (ready <= 0) return false;
-    
+
     XEvent event;
     int events_processed = 0;
-    
+
     while (XPending(display) > 0 && events_processed < MAX_EVENTS_PER_FRAME)
     {
         XNextEvent(display, &event);
@@ -444,45 +453,22 @@ void glps_x11_window_update(glps_WindowManager *wm, size_t window_id)
 
     XFlush(wm->x11_ctx->display);
 }
-
 void glps_x11_destroy(glps_WindowManager *wm)
 {
-    if (wm == NULL) return;
+    if (!wm) return;
 
-
-    if (wm->x11_ctx == NULL && wm->windows == NULL && wm->window_count == 0 && wm->egl_ctx == NULL)
-    {
-        return;
-    }
-
+    // Remove all windows safely
     if (wm->windows)
     {
-
-        for (size_t i = 0; i < wm->window_count; ++i)
+        while (wm->window_count > 0)
         {
-            if (wm->windows[i] == NULL) continue;
-
-            if (wm->windows[i]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
-            {
-                eglDestroySurface(wm->egl_ctx->dpy, wm->windows[i]->egl_surface);
-                wm->windows[i]->egl_surface = EGL_NO_SURFACE;
-            }
-
-            if (wm->windows[i]->window && wm->x11_ctx != NULL && wm->x11_ctx->display != NULL)
-            {
-                XDestroyWindow(wm->x11_ctx->display, wm->windows[i]->window);
-                wm->windows[i]->window = 0;
-            }
-
-            free(wm->windows[i]);
-            wm->windows[i] = NULL;
+            __remove_window(wm, wm->windows[0]->window);
         }
-
         free(wm->windows);
         wm->windows = NULL;
-        wm->window_count = 0;
     }
 
+    // Clean up X11 resources
     if (wm->x11_ctx)
     {
         if (wm->x11_ctx->font && wm->x11_ctx->display)
@@ -505,12 +491,13 @@ void glps_x11_destroy(glps_WindowManager *wm)
             XCloseDisplay(wm->x11_ctx->display);
             wm->x11_ctx->display = NULL;
         }
+
         wm->x11_ctx->wm_delete_window = None;
         free(wm->x11_ctx);
         wm->x11_ctx = NULL;
     }
 
-    // Final guard: ensure fields reflect the destroyed state so repeated calls are safe
+    // Final safety
     wm->window_count = 0;
     wm->windows = NULL;
 }
