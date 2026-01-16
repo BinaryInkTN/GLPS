@@ -458,22 +458,7 @@ void glps_x11_destroy(glps_WindowManager *wm)
 
     if (wm->windows)
     {
-        for (size_t i = 0; i < wm->window_count; ++i)
-        {
-            if (wm->windows[i] != NULL)
-            {
-                if (wm->windows[i]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
-                {
-                    eglDestroySurface(wm->egl_ctx->dpy, wm->windows[i]->egl_surface);
-                }
-                if (wm->windows[i]->window && wm->x11_ctx != NULL && wm->x11_ctx->display != NULL)
-                {
-                    XDestroyWindow(wm->x11_ctx->display, wm->windows[i]->window);
-                }
-                free(wm->windows[i]);
-                wm->windows[i] = NULL;
-            }
-        }
+        // windows were freed in __remove_window when handling DestroyNotify
         free(wm->windows);
         wm->windows = NULL;
         wm->window_count = 0;
