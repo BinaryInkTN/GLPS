@@ -448,6 +448,14 @@ void glps_x11_destroy(glps_WindowManager *wm)
 {
     if (wm == NULL) return;
 
+    // Make the destroy routine idempotent to avoid double free/corruption when
+    // called multiple times (e.g., after the last window removed and again on
+    // shutdown).
+    if (wm->x11_ctx == NULL && wm->windows == NULL && wm->window_count == 0 && wm->egl_ctx == NULL)
+    {
+        return;
+    }
+
     if (wm->windows)
     {
         for (size_t i = 0; i < wm->window_count; ++i)
