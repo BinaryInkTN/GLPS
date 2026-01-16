@@ -1,6 +1,7 @@
 #include "glps_x11.h"
 #include "glps_egl_context.h"
 #include <X11/Xatom.h>
+#include <EGL/egl.h>
 #include "utils/logger/pico_logger.h"
 
 #define MAX_EVENTS_PER_FRAME 10
@@ -475,19 +476,24 @@ void glps_x11_destroy(glps_WindowManager *wm)
         if (wm->x11_ctx->font && wm->x11_ctx->display)
         {
             XFreeFont(wm->x11_ctx->display, wm->x11_ctx->font);
+            wm->x11_ctx->font = NULL;
         }
         if (wm->x11_ctx->gc && wm->x11_ctx->display)
         {
             XFreeGC(wm->x11_ctx->display, wm->x11_ctx->gc);
+            wm->x11_ctx->gc = 0;
         }
         if (wm->x11_ctx->cursor && wm->x11_ctx->display)
         {
             XFreeCursor(wm->x11_ctx->display, wm->x11_ctx->cursor);
+            wm->x11_ctx->cursor = 0;
         }
         if (wm->x11_ctx->display)
         {
             XCloseDisplay(wm->x11_ctx->display);
+            wm->x11_ctx->display = NULL;
         }
+        wm->x11_ctx->wm_delete_window = None;
         free(wm->x11_ctx);
         wm->x11_ctx = NULL;
     }
