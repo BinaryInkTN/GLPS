@@ -270,11 +270,11 @@ ssize_t glps_x11_window_create_ex(
         free(w);
         return -1;
     }
-    
-    glps_egl_make_ctx_current(wm, wm->window_count);
 
     XMapWindow(dpy, win);
     XFlush(dpy);
+
+    glps_egl_make_ctx_current(wm, wm->window_count);
 
     XFree(vi);
 
