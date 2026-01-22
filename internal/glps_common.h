@@ -108,6 +108,12 @@ typedef enum {
     GLPS_CURSOR_NOT_ALLOWED
 } GLPS_CURSOR_TYPE;
 
+typedef enum {
+    GLPS_WINDOW_NORMAL    = 0,
+    GLPS_WINDOW_FRAMELESS = 1 << 0,
+    GLPS_WINDOW_TRANSPARENT = 1 << 1
+} GLPS_WindowFlags;
+
 /**
  * @struct glps_WindowProperties
  * @brief Properties for a GLPS window.

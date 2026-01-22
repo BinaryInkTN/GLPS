@@ -186,7 +186,18 @@ void glps_wm_destroy(glps_WindowManager *wm);
  * @return Total window count.
  */
 size_t glps_wm_get_window_count(glps_WindowManager *wm);
+ssize_t glps_wm_window_create_ex(
+    glps_WindowManager *wm,
+    const char *title,
+    int x, int y,
+    int width, int height,
+    GLPS_WindowFlags flags);
 
+void glps_wm_move_window(
+    glps_WindowManager *wm,
+    size_t window_id,
+    int x, int y
+);
 /**
  * @brief Checks if any window should close.
  *

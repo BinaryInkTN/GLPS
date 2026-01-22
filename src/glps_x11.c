@@ -16,6 +16,35 @@
 #define XC_xterm 152
 #define XC_X_cursor 0
 
+static void __x11_set_frameless(Display *dpy, Window win)
+{
+    Atom motif_hints = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
+    if (motif_hints == None) return;
+
+    typedef struct {
+        unsigned long flags;
+        unsigned long functions;
+        unsigned long decorations;
+        long input_mode;
+        unsigned long status;
+    } MotifWmHints;
+
+    MotifWmHints hints = {
+        .flags = 2,         
+        .functions = 0,
+        .decorations = 0,   
+        .input_mode = 0,
+        .status = 0
+    };
+
+    XChangeProperty(
+        dpy, win,
+        motif_hints, motif_hints,
+        32, PropModeReplace,
+        (unsigned char *)&hints, 5
+    );
+}
+
 static ssize_t __get_window_id_by_xid(glps_WindowManager *wm, Window xid)
 {
     if (wm == NULL || wm->windows == NULL) return -1;
@@ -34,30 +63,25 @@ void __remove_window(glps_WindowManager *wm, Window xid)
     ssize_t window_id = __get_window_id_by_xid(wm, xid);
     if (window_id < 0) return;
 
-    // Unbind EGL surface if currently bound
     if (wm->egl_ctx != NULL && eglGetCurrentSurface(EGL_DRAW) == wm->windows[window_id]->egl_surface)
     {
         eglMakeCurrent(wm->egl_ctx->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
 
-    // Destroy EGL surface if valid
     if (wm->windows[window_id]->egl_surface != EGL_NO_SURFACE && wm->egl_ctx != NULL)
     {
         eglDestroySurface(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
         wm->windows[window_id]->egl_surface = EGL_NO_SURFACE;
     }
 
-    // Destroy X11 window if valid
     if (wm->x11_ctx && wm->x11_ctx->display && wm->windows[window_id]->window)
     {
         XDestroyWindow(wm->x11_ctx->display, wm->windows[window_id]->window);
         wm->windows[window_id]->window = 0;
     }
 
-    // Free window structure
     free(wm->windows[window_id]);
 
-    // Shift remaining windows in array
     for (size_t i = window_id; i < wm->window_count - 1; i++)
     {
         wm->windows[i] = wm->windows[i + 1];
@@ -221,6 +245,100 @@ ssize_t glps_x11_window_create(glps_WindowManager *wm, const char *title,
 
     return wm->window_count++;
 }
+
+void glps_x11_move_window(
+    glps_WindowManager *wm,
+    size_t window_id,
+    int x, int y
+)
+{
+    if (!wm || !wm->x11_ctx ||
+        window_id >= wm->window_count ||
+        !wm->windows[window_id])
+        return;
+
+    XMoveWindow(
+        wm->x11_ctx->display,
+        wm->windows[window_id]->window,
+        x, y
+    );
+
+    XFlush(wm->x11_ctx->display);
+}
+
+ssize_t glps_x11_window_create_ex(
+    glps_WindowManager *wm,
+    const char *title,
+    int x, int y,
+    int width, int height,
+    GLPS_WindowFlags flags
+)
+{
+    if (!wm || !wm->x11_ctx || !wm->x11_ctx->display)
+        return -1;
+
+    if (wm->window_count >= MAX_WINDOWS)
+        return -1;
+
+    Display *display = wm->x11_ctx->display;
+    int screen = DefaultScreen(display);
+
+    glps_X11Window *win = calloc(1, sizeof(glps_X11Window));
+    if (!win) return -1;
+
+    Window xwin = XCreateSimpleWindow(
+        display,
+        RootWindow(display, screen),
+        x, y, width, height,
+        0,
+        BlackPixel(display, screen),
+        WhitePixel(display, screen)
+    );
+
+    if (!xwin) {
+        free(win);
+        return -1;
+    }
+
+    if (flags & GLPS_WINDOW_FRAMELESS)
+        __x11_set_frameless(display, xwin);
+
+    XStoreName(display, xwin, title);
+    XSetWMProtocols(display, xwin, &wm->x11_ctx->wm_delete_window, 1);
+
+    long event_mask =
+        PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
+        KeyPressMask | KeyReleaseMask |
+        StructureNotifyMask | ExposureMask;
+
+    XSelectInput(display, xwin, event_mask);
+
+    win->window = xwin;
+    win->fps_is_init = false;
+
+    wm->windows[wm->window_count] = win;
+
+    if (wm->egl_ctx) {
+        win->egl_surface = eglCreateWindowSurface(
+            wm->egl_ctx->dpy,
+            wm->egl_ctx->conf,
+            (NativeWindowType)xwin,
+            NULL
+        );
+    }
+
+    if (wm->window_count == 0 && !wm->egl_ctx)
+        glps_egl_create_ctx(wm);
+
+    if (wm->egl_ctx)
+        glps_egl_make_ctx_current(wm, wm->window_count);
+
+    XMapWindow(display, xwin);
+    XFlush(display);
+
+    return wm->window_count++;
+}
+
 
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
 {

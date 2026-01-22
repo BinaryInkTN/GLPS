@@ -27,7 +27,18 @@ void glps_x11_set_window_blur(glps_WindowManager *wm, size_t window_id, bool ena
 void glps_x11_set_window_opacity(glps_WindowManager *wm, size_t window_id, float opacity);
 void glps_x11_set_window_background_transparent(glps_WindowManager *wm, size_t window_id);
 Display *glps_x11_get_display(glps_WindowManager *wm);
-
+ssize_t glps_x11_window_create_ex(
+    glps_WindowManager *wm,
+    const char *title,
+    int x, int y,
+    int width, int height,
+    GLPS_WindowFlags flags
+);
+void glps_x11_move_window(
+    glps_WindowManager *wm,
+    size_t window_id,
+    int x, int y
+);
 #ifdef GLPS_USE_VULKAN
 void glps_x11_vk_create_surface(glps_WindowManager *wm, size_t window_id, VkInstance *instance, VkSurfaceKHR *surface);
 #endif
