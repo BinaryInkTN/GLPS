@@ -287,6 +287,9 @@ typedef struct {
     EGLDisplay dpy;
     EGLContext ctx;
     EGLConfig conf;
+    #ifdef GLPS_USE_X11
+    VisualID  x11_visual_id;
+    #endif
 } glps_EGLContext;
 #endif
 
