@@ -97,19 +97,20 @@ void glps_egl_create_ctx(glps_WindowManager *wm)
 void glps_egl_make_ctx_current(glps_WindowManager *wm, size_t window_id)
 {
     assert(wm && wm->egl_ctx);
-    assert(window_id < wm->window_count);
+    if (window_id >= wm->window_count) {
+        LOG_ERROR("Invalid window_id: %zu (max: %zu)", window_id, wm->window_count);
+        exit(EXIT_FAILURE);
+    }
 
-    glps_X11Window *win = wm->windows[window_id];
-
-    if (!win || win->egl_surface == EGL_NO_SURFACE) {
+    if (!wm->windows[window_id] ||  wm->windows[window_id]->egl_surface == EGL_NO_SURFACE) {
         LOG_ERROR("Invalid EGL surface");
         exit(EXIT_FAILURE);
     }
 
     if (!eglMakeCurrent(
             wm->egl_ctx->dpy,
-            win->egl_surface,
-            win->egl_surface,
+            wm->windows[window_id]->egl_surface,
+            wm->windows[window_id]->egl_surface,
             wm->egl_ctx->ctx))
     {
         EGLint error = eglGetError();
