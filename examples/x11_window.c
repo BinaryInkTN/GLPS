@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    size_t window_id = glps_wm_window_create(wm, "3D Cube Example", 800, 600);
+    size_t window_id = glps_wm_window_create(wm, "3D Cube Example", 0, 0, 800, 600);
     if (window_id == (size_t)-1)
     {
         fprintf(stderr, "Failed to create window\n");

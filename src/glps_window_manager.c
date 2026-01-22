@@ -452,7 +452,7 @@ void *glps_wm_window_get_native_ptr(glps_WindowManager *wm, size_t window_id)
   return (void *)(uintptr_t)wm->windows[window_id]->hwnd;
 #endif
 
-  return NULL;
+return NULL;
 }
 
 size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
@@ -477,28 +477,6 @@ size_t glps_wm_window_create(glps_WindowManager *wm, const char *title,
     LOG_ERROR("Window creation failed.");
   }
   return window_id;
-}
-
-ssize_t glps_wm_window_create_ex(
-    glps_WindowManager *wm,
-    const char *title,
-    int x, int y,
-    int width, int height,
-    GLPS_WindowFlags flags)
-{
-#ifdef GLPS_USE_X11
-  return glps_x11_window_create_ex(wm, title, x, y, width, height, flags);
-#endif
-}
-
-void glps_wm_move_window(
-    glps_WindowManager *wm,
-    size_t window_id,
-    int x, int y)
-{
-  #ifdef GLPS_USE_X11
-  glps_x11_move_window(wm, window_id, x, y);
-  #endif
 }
 
 void glps_wm_window_destroy(glps_WindowManager *wm, size_t window_id)
