@@ -265,7 +265,6 @@ void glps_x11_move_window(
 
     XFlush(wm->x11_ctx->display);
 }
-
 ssize_t glps_x11_window_create_ex(
     glps_WindowManager *wm,
     const char *title,
@@ -297,12 +296,12 @@ ssize_t glps_x11_window_create_ex(
     }
 
     unsigned int border_width = (flags & GLPS_WINDOW_FRAMELESS) ? 0 : 1;
-    
+
     Window xwin = XCreateSimpleWindow(
         display,
         RootWindow(display, screen),
         x, y, width, height,
-        border_width,  
+        border_width,  // Border width
         BlackPixel(display, screen),
         WhitePixel(display, screen)
     );
@@ -339,7 +338,6 @@ ssize_t glps_x11_window_create_ex(
         return -1;
     }
 
-    // Initialize window structure
     win->window = xwin;
     win->fps_is_init = false;
     win->fps_start_time = (struct timespec){0};
@@ -347,6 +345,18 @@ ssize_t glps_x11_window_create_ex(
 
     size_t window_index = wm->window_count;
     wm->windows[window_index] = win;
+
+    if (window_index == 0 && !wm->egl_ctx)
+    {
+        if (!glps_egl_create_ctx(wm))
+        {
+            LOG_ERROR("Failed to create EGL context");
+            XDestroyWindow(display, xwin);
+            free(win);
+            wm->windows[window_index] = NULL;
+            return -1;
+        }
+    }
 
     if (wm->egl_ctx)
     {
@@ -360,6 +370,11 @@ ssize_t glps_x11_window_create_ex(
         if (win->egl_surface == EGL_NO_SURFACE)
         {
             LOG_ERROR("Failed to create EGL surface");
+            // Get the actual EGL error for debugging
+            EGLint egl_error = eglGetError();
+            LOG_ERROR("EGL error: 0x%04x", egl_error);
+            
+            // Clean up partially created window
             XDestroyWindow(display, xwin);
             free(win);
             wm->windows[window_index] = NULL;
@@ -367,12 +382,13 @@ ssize_t glps_x11_window_create_ex(
         }
     }
 
-    if (window_index == 0 && !wm->egl_ctx)
+    if (wm->egl_ctx)
     {
-        glps_egl_create_ctx(wm);
+        glps_egl_make_ctx_current(wm, window_index);
+        
+            
     }
 
-    glps_egl_make_ctx_current(wm, window_index);
     XMapWindow(display, xwin);
     XFlush(display);
 
@@ -383,7 +399,6 @@ ssize_t glps_x11_window_create_ex(
     
     return window_index;
 }
-
 void glps_x11_toggle_window_decorations(glps_WindowManager *wm, bool state, size_t window_id)
 {
     if (wm == NULL || wm->x11_ctx == NULL || wm->x11_ctx->display == NULL ||
