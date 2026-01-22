@@ -96,9 +96,8 @@ void glps_egl_create_ctx(glps_WindowManager *wm)
 
 void glps_egl_make_ctx_current(glps_WindowManager *wm, size_t window_id)
 {
-    assert(wm && wm->egl_ctx);
-    if (window_id >= wm->window_count) {
-        LOG_ERROR("Invalid window_id: %zu (max: %zu)", window_id, wm->window_count);
+    if(wm == NULL || wm->egl_ctx == NULL) {
+        LOG_ERROR("Window Manager or EGL context is NULL");
         exit(EXIT_FAILURE);
     }
 
