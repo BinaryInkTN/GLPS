@@ -378,7 +378,7 @@ ssize_t glps_x11_window_create_ex(
 
     wm->window_count++;
 
-    LOG_DEBUG("Created window %zu: '%s' at %dx%d+%d+%d", 
+    LOG_INFO("Created window %zu: '%s' at %dx%d+%d+%d", 
               window_index, title, width, height, x, y);
     
     return window_index;
