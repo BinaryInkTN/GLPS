@@ -88,7 +88,6 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
     window->frame_callback = NULL;
   }
 
-  // eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
   wl_egl_window_destroy(window->egl_window);
 
   xdg_toplevel_destroy(window->xdg_toplevel);
@@ -102,8 +101,7 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
   if (window_id == 0)
   {
     LOG_INFO("All windows destroyed. Exiting program.");
-
-    wm->should_close = true; // trigger exit event
+    wm->should_close = true;
   }
 }
 
@@ -144,6 +142,7 @@ ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
 }
 
 struct wl_callback_listener frame_callback_listener;
+
 void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                       uint32_t serial, struct wl_surface *surface,
                       wl_fixed_t surface_x, wl_fixed_t surface_y)
@@ -252,7 +251,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
   }
   if (event->event_mask & POINTER_EVENT_ENTER)
   {
-    // Mouse enter callback
     if (context->callbacks.mouse_enter_callback)
     {
       context->callbacks.mouse_enter_callback(
@@ -265,7 +263,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 
   if (event->event_mask & POINTER_EVENT_LEAVE)
   {
-    // Mouse leave callback
     if (context->callbacks.mouse_leave_callback)
     {
       context->callbacks.mouse_leave_callback(
@@ -276,7 +273,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 
   if (event->event_mask & POINTER_EVENT_MOTION)
   {
-    // Mouse move callback
     if (context->callbacks.mouse_move_callback)
     {
       context->callbacks.mouse_move_callback(
@@ -289,10 +285,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 
   if (event->event_mask & POINTER_EVENT_BUTTON)
   {
-    char *state = event->state == WL_POINTER_BUTTON_STATE_RELEASED ? "released"
-                                                                   : "pressed";
-
-    // Mouse click callback
     if (context->callbacks.mouse_click_callback)
     {
       context->callbacks.mouse_click_callback(
@@ -313,7 +305,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
       {
         continue;
       }
-      // Mouse scroll callback.
       if (context->callbacks.mouse_scroll_callback)
       {
         GLPS_SCROLL_AXES axis_name[2] = {
@@ -343,7 +334,6 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 
         context->callbacks.mouse_scroll_callback(
             wayland_context->mouse_window_id,
-
             axe, source, value, discrete, is_stopped,
             context->callbacks.mouse_scroll_data);
       }
@@ -668,15 +658,15 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
     {
       wm->callbacks.touch_callback(
           touch->window_id,
-          touch->points[i].id,                  // id
-          wl_fixed_to_double(point->surface_x), // touch_x
-          wl_fixed_to_double(point->surface_y), // touch_y
+          touch->points[i].id,
+          wl_fixed_to_double(point->surface_x),
+          wl_fixed_to_double(point->surface_y),
           (point->event_mask & (TOUCH_EVENT_DOWN | TOUCH_EVENT_UP))
               ? true
-              : false,                            // state (down/up)
-          wl_fixed_to_double(point->major),       // major
-          wl_fixed_to_double(point->minor),       // minor
-          wl_fixed_to_double(point->orientation), // orientation
+              : false,
+          wl_fixed_to_double(point->major),
+          wl_fixed_to_double(point->minor),
+          wl_fixed_to_double(point->orientation),
           wm->callbacks.touch_data);
     }
     point->valid = false;
@@ -705,7 +695,6 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
         wl_seat_get_pointer(context->wayland_ctx->wl_seat);
     wl_pointer_add_listener(context->wayland_ctx->wl_pointer,
                             &wl_pointer_listener, data);
-    LOG_INFO("Pointer capability added");
   }
   else if (!have_pointer && context->wayland_ctx->wl_pointer != NULL)
   {
@@ -721,7 +710,6 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
         wl_seat_get_keyboard(context->wayland_ctx->wl_seat);
     wl_keyboard_add_listener(context->wayland_ctx->wl_keyboard,
                              &wl_keyboard_listener, data);
-    LOG_INFO("Keyboard capability added");
   }
   else if (!have_keyboard && context->wayland_ctx->wl_keyboard != NULL)
   {
@@ -737,7 +725,6 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
         wl_seat_get_touch(context->wayland_ctx->wl_seat);
     wl_touch_add_listener(context->wayland_ctx->wl_touch, &wl_touch_listener,
                           data);
-    LOG_INFO("Touch capability added");
   }
   else if (!have_touch && context->wayland_ctx->wl_touch != NULL)
   {
@@ -746,10 +733,7 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
   }
 }
 
-void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name)
-{
-  LOG_INFO("Seat name: %s", name);
-}
+void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name) {}
 
 struct wl_seat_listener wl_seat_listener = {
     .capabilities = wl_seat_capabilities,
@@ -889,8 +873,6 @@ void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
     return;
   }
 
-  //  LOG_INFO("Offered MIME type: %s", mime_type);
-
   if (strcmp(mime_type, "text/plain") == 0)
   {
     wl_data_offer_accept(offer, context->current_serial, "text/plain");
@@ -952,7 +934,6 @@ void data_device_handle_drop(void *data, struct wl_data_device *data_device)
 
   if (wm->callbacks.drag_n_drop_callback)
   {
-    // Pass the drop coordinates to the callback
     wm->callbacks.drag_n_drop_callback(
         context->mouse_window_id, "text/plain", buffer,
         context->drop_coordinates.x, context->drop_coordinates.y,
@@ -972,13 +953,10 @@ void data_offer_handle_action(void *data, struct wl_data_offer *offer,
   switch (dnd_action)
   {
   case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
-    // printf("A move action would be performed if dropped\n");
     break;
   case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
-    // printf("A copy action would be performed if dropped\n");
     break;
   case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
-    // printf("The drag would be rejected if dropped\n");
     break;
   }
 }
@@ -1067,7 +1045,6 @@ void data_device_handle_enter(void *data, struct wl_data_device *data_device,
 {
   printf("Drag entered surface: %fx%f\n", wl_fixed_to_double(x),
          wl_fixed_to_double(y));
-  // Set the current offer
   glps_WaylandContext *ctx = __get_wl_context((glps_WindowManager *)data);
   ctx->current_drag_offer = offer;
   ctx->current_serial = serial;
@@ -1083,7 +1060,6 @@ void data_device_handle_motion(void *data, struct wl_data_device *data_device,
 
   if (context && context->current_drag_offer)
   {
-    // Store the coordinates
     context->drop_coordinates.x = wl_fixed_to_int(x);
     context->drop_coordinates.y = wl_fixed_to_int(y);
   }
@@ -1118,7 +1094,7 @@ struct wl_data_device_listener data_device_listener = {
 
 };
 
-static int global_seat_bound = 0; // Track if seat is bound
+static int wl_seat_bound = 0;
 
 void handle_global(void *data, struct wl_registry *registry, uint32_t id,
                    const char *interface, uint32_t version)
@@ -1126,58 +1102,70 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   glps_WindowManager *context = (glps_WindowManager *)data;
   glps_WaylandContext *s = (glps_WaylandContext *)context->wayland_ctx;
 
-  LOG_INFO("Global announced: %s (id=%u, version=%u)", interface, id, version);
+  LOG_INFO("Attempting to bind interface: %s (id=%u, version=%u)", interface, id, version);
 
   if (strcmp(interface, "wl_compositor") == 0)
   {
-    uint32_t bind_version = (version < 4) ? version : 4;
     s->wl_compositor =
-        wl_registry_bind(registry, id, &wl_compositor_interface, bind_version);
+        wl_registry_bind(registry, id, &wl_compositor_interface, 1);
     if (!s->wl_compositor)
     {
       LOG_ERROR("Failed to bind wl_compositor.");
     }
     else
     {
-      LOG_INFO("Successfully bound wl_compositor (version %d)", bind_version);
+      LOG_INFO("Successfully bound wl_compositor.");
     }
   }
   else if (strcmp(interface, "xdg_wm_base") == 0)
   {
-    uint32_t bind_version = (version < 3) ? version : 3;
-    s->xdg_wm_base = wl_registry_bind(registry, id, &xdg_wm_base_interface, bind_version);
+    s->xdg_wm_base = wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
     if (!s->xdg_wm_base)
     {
       LOG_ERROR("Failed to bind xdg_wm_base.");
     }
     else
     {
-      LOG_INFO("Successfully bound xdg_wm_base (version %d)", bind_version);
+      LOG_INFO("Successfully bound xdg_wm_base.");
     }
   }
   else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0)
   {
-    uint32_t bind_version = (version < 1) ? version : 1;
     s->decoration_manager = wl_registry_bind(
-        registry, id, &zxdg_decoration_manager_v1_interface, bind_version);
+        registry, id, &zxdg_decoration_manager_v1_interface, version);
     if (!s->decoration_manager)
     {
       LOG_ERROR("Failed to bind zxdg_decoration_manager_v1.");
     }
     else
     {
-      LOG_INFO("Successfully bound zxdg_decoration_manager_v1 (version %d)", bind_version);
+      LOG_INFO("Successfully bound zxdg_decoration_manager_v1.");
     }
   }
   else if (strcmp(interface, wl_seat_interface.name) == 0)
   {
-    uint32_t bind_version = (version < 7) ? version : 7;
-    s->wl_seat = wl_registry_bind(registry, id, &wl_seat_interface, bind_version);
+    s->wl_seat = wl_registry_bind(registry, id, &wl_seat_interface, version);
     if (s->wl_seat)
     {
       wl_seat_add_listener(s->wl_seat, &wl_seat_listener, data);
-      global_seat_bound = 1;
-      LOG_INFO("Successfully bound wl_seat (version %d)", bind_version);
+      wl_seat_bound = 1;
+      LOG_INFO("Successfully bound wl_seat and added listener.");
+      
+      if (s->data_dvc_manager)
+      {
+        s->data_dvc = wl_data_device_manager_get_data_device(
+            s->data_dvc_manager, s->wl_seat);
+        if (s->data_dvc == NULL)
+        {
+          LOG_ERROR("Failed to get data device.");
+        }
+        else
+        {
+          wl_data_device_add_listener(s->data_dvc, &data_device_listener,
+                                      context);
+          LOG_INFO("Successfully bound data device after seat.");
+        }
+      }
     }
     else
     {
@@ -1186,16 +1174,15 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   }
   else if (strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0)
   {
-    // TODO
-    //  s->tag_manager = xdg_toplevel_tag_manager_v1();
   }
   else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
   {
-    uint32_t bind_version = (version < 3) ? version : 3;
     s->data_dvc_manager =
-        wl_registry_bind(registry, id, &wl_data_device_manager_interface, bind_version);
+        wl_registry_bind(registry, id, &wl_data_device_manager_interface, 3);
     if (s->data_dvc_manager)
     {
+      LOG_INFO("Successfully bound wl_data_device_manager.");
+      
       if (s->wl_seat)
       {
         s->data_dvc = wl_data_device_manager_get_data_device(
@@ -1208,12 +1195,12 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
         {
           wl_data_device_add_listener(s->data_dvc, &data_device_listener,
                                       context);
-          LOG_INFO("Successfully bound data device");
+          LOG_INFO("Successfully bound data device.");
         }
       }
       else
       {
-        LOG_WARNING("Data device manager bound but no wl_seat available yet");
+        LOG_WARNING("Data device manager bound but wl_seat not ready yet. Will bind when seat arrives.");
       }
     }
     else
@@ -1223,15 +1210,12 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   }
   else
   {
-    LOG_DEBUG("Unhandled interface: %s", interface);
+    LOG_WARNING("Unhandled interface: %s", interface);
   }
 }
 
 void handle_global_remove(void *data, struct wl_registry *registry,
-                          uint32_t name) 
-{
-  LOG_INFO("Global removed: id=%u", name);
-}
+                          uint32_t name) {}
 
 struct wl_registry_listener registry_listener = {
     .global = handle_global,
@@ -1550,7 +1534,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     glps_egl_make_ctx_current(wm, 0);
   }
 
-  // setup frame callback
   frame_callback_args *frame_args =
       (frame_callback_args *)malloc(sizeof(frame_callback_args));
   window->frame_callback = wl_surface_frame(window->wl_surface);
@@ -1614,9 +1597,6 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 
 bool glps_wl_init(glps_WindowManager *wm)
 {
-  int retry_count = 0;
-  const int MAX_RETRIES = 5;
-  
   wm->windows = malloc(sizeof(glps_WaylandWindow *) * MAX_WINDOWS);
   if (!wm->windows)
   {
@@ -1626,6 +1606,7 @@ bool glps_wl_init(glps_WindowManager *wm)
   }
 
   wm->wayland_ctx = malloc(sizeof(glps_WaylandContext));
+  *wm->wayland_ctx = (glps_WaylandContext){0};
   if (!wm->wayland_ctx)
   {
     LOG_ERROR("Failed to allocate memory for Wayland context");
@@ -1633,8 +1614,6 @@ bool glps_wl_init(glps_WindowManager *wm)
     free(wm);
     return false;
   }
-  
-  memset(wm->wayland_ctx, 0, sizeof(glps_WaylandContext));
 
   wm->window_count = 0;
   wm->wayland_ctx->wl_touch = NULL;
@@ -1642,22 +1621,14 @@ bool glps_wl_init(glps_WindowManager *wm)
   wm->wayland_ctx->wl_keyboard = NULL;
   wm->wayland_ctx->xkb_state = NULL;
   wm->wayland_ctx->xkb_keymap = NULL;
+  wm->wayland_ctx->xkb_context = NULL;
+  wm->wayland_ctx->decoration_manager = NULL;
   wm->wayland_ctx->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-  
-  if (!wm->wayland_ctx->xkb_context)
-  {
-    LOG_ERROR("Failed to create XKB context");
-    free(wm->wayland_ctx);
-    free(wm->windows);
-    free(wm);
-    return false;
-  }
 
   wm->wayland_ctx->wl_display = wl_display_connect(NULL);
   if (!wm->wayland_ctx->wl_display)
   {
-    LOG_ERROR("Failed to connect to Wayland display. Make sure you're running under Wayland.");
-    xkb_context_unref(wm->wayland_ctx->xkb_context);
+    LOG_ERROR("Failed to connect to Wayland display");
     free(wm->wayland_ctx);
     free(wm->windows);
     free(wm);
@@ -1670,84 +1641,53 @@ bool glps_wl_init(glps_WindowManager *wm)
   {
     LOG_ERROR("Failed to get Wayland registry");
     wl_display_disconnect(wm->wayland_ctx->wl_display);
-    xkb_context_unref(wm->wayland_ctx->xkb_context);
     free(wm->wayland_ctx);
     free(wm->windows);
     free(wm);
     return false;
   }
 
-  wl_registry_add_listener(wm->wayland_ctx->wl_registry, &registry_listener, wm);
+  wl_registry_add_listener(wm->wayland_ctx->wl_registry, &registry_listener,
+                           wm);
 
-  // First roundtrip - get all globals
-  LOG_INFO("Performing first roundtrip to discover globals...");
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
-  
-  // Second roundtrip - ensure all globals are processed
-  LOG_INFO("Performing second roundtrip to ensure globals are bound...");
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
-  
-  // Retry mechanism for wl_seat
-  while (!wm->wayland_ctx->wl_seat && retry_count < MAX_RETRIES)
-  {
-    LOG_WARNING("wl_seat not found, attempt %d/%d. Doing additional roundtrip...", 
-                retry_count + 1, MAX_RETRIES);
-    wl_display_roundtrip(wm->wayland_ctx->wl_display);
-    retry_count++;
-    usleep(10000); // 10ms delay
-  }
-  
-  // Add xdg_wm_base listener after ensuring we have it
+
   if (wm->wayland_ctx->xdg_wm_base)
   {
     xdg_wm_base_add_listener(wm->wayland_ctx->xdg_wm_base,
-                             &xdg_wm_base_listener, wm);
-    LOG_INFO("Added xdg_wm_base listener");
+                             &xdg_wm_base_listener, NULL);
   }
   else
   {
-    LOG_ERROR("xdg_wm_base protocol not supported by compositor");
-    _cleanup_wl(wm);
-    return false;
+    LOG_WARNING("xdg_wm_base protocol not supported by compositor");
   }
-
-  // Third roundtrip for xdg_wm_base events
-  LOG_INFO("Performing third roundtrip for xdg_wm_base...");
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   if (!wm->wayland_ctx->decoration_manager)
   {
-    LOG_WARNING("xdg-decoration protocol not supported by compositor (optional)");
+    LOG_WARNING("xdg-decoration protocol not supported by compositor");
   }
 
-  if (!wm->wayland_ctx->wl_compositor)
+  if (!wm->wayland_ctx->wl_compositor || !wm->wayland_ctx->xdg_wm_base)
   {
-    LOG_ERROR("Failed to retrieve Wayland compositor");
-    _cleanup_wl(wm);
+    LOG_ERROR("Failed to retrieve Wayland compositor or xdg_wm_base");
+    wl_registry_destroy(wm->wayland_ctx->wl_registry);
+    wl_display_disconnect(wm->wayland_ctx->wl_display);
+    free(wm->wayland_ctx);
+    free(wm->windows);
+    free(wm);
     return false;
   }
-  
+
   if (!wm->wayland_ctx->wl_seat)
   {
-    LOG_ERROR("Failed to bind wl_seat after %d attempts. Make sure you're running under Wayland and not X11.", MAX_RETRIES);
-    LOG_ERROR("Run 'echo $XDG_SESSION_TYPE' to verify you're on Wayland");
-    _cleanup_wl(wm);
+    LOG_ERROR("Failed to bind wl_seat. Make sure you're running under Wayland.");
     return false;
   }
-
-  LOG_INFO("Wayland initialization successful!");
-  LOG_INFO("  - Compositor: %s", wm->wayland_ctx->wl_compositor ? "bound" : "missing");
-  LOG_INFO("  - XDG WM Base: %s", wm->wayland_ctx->xdg_wm_base ? "bound" : "missing");
-  LOG_INFO("  - Seat: %s", wm->wayland_ctx->wl_seat ? "bound" : "missing");
-  LOG_INFO("  - Decoration Manager: %s", wm->wayland_ctx->decoration_manager ? "bound" : "missing");
-  LOG_INFO("  - Data Device Manager: %s", wm->wayland_ctx->data_dvc_manager ? "bound" : "missing");
 
   return true;
 }
 
 void glps_wl_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE user_cursor)
 {
-  // Cursor change implementation would go here
-  // This requires wl_cursor_theme and wl_surface for cursor
-  LOG_WARNING("Cursor change not yet implemented for Wayland");
 }
