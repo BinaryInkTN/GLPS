@@ -1442,7 +1442,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
     wm->wayland_ctx = NULL;
   }
 }
-
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
@@ -1452,20 +1451,21 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     LOG_ERROR("Wayland window allocation failed.");
     return -1;
   }
+  
+  memset(window, 0, sizeof(glps_WaylandWindow));
 
   window->wl_surface =
       wl_compositor_create_surface(wm->wayland_ctx->wl_compositor);
   if (!window->wl_surface)
   {
     LOG_ERROR("Failed to create wayland surface");
-    exit(EXIT_FAILURE);
+    free(window);
+    return -1;
   }
 
   window->properties.width = width;
   window->properties.height = height;
-
-  window->fps_start_time = (struct timespec){0};
-  window->fps_is_init = false;
+  strncpy(window->properties.title, title, sizeof(window->properties.title) - 1);
 
   window->xdg_surface = xdg_wm_base_get_xdg_surface(
       wm->wayland_ctx->xdg_wm_base, window->wl_surface);
@@ -1473,29 +1473,36 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   if (!window->xdg_surface)
   {
     LOG_ERROR("Failed to create XDG surface");
-    exit(EXIT_FAILURE);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   if (xdg_surface_add_listener(window->xdg_surface, &xdg_surface_listener,
                                wm) == -1)
   {
     LOG_ERROR("Failed to add XDG surface listener");
-    exit(EXIT_FAILURE);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   window->xdg_toplevel = xdg_surface_get_toplevel(window->xdg_surface);
   if (!window->xdg_toplevel)
   {
     LOG_ERROR("Failed to create toplevel");
-    exit(EXIT_FAILURE);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   xdg_toplevel_set_title(window->xdg_toplevel, title);
-  strcpy(window->properties.title, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
+  
   if (wm->wayland_ctx->decoration_manager != NULL)
   {
-
     window->zxdg_toplevel_decoration =
         zxdg_decoration_manager_v1_get_toplevel_decoration(
             wm->wayland_ctx->decoration_manager, window->xdg_toplevel);
@@ -1505,7 +1512,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   }
 
   wl_surface_commit(window->wl_surface);
-
+  
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   window->egl_window = wl_egl_window_create(
@@ -1513,7 +1520,11 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   if (!window->egl_window)
   {
     LOG_ERROR("Failed to create EGL window");
-    exit(EXIT_FAILURE);
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   window->egl_surface =
@@ -1522,7 +1533,12 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   if (window->egl_surface == EGL_NO_SURFACE)
   {
     LOG_ERROR("Failed to create EGL surface");
-    exit(EXIT_FAILURE);
+    wl_egl_window_destroy(window->egl_window);
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   wm->windows[wm->window_count] = window;
@@ -1533,7 +1549,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     glps_egl_make_ctx_current(wm, 0);
   }
 
-  // setup frame callback
   frame_callback_args *frame_args =
       (frame_callback_args *)malloc(sizeof(frame_callback_args));
   window->frame_callback = wl_surface_frame(window->wl_surface);
@@ -1543,10 +1558,13 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   wl_callback_add_listener(window->frame_callback, &frame_callback_listener,
                            frame_args);
+  
+  wl_surface_commit(window->wl_surface);
+  
+  wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   return wm->window_count++;
 }
-
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t window_id)
 {
   glps_WaylandContext *ctx = (glps_WaylandContext *)__get_wl_context(wm);
@@ -1572,11 +1590,13 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state, size_t wind
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {
-  if (wl_display_dispatch(wm->wayland_ctx->wl_display) == -1)
+  if (wm->should_close)
     return true;
-  else if (wm->should_close)
+    
+  int ret = wl_display_dispatch(wm->wayland_ctx->wl_display);
+  if (ret == -1)
     return true;
-
+    
   return false;
 }
 
