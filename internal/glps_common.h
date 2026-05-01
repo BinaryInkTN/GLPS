@@ -44,7 +44,7 @@
 // Wayland protocol extensions
 #include "xdg/xdg-shell.h"
 #include "xdg/xdg-decorations.h"
-#include "xdg/xdg-toplevel-tag.h"
+//#include "xdg/xdg-toplevel-tag.h"
 #include "xdg/wlr-data-control-unstable-v1.h"
 #endif
 
@@ -260,7 +260,7 @@ typedef struct {
     struct wl_seat *wl_seat;
     struct xdg_wm_base *xdg_wm_base;
     struct zxdg_decoration_manager_v1 *decoration_manager;
-    struct xdg_toplevel_tag_manager_v1 *tag_manager;
+    //struct xdg_toplevel_tag_manager_v1 *tag_manager;
     struct wl_data_device_manager *data_dvc_manager;
     struct wl_data_device *data_dvc;
     struct wl_data_source *data_src;
