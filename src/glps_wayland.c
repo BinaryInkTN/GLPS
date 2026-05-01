@@ -1172,11 +1172,11 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
       LOG_ERROR("Failed to bind wl_seat.");
     }
   }
-  else if (strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0)
-  {
+  //else if (strcmp(interface, xdg_toplevel_tag_manager_v1_interface.name) == 0)
+//  {
     // TODO
     //  s->tag_manager = xdg_toplevel_tag_manager_v1();
-  }
+    //  }
   else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
   {
     s->data_dvc_manager =
@@ -1451,7 +1451,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     LOG_ERROR("Wayland window allocation failed.");
     return -1;
   }
-  
+
   memset(window, 0, sizeof(glps_WaylandWindow));
 
   window->wl_surface =
@@ -1500,7 +1500,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
-  
+
   if (wm->wayland_ctx->decoration_manager != NULL)
   {
     window->zxdg_toplevel_decoration =
@@ -1512,7 +1512,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   }
 
   wl_surface_commit(window->wl_surface);
-  
+
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   window->egl_window = wl_egl_window_create(
@@ -1558,9 +1558,9 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   wl_callback_add_listener(window->frame_callback, &frame_callback_listener,
                            frame_args);
-  
+
   wl_surface_commit(window->wl_surface);
-  
+
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   return wm->window_count++;
@@ -1592,11 +1592,11 @@ bool glps_wl_should_close(glps_WindowManager *wm)
 {
   if (wm->should_close)
     return true;
-    
+
   int ret = wl_display_dispatch(wm->wayland_ctx->wl_display);
   if (ret == -1)
     return true;
-    
+
   return false;
 }
 
@@ -1722,6 +1722,5 @@ void glps_wl_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE user_cursor)
   }
 
   */
-  
-}
 
+}
