@@ -1,7 +1,22 @@
 #include <glps_egl_context.h>
 #include <glps_wayland.h>
 #include "utils/logger/pico_logger.h"
+static void handle_toplevel_configure_bounds(
+    void *data,
+    struct xdg_toplevel *xdg_toplevel,
+    int32_t width,
+    int32_t height)
+{
+    
+}
 
+static void handle_toplevel_wm_capabilities(
+    void *data,
+    struct xdg_toplevel *xdg_toplevel,
+    struct wl_array *capabilities)
+{
+    
+}
 void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base,
                       uint32_t serial)
 {
@@ -1281,8 +1296,12 @@ void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
 
 struct xdg_toplevel_listener toplevel_listener = {
     .configure = handle_toplevel_configure,
-    .close     = handle_toplevel_close,
+    .close = handle_toplevel_close,
+    .configure_bounds = handle_toplevel_configure_bounds,
+    .wm_capabilities = handle_toplevel_wm_capabilities,
 };
+
+That should imm
 
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
                            uint32_t serial)
