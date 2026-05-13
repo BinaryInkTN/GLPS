@@ -1310,9 +1310,7 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
   wm->windows[(size_t)window_id]->serial = serial;
   wm->windows[(size_t)window_id]->configured = true;
   
-  
-  wl_surface_commit(wm->windows[(size_t)window_id]->wl_surface);
-}
+  }
 
 struct xdg_surface_listener xdg_surface_listener = {
     .configure = xdg_surface_configure,
@@ -1471,6 +1469,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   }
 
   
+  wm->windows[wm->window_count] = window;
   wl_surface_commit(window->wl_surface);
   
   
@@ -1514,7 +1513,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     return -1;
   }
 
-  wm->windows[wm->window_count] = window;
 
   if (wm->window_count == 0)
   {
