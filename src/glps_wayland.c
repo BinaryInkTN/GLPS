@@ -66,7 +66,11 @@ ssize_t __get_window_id_from_xdg_surface(glps_WindowManager *wm,
 
 void __window_destroy(glps_WindowManager *wm, size_t window_id)
 {
+  if (window_id >= wm->window_count || wm->windows[window_id] == NULL)
+    return;
+
   glps_WaylandWindow *window = wm->windows[window_id];
+  
   if (window->frame_args != NULL)
   {
     free(window->frame_args);
@@ -85,10 +89,35 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
     window->frame_callback = NULL;
   }
 
-  wl_egl_window_destroy(window->egl_window);
-  xdg_toplevel_destroy(window->xdg_toplevel);
-  xdg_surface_destroy(window->xdg_surface);
-  wl_surface_destroy(window->wl_surface);
+  if (window->egl_surface != EGL_NO_SURFACE)
+  {
+    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+    window->egl_surface = EGL_NO_SURFACE;
+  }
+
+  if (window->egl_window != NULL)
+  {
+    wl_egl_window_destroy(window->egl_window);
+    window->egl_window = NULL;
+  }
+
+  if (window->xdg_toplevel != NULL)
+  {
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    window->xdg_toplevel = NULL;
+  }
+
+  if (window->xdg_surface != NULL)
+  {
+    xdg_surface_destroy(window->xdg_surface);
+    window->xdg_surface = NULL;
+  }
+
+  if (window->wl_surface != NULL)
+  {
+    wl_surface_destroy(window->wl_surface);
+    window->wl_surface = NULL;
+  }
 
   free(window);
   wm->windows[window_id] = NULL;
@@ -102,7 +131,7 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
 
 void wl_update(glps_WindowManager *wm, size_t window_id)
 {
-  if (wm == NULL)
+  if (wm == NULL || window_id >= wm->window_count || wm->windows[window_id] == NULL)
     return;
 
   int width  = wm->windows[window_id]->properties.width;
@@ -196,6 +225,10 @@ void wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 void wl_pointer_axis(void *data, struct wl_pointer *wl_pointer, uint32_t time,
                      uint32_t axis, wl_fixed_t value)
 {
+  
+  if (axis >= 2)
+    return;
+
   glps_WindowManager *context = (glps_WindowManager *)data;
   context->pointer_event.event_mask        |= POINTER_EVENT_AXIS;
   context->pointer_event.time               = time;
@@ -214,6 +247,10 @@ void wl_pointer_axis_source(void *data, struct wl_pointer *wl_pointer,
 void wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
                           uint32_t time, uint32_t axis)
 {
+  
+  if (axis >= 2)
+    return;
+
   glps_WindowManager *context = (glps_WindowManager *)data;
   context->pointer_event.time              = time;
   context->pointer_event.event_mask       |= POINTER_EVENT_AXIS_STOP;
@@ -223,6 +260,10 @@ void wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
 void wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
                               uint32_t axis, int32_t discrete)
 {
+  
+  if (axis >= 2)
+    return;
+
   glps_WindowManager *context = (glps_WindowManager *)data;
   context->pointer_event.event_mask           |= POINTER_EVENT_AXIS_DISCRETE;
   context->pointer_event.axes[axis].valid      = true;
@@ -530,7 +571,8 @@ void wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
   if (point == NULL)
     return;
 
-  point->event_mask  |= TOUCH_EVENT_UP;
+  
+  point->event_mask  |= TOUCH_EVENT_DOWN;
   point->surface_x    = wl_fixed_to_double(x);
   point->surface_y    = wl_fixed_to_double(y);
   wm->touch_event.time   = time;
@@ -1079,12 +1121,14 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   }
   else if (strcmp(interface, "xdg_wm_base") == 0)
   {
+    
+    uint32_t ver = version > 6 ? 6 : version;
     s->xdg_wm_base = wl_registry_bind(registry, id,
-                                       &xdg_wm_base_interface, 1);
+                                       &xdg_wm_base_interface, ver);
     if (!s->xdg_wm_base)
       LOG_ERROR("Failed to bind xdg_wm_base.");
     else
-      LOG_INFO("Successfully bound xdg_wm_base.");
+      LOG_INFO("Successfully bound xdg_wm_base (version %u).", ver);
   }
   else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0)
   {
@@ -1138,6 +1182,14 @@ void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
 {
   frame_callback_args *args   = (frame_callback_args *)data;
+  
+  
+  if (args == NULL || args->wm == NULL)
+    return;
+    
+  if (args->window_id >= args->wm->window_count)
+    return;
+    
   glps_WaylandWindow  *window =
       (glps_WaylandWindow *)args->wm->windows[args->window_id];
 
@@ -1147,6 +1199,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   if (callback)
     wl_callback_destroy(callback);
 
+  
   if (window->wl_surface)
   {
     window->frame_callback = wl_surface_frame(window->wl_surface);
@@ -1180,14 +1233,18 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
     return;
 
   glps_WaylandWindow *window = wm->windows[window_id];
+  if (window == NULL)
+    return;
 
   if (width != 0 && height != 0)
   {
     window->properties.height = height;
     window->properties.width  = width;
-    wl_egl_window_resize(window->egl_window, width, height, 0, 0);
+    if (window->egl_window != NULL)
+    {
+      wl_egl_window_resize(window->egl_window, width, height, 0, 0);
+    }
   }
-
 
   if (wm->callbacks.window_resize_callback)
   {
@@ -1244,13 +1301,17 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
     return;
   }
 
-  xdg_surface_ack_configure(xdg_surface, serial);
-
   ssize_t window_id = __get_window_id_from_xdg_surface(wm, xdg_surface);
   if (window_id < 0)
     return;
 
+  
+  xdg_surface_ack_configure(xdg_surface, serial);
   wm->windows[(size_t)window_id]->serial = serial;
+  wm->windows[(size_t)window_id]->configured = true;
+  
+  
+  wl_surface_commit(wm->windows[(size_t)window_id]->wl_surface);
 }
 
 struct xdg_surface_listener xdg_surface_listener = {
@@ -1409,7 +1470,24 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
         ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
   }
 
+  
+  wl_surface_commit(window->wl_surface);
+  
+  
+  while (!window->configured)
+  {
+    if (wl_display_dispatch(wm->wayland_ctx->wl_display) == -1)
+    {
+      LOG_ERROR("Failed to dispatch events during window creation");
+      xdg_toplevel_destroy(window->xdg_toplevel);
+      xdg_surface_destroy(window->xdg_surface);
+      wl_surface_destroy(window->wl_surface);
+      free(window);
+      return -1;
+    }
+  }
 
+  
   window->egl_window = wl_egl_window_create(
       window->wl_surface, window->properties.width, window->properties.height);
   if (!window->egl_window)
@@ -1421,8 +1499,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     free(window);
     return -1;
   }
-  wl_surface_commit(window->wl_surface);
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   window->egl_surface =
       eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
@@ -1517,7 +1593,8 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 
 bool glps_wl_init(glps_WindowManager *wm)
 {
-  wm->windows = malloc(sizeof(glps_WaylandWindow *) * MAX_WINDOWS);
+  
+  wm->windows = calloc(MAX_WINDOWS, sizeof(glps_WaylandWindow *));
   if (!wm->windows)
   {
     LOG_ERROR("Failed to allocate memory for windows array");
