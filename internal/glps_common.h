@@ -237,7 +237,6 @@ typedef struct {
     int x;
     int y;
 } glps_DropCoordinates;
-
 typedef struct {
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
@@ -249,10 +248,10 @@ typedef struct {
     struct wl_callback *frame_callback;
     struct timespec fps_start_time;
     bool fps_is_init;
+    bool configured;  // FIXED: Added configured flag for xdg-shell protocol
     void *frame_args;
     uint32_t serial;
 } glps_WaylandWindow;
-
 typedef struct {
     struct wl_display *wl_display;
     struct wl_registry *wl_registry;
