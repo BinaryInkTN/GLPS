@@ -1301,7 +1301,6 @@ struct xdg_toplevel_listener toplevel_listener = {
     .wm_capabilities = handle_toplevel_wm_capabilities,
 };
 
-That should imm
 
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
                            uint32_t serial)
