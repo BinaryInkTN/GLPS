@@ -1185,9 +1185,9 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
   {
     window->properties.height = height;
     window->properties.width  = width;
+    wl_egl_window_resize(window->egl_window, width, height, 0, 0);
   }
 
-  wl_egl_window_resize(window->egl_window, width, height, 0, 0);
 
   if (wm->callbacks.window_resize_callback)
   {
@@ -1409,8 +1409,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
         ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
   }
 
-  wl_surface_commit(window->wl_surface);
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   window->egl_window = wl_egl_window_create(
       window->wl_surface, window->properties.width, window->properties.height);
@@ -1423,6 +1421,8 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     free(window);
     return -1;
   }
+  wl_surface_commit(window->wl_surface);
+  wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   window->egl_surface =
       eglCreateWindowSurface(wm->egl_ctx->dpy, wm->egl_ctx->conf,
