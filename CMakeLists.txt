@@ -55,144 +55,46 @@ if(WIN32)
     )
 
 # =================================================
-# Linux (Wayland / X11)
+# Linux
 # =================================================
 elseif(UNIX AND NOT APPLE)
+
     message(STATUS "Configuring Linux backend")
 
     find_package(PkgConfig REQUIRED)
 
     # -------------------------------------------------
-    # Detect current display server from XDG_SESSION_TYPE
+    # Wayland + EGL (FIXED: REQUIRED + pkg-config safe)
     # -------------------------------------------------
+    pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-egl)
+    pkg_check_modules(EGL REQUIRED egl)
+
+    # -------------------------------------------------
+    # Detect session
+    # -------------------------------------------------
+    set(CURRENT_SESSION_TYPE "auto")
+
     if(DEFINED ENV{XDG_SESSION_TYPE})
-        message(STATUS "XDG_SESSION_TYPE: $ENV{XDG_SESSION_TYPE}")
-        if("$ENV{XDG_SESSION_TYPE}" STREQUAL "wayland")
-            set(CURRENT_SESSION_TYPE "wayland")
-        elseif("$ENV{XDG_SESSION_TYPE}" STREQUAL "x11")
-            set(CURRENT_SESSION_TYPE "x11")
-        else()
-            message(WARNING "Unknown XDG_SESSION_TYPE: $ENV{XDG_SESSION_TYPE}. Will detect automatically.")
-            set(CURRENT_SESSION_TYPE "auto")
-        endif()
-    else()
-        message(WARNING "XDG_SESSION_TYPE not set. Will detect automatically.")
-        set(CURRENT_SESSION_TYPE "auto")
+        set(CURRENT_SESSION_TYPE $ENV{XDG_SESSION_TYPE})
     endif()
 
     # -------------------------------------------------
-    # Wayland detection
+    # Force Wayland backend logic
     # -------------------------------------------------
-    pkg_check_modules(WAYLAND wayland-client wayland-egl)
-    find_library(EGL_LIBRARY EGL)
+    set(USE_WAYLAND OFF)
 
-    set(GLPS_USE_WAYLAND_BACKEND OFF)
-    if(GLPS_FORCE_WAYLAND OR (WAYLAND_FOUND AND EGL_LIBRARY))
-        set(GLPS_USE_WAYLAND_BACKEND ON)
+    if(GLPS_FORCE_WAYLAND OR CURRENT_SESSION_TYPE STREQUAL "wayland")
+        set(USE_WAYLAND ON)
     endif()
 
-    # -------------------------------------------------
-    # Decision logic based on session type and availability
-    # -------------------------------------------------
-    set(USE_WAYLAND FALSE)
-    
-    if(CURRENT_SESSION_TYPE STREQUAL "wayland")
-        if(GLPS_USE_WAYLAND_BACKEND)
-            message(STATUS "Using Wayland backend (current session is Wayland)")
-            set(USE_WAYLAND TRUE)
-        else()
-            message(WARNING "Current session is Wayland but Wayland dependencies not found. Falling back to X11.")
-        endif()
-    elseif(CURRENT_SESSION_TYPE STREQUAL "x11")
-        if(GLPS_USE_WAYLAND_BACKEND AND NOT GLPS_FORCE_WAYLAND)
-            message(STATUS "Current session is X11, using X11 backend")
-        else()
-            message(STATUS "Using X11 backend (current session is X11)")
-        endif()
-    else()  # auto-detect
-        if(GLPS_USE_WAYLAND_BACKEND AND GLPS_FORCE_WAYLAND)
-            message(STATUS "Using Wayland backend (forced)")
-            set(USE_WAYLAND TRUE)
-        elseif(GLPS_USE_WAYLAND_BACKEND)
-            message(STATUS "Using Wayland backend (auto-detected)")
-            set(USE_WAYLAND TRUE)
-        else()
-            message(STATUS "Using X11 backend (auto-detected)")
-        endif()
-    endif()
-
-    # -------------------------------------------------
-    # Wayland backend
-    # -------------------------------------------------
+    # =================================================
+    # WAYLAND BACKEND
+    # =================================================
     if(USE_WAYLAND)
-        message(STATUS "Building for Linux Wayland")
 
-        # Define required protocol files
-        set(REQUIRED_PROTOCOLS
-            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-shell.xml"
-            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-decoration-unstable-v1.xml"
-            "${PROJECT_SOURCE_DIR}/internal/xdg/xdg-output-unstable-v1.xml"
-        )
-
-        # Check if protocol files exist
-        set(PROTOCOLS_MISSING FALSE)
-        set(MISSING_PROTOCOLS_LIST "")
-
-        foreach(PROTOCOL ${REQUIRED_PROTOCOLS})
-            if(NOT EXISTS ${PROTOCOL})
-                set(PROTOCOLS_MISSING TRUE)
-                list(APPEND MISSING_PROTOCOLS_LIST ${PROTOCOL})
-            endif()
-        endforeach()
-
-        # If protocols are missing, install them automatically
-        if(PROTOCOLS_MISSING)
-            message(STATUS "Wayland protocol files missing, installing automatically...")
-
-            # Create the internal/xdg directory if it doesn't exist
-            if(NOT EXISTS "${PROJECT_SOURCE_DIR}/internal/xdg/")
-                file(MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/internal/xdg")
-                message(STATUS "Created directory: ${PROJECT_SOURCE_DIR}/internal/xdg/")
-            endif()
-
-            # Execute the installation script
-            execute_process(
-                COMMAND bash "${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh"
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                RESULT_VARIABLE INSTALL_RESULT
-                OUTPUT_VARIABLE INSTALL_OUTPUT
-                ERROR_VARIABLE INSTALL_ERROR
-            )
-
-            if(NOT INSTALL_RESULT EQUAL 0)
-                message(WARNING "Failed to install Wayland protocols automatically")
-                message(WARNING "Install script output: ${INSTALL_OUTPUT}")
-                message(WARNING "Install script error: ${INSTALL_ERROR}")
-                message(WARNING "Please run the script manually: ${PROJECT_SOURCE_DIR}/scripts/waylandProtocolsInst.sh")
-            else()
-                message(STATUS "Successfully installed Wayland protocols")
-
-                # Verify the installation
-                set(INSTALL_SUCCESS TRUE)
-                foreach(PROTOCOL ${REQUIRED_PROTOCOLS})
-                    if(NOT EXISTS ${PROTOCOL})
-                        set(INSTALL_SUCCESS FALSE)
-                        message(WARNING "Protocol file still missing after installation: ${PROTOCOL}")
-                    endif()
-                endforeach()
-
-                if(INSTALL_SUCCESS)
-                    message(STATUS "All Wayland protocol files are now available")
-                else()
-                    message(WARNING "Some protocol files are still missing after installation")
-                endif()
-            endif()
-        else()
-            message(STATUS "All required Wayland protocol files found")
-        endif()
+        message(STATUS "Building Wayland backend")
 
         file(GLOB XDG_GLPS_SOURCES "src/xdg/*.c")
-        file(GLOB XDG_GLPS_HEADERS "internal/xdg/*.h")
 
         add_library(${PROJECT_NAME} SHARED
             src/glps_wayland.c
@@ -218,11 +120,16 @@ elseif(UNIX AND NOT APPLE)
 
         target_include_directories(${PROJECT_NAME} PRIVATE
             ${WAYLAND_INCLUDE_DIRS}
+            ${EGL_INCLUDE_DIRS}
         )
 
+        # =================================================
+        # FIXED CRITICAL LINK SECTION
+        # =================================================
         target_link_libraries(${PROJECT_NAME} PRIVATE
-            ${EGL_LIBRARY}
             ${WAYLAND_LIBRARIES}
+            ${EGL_LIBRARIES}
+            GLESv2
             xkbcommon
             pthread
             asound
@@ -230,14 +137,15 @@ elseif(UNIX AND NOT APPLE)
             m
         )
 
-    # -------------------------------------------------
+    # =================================================
     # X11 fallback
-    # -------------------------------------------------
+    # =================================================
     else()
-        message(STATUS "Building for X11")
+
+        message(STATUS "Building X11 backend")
 
         find_package(X11 REQUIRED)
-        find_library(EGL_LIBRARY EGL REQUIRED)
+        pkg_check_modules(EGL REQUIRED egl)
 
         add_library(${PROJECT_NAME} SHARED
             src/glps_x11.c
@@ -253,31 +161,26 @@ elseif(UNIX AND NOT APPLE)
             GLPS_USE_X11
         )
 
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            -Wall
-            -Wextra
-            -Wno-unused-variable
-            -Wno-unused-parameter
-        )
-
         target_link_libraries(${PROJECT_NAME} PRIVATE
             ${X11_LIBRARIES}
-            ${EGL_LIBRARY}
+            ${EGL_LIBRARIES}
+            GLESv2
             pthread
             asound
             rt
+            m
         )
+
     endif()
 
     # -------------------------------------------------
-    # Common Linux includes
+    # Common includes
     # -------------------------------------------------
     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
         /usr/include/glib-2.0
         /usr/lib/glib-2.0/include
         /usr/include/pixman-1
         /usr/include/libdrm
-        /usr/include
         /usr/include/alsa
     )
 
@@ -286,7 +189,7 @@ else()
 endif()
 
 # =================================================
-# Common include paths
+# Public includes
 # =================================================
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -316,7 +219,7 @@ install(EXPORT GLPSConfig
 )
 
 # =================================================
-# Library properties
+# Properties
 # =================================================
 set_target_properties(${PROJECT_NAME} PROPERTIES
     VERSION ${PROJECT_VERSION}
