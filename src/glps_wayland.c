@@ -478,8 +478,6 @@ struct wl_keyboard_listener wl_keyboard_listener = {
     .repeat_info = wl_keyboard_repeat_info,
 };
 
-
-
 struct touch_point *get_touch_point(void *data, int32_t id)
 {
   if (data == NULL)
@@ -492,7 +490,7 @@ struct touch_point *get_touch_point(void *data, int32_t id)
 
   for (size_t i = 0; i < nmemb; ++i)
   {
-    if (touch->points[i].id == id)
+    if (touch->points[i].valid && touch->points[i].id == id)
       return &touch->points[i];
     if (invalid == -1 && !touch->points[i].valid)
       invalid = i;
