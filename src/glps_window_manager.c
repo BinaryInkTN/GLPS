@@ -5,14 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 
-// *=========== WIN32 ===========* //
 #ifdef GLPS_USE_WIN32
 #include <glps_wgl_context.h>
 #include <glps_win32.h>
 #include <windows.h>
 #endif
 
-// *=========== WAYLAND ===========* //
 #ifdef GLPS_USE_WAYLAND
 #include "glps_wayland.h"
 #include <EGL/eglplatform.h>
@@ -24,12 +22,9 @@
 #include <xkbcommon/xkbcommon.h>
 #endif
 
-// *=========== X11 ===========* //
-
 #ifdef GLPS_USE_X11
 #include "glps_x11.h"
 #include <glps_egl_context.h>
-
 #endif
 
 void glps_wm_set_mouse_enter_callback(
@@ -187,7 +182,7 @@ void glps_wm_attach_to_clipboard(glps_WindowManager *wm, char *mime,
 {
 
 #ifdef GLPS_USE_WAYLAND
-  glps_WaylandContext *context = NULL;
+  /*glps_WaylandContext *context = NULL;
   if (wm == NULL || (context = __get_wl_context(wm)) == NULL)
   {
     LOG_ERROR("Couldn't attach data to clipboard, context is NULL.");
@@ -203,14 +198,11 @@ void glps_wm_attach_to_clipboard(glps_WindowManager *wm, char *mime,
   wl_data_source_offer(context->data_src, "text/plain");
   wl_data_source_offer(context->data_src, "text/html");
   wl_data_device_set_selection(context->data_dvc, context->data_src,
-                               context->keyboard_serial);
-
+                               context->keyboard_serial);*/
 #endif
 
 #ifdef GLPS_USE_WIN32
-
   glps_win32_attach_to_clipboard(wm, "unknown", data);
-
 #endif
 }
 
@@ -218,7 +210,7 @@ void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
                                 size_t data_size)
 {
 #ifdef GLPS_USE_WAYLAND
-  if (wm == NULL || data == NULL)
+  /*if (wm == NULL || data == NULL)
   {
     LOG_ERROR("Window Manager and/or data NULL.");
     return;
@@ -226,7 +218,7 @@ void glps_wm_get_from_clipboard(glps_WindowManager *wm, char *data,
 
   memset(data, 0, data_size);
   strncpy(data, wm->clipboard.buff, data_size - 1);
-  data[data_size - 1] = '\0';
+  data[data_size - 1] = '\0';*/
 #endif
 #ifdef GLPS_USE_WIN32
   glps_win32_get_from_clipboard(wm, data, data_size);
@@ -255,13 +247,10 @@ void glps_wm_start_drag_n_drop(
 
   wm->callbacks.drag_n_drop_callback = drag_n_drop_callback;
   wm->callbacks.drag_n_drop_data = data;
-  // ctx->current_drag_n_drop_window = origin_window_id;
-
 #endif
 
 #ifdef GLPS_USE_WAYLAND
-
-  glps_WaylandContext *ctx = (glps_WaylandContext *)__get_wl_context(wm);
+  /*glps_WaylandContext *ctx = (glps_WaylandContext *)__get_wl_context(wm);
   if (ctx == NULL)
   {
     LOG_ERROR("Wayland context is NULL.");
@@ -284,7 +273,7 @@ void glps_wm_start_drag_n_drop(
   struct wl_surface *icon = NULL;
   wl_data_device_start_drag(ctx->data_dvc, source,
                             wm->windows[origin_window_id]->wl_surface, icon,
-                            wm->pointer_event.serial);
+                            wm->pointer_event.serial);*/
 #endif
 }
 
@@ -415,9 +404,7 @@ void glps_wm_window_get_dimensions(glps_WindowManager *wm, size_t window_id,
 #endif
 
 #ifdef GLPS_USE_WIN32
-
   glps_win32_get_window_dimensions(wm, window_id, width, height);
-
 #endif
 }
 
@@ -561,7 +548,6 @@ bool glps_wm_should_close(glps_WindowManager *wm)
 void glps_wm_destroy(glps_WindowManager *wm)
 {
 #ifdef GLPS_USE_WAYLAND
-
   glps_wl_destroy(wm);
 #endif
 
@@ -616,14 +602,11 @@ void glps_wm_window_update(glps_WindowManager *wm, size_t window_id)
   }
 #ifdef GLPS_USE_WAYLAND
   wl_update(wm, window_id);
-
 #endif
 
 #ifdef GLPS_USE_WIN32
-
   InvalidateRect(wm->windows[window_id]->hwnd, NULL, FALSE);
   UpdateWindow(wm->windows[window_id]->hwnd);
-
 #endif
 
 #ifdef GLPS_USE_X11
@@ -689,7 +672,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
   VkExtensionProperties *props = NULL;
   const char **names = NULL;
 
-  // First call: get extension count
   uint32_t count = 0;
   VkResult vk_result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
 
@@ -705,7 +687,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     return result;
   }
 
-  // Allocate memory for extension properties
   props = (VkExtensionProperties *)malloc(sizeof(VkExtensionProperties) * count);
   if (!props)
   {
@@ -713,7 +694,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     goto cleanup;
   }
 
-  // Second call: get actual extension data
   vk_result = vkEnumerateInstanceExtensionProperties(NULL, &count, props);
   if (vk_result != VK_SUCCESS)
   {
@@ -721,7 +701,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     goto cleanup;
   }
 
-  // Allocate memory for extension names array
   names = (const char **)malloc(sizeof(const char *) * count);
   if (!names)
   {
@@ -729,7 +708,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     goto cleanup;
   }
 
-  // Allocate and copy extension names
   for (uint32_t i = 0; i < count; ++i)
   {
     size_t name_len = strlen(props[i].extensionName) + 1;
@@ -737,7 +715,6 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     if (!name_copy)
     {
       LOG_ERROR("[VULKAN] Memory allocation failed for extension name %u\n", i);
-      // Free already allocated names on partial failure
       for (uint32_t j = 0; j < i; ++j)
       {
         free((void *)names[j]);
@@ -748,15 +725,12 @@ glps_VulkanExtensionArray glps_wm_vk_get_extensions_arr(void)
     names[i] = name_copy;
   }
 
-  // Success - populate result
   result.count = count;
   result.names = names;
 
 cleanup:
-  // Free temporary properties array (names are now independent copies)
   free(props);
 
-  // If we failed, ensure we don't leak the names array
   if (result.count == 0 && names)
   {
     free(names);
@@ -772,16 +746,13 @@ void glps_wm_vk_free_extensions_arr(glps_VulkanExtensionArray *extensions)
     return;
   }
 
-  // Free each individual extension name string
   for (uint32_t i = 0; i < extensions->count; ++i)
   {
     free((void *)extensions->names[i]);
   }
 
-  // Free the names array itself
   free(extensions->names);
 
-  // Reset the structure to prevent use-after-free
   extensions->count = 0;
   extensions->names = NULL;
 }
@@ -807,7 +778,6 @@ bool glps_wm_vk_check_extensions_supported(
 
   uint32_t actual_missing = 0;
 
-  // Check each required extension
   for (uint32_t i = 0; i < required_count; ++i)
   {
     bool found = false;
@@ -816,7 +786,6 @@ bool glps_wm_vk_check_extensions_supported(
     if (!req_ext)
       continue;
 
-    // Linear search through available extensions
     for (uint32_t j = 0; j < available.count; ++j)
     {
       if (strcmp(req_ext, available.names[j]) == 0)
