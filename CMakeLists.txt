@@ -78,27 +78,33 @@ elseif(UNIX AND NOT APPLE)
 
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xdg)
 
-    add_custom_command(
-        OUTPUT ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h
-        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${XDG_PROTOCOL_XML} ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h
-        DEPENDS ${XDG_PROTOCOL_XML}
-        COMMENT "Generating xdg-shell.h"
+    set(GENERATED_XDG_HEADER ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h)
+    set(GENERATED_XDG_SOURCE ${CMAKE_BINARY_DIR}/xdg/xdg-shell-protocol.c)
+
+    # Generate during configuration
+    execute_process(
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${XDG_PROTOCOL_XML} ${GENERATED_XDG_HEADER}
+        RESULT_VARIABLE XDG_HEADER_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
     )
 
-    add_custom_command(
-        OUTPUT ${CMAKE_BINARY_DIR}/xdg/xdg-shell-protocol.c
-        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} public-code ${XDG_PROTOCOL_XML} ${CMAKE_BINARY_DIR}/xdg/xdg-shell-protocol.c
-        DEPENDS ${XDG_PROTOCOL_XML}
-        COMMENT "Generating xdg-shell-protocol.c"
+    if(NOT XDG_HEADER_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to generate xdg-shell.h")
+    endif()
+
+    execute_process(
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} public-code ${XDG_PROTOCOL_XML} ${GENERATED_XDG_SOURCE}
+        RESULT_VARIABLE XDG_SOURCE_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
     )
 
-    set(GENERATED_XDG_HEADERS
-        ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h
-    )
+    if(NOT XDG_SOURCE_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to generate xdg-shell-protocol.c")
+    endif()
 
-    set(GENERATED_XDG_SOURCES
-        ${CMAKE_BINARY_DIR}/xdg/xdg-shell-protocol.c
-    )
+    message(STATUS "Generated xdg-shell headers in ${CMAKE_BINARY_DIR}/xdg")
 
     set(CURRENT_SESSION_TYPE "auto")
 
@@ -124,7 +130,7 @@ elseif(UNIX AND NOT APPLE)
             src/glps_thread.c
             src/glps_audio_stream.c
             src/glps_timer.c
-            ${GENERATED_XDG_SOURCES}
+            ${GENERATED_XDG_SOURCE}
         )
 
         target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -155,9 +161,8 @@ elseif(UNIX AND NOT APPLE)
             m
         )
 
-        add_dependencies(${PROJECT_NAME} xdg-shell-header)
-
-        add_custom_target(xdg-shell-header DEPENDS ${GENERATED_XDG_HEADERS})
+        # Add dependency to ensure headers exist
+        set_source_files_properties(${GENERATED_XDG_SOURCE} PROPERTIES GENERATED TRUE)
 
     else()
 
