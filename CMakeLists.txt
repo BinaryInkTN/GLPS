@@ -76,10 +76,13 @@ elseif(UNIX AND NOT APPLE)
         message(FATAL_ERROR "xdg-shell.xml not found at ${XDG_PROTOCOL_XML}")
     endif()
 
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xdg)
+    # Create xdg directory in GLPS internal folder
+    set(GLPS_INTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/internal)
+    set(XDG_HEADER_DIR ${GLPS_INTERNAL_DIR}/xdg)
+    file(MAKE_DIRECTORY ${XDG_HEADER_DIR})
 
-    set(GENERATED_XDG_HEADER ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h)
-    set(GENERATED_XDG_SOURCE ${CMAKE_BINARY_DIR}/xdg/xdg-shell-protocol.c)
+    set(GENERATED_XDG_HEADER ${XDG_HEADER_DIR}/xdg-shell.h)
+    set(GENERATED_XDG_SOURCE ${XDG_HEADER_DIR}/xdg-shell-protocol.c)
 
     # Generate during configuration
     execute_process(
@@ -104,7 +107,7 @@ elseif(UNIX AND NOT APPLE)
         message(FATAL_ERROR "Failed to generate xdg-shell-protocol.c")
     endif()
 
-    message(STATUS "Generated xdg-shell headers in ${CMAKE_BINARY_DIR}/xdg")
+    message(STATUS "Generated xdg-shell headers in ${XDG_HEADER_DIR}")
 
     set(CURRENT_SESSION_TYPE "auto")
 
@@ -147,7 +150,7 @@ elseif(UNIX AND NOT APPLE)
         target_include_directories(${PROJECT_NAME} PRIVATE
             ${WAYLAND_INCLUDE_DIRS}
             ${EGL_INCLUDE_DIRS}
-            ${CMAKE_BINARY_DIR}
+            ${GLPS_INTERNAL_DIR}
         )
 
         target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -161,7 +164,6 @@ elseif(UNIX AND NOT APPLE)
             m
         )
 
-        # Add dependency to ensure headers exist
         set_source_files_properties(${GENERATED_XDG_SOURCE} PROPERTIES GENERATED TRUE)
 
     else()
