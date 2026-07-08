@@ -613,7 +613,6 @@ void wl_touch_orientation(void *data, struct wl_touch *wl_touch, int32_t id,
   if (point == NULL)
     return;
 
-
   point->event_mask  |= TOUCH_EVENT_ORIENTATION;
   point->orientation  = orientation;
 }
