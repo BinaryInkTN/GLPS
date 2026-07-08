@@ -551,7 +551,7 @@ void wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
 {
   if (data == NULL)
     return;
-  fprintf(stderr, "wl_touch_up FIRED: id=%d\n", id);
+
   glps_WindowManager *wm    = (glps_WindowManager *)data;
   struct touch_point *point  = get_touch_point(wm, id);
   if (point == NULL)
@@ -613,8 +613,6 @@ void wl_touch_orientation(void *data, struct wl_touch *wl_touch, int32_t id,
   if (point == NULL)
     return;
 
-    fprintf(stderr, "wl_touch_orientation FIRED: id=%d orientation=%f\n",
-        id, wl_fixed_to_double(orientation));
 
   point->event_mask  |= TOUCH_EVENT_ORIENTATION;
   point->orientation  = orientation;
