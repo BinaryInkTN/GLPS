@@ -92,36 +92,8 @@ elseif(UNIX AND NOT APPLE)
         COMMENT "Generating xdg-shell-protocol.c"
     )
 
-    set(XDG_DECORATION_PROTOCOL_DIR ${WAYLAND_PROTOCOLS_DIR}/unstable/xdg-decoration)
-    set(XDG_DECORATION_PROTOCOL_XML ${XDG_DECORATION_PROTOCOL_DIR}/xdg-decoration-unstable-v1.xml)
-
-    if(EXISTS ${XDG_DECORATION_PROTOCOL_XML})
-        add_custom_command(
-            OUTPUT ${CMAKE_BINARY_DIR}/xdg/xdg-decoration-unstable-v1.h
-            COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${XDG_DECORATION_PROTOCOL_XML} ${CMAKE_BINARY_DIR}/xdg/xdg-decoration-unstable-v1.h
-            DEPENDS ${XDG_DECORATION_PROTOCOL_XML}
-            COMMENT "Generating xdg-decoration-unstable-v1.h"
-        )
-        set(XDG_DECORATION_HEADER ${CMAKE_BINARY_DIR}/xdg/xdg-decoration-unstable-v1.h)
-    endif()
-
-    set(WLR_DATA_CONTROL_PROTOCOL_DIR ${WAYLAND_PROTOCOLS_DIR}/unstable/wlr-data-control)
-    set(WLR_DATA_CONTROL_PROTOCOL_XML ${WLR_DATA_CONTROL_PROTOCOL_DIR}/wlr-data-control-unstable-v1.xml)
-
-    if(EXISTS ${WLR_DATA_CONTROL_PROTOCOL_XML})
-        add_custom_command(
-            OUTPUT ${CMAKE_BINARY_DIR}/xdg/wlr-data-control-unstable-v1.h
-            COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${WLR_DATA_CONTROL_PROTOCOL_XML} ${CMAKE_BINARY_DIR}/xdg/wlr-data-control-unstable-v1.h
-            DEPENDS ${WLR_DATA_CONTROL_PROTOCOL_XML}
-            COMMENT "Generating wlr-data-control-unstable-v1.h"
-        )
-        set(WLR_DATA_CONTROL_HEADER ${CMAKE_BINARY_DIR}/xdg/wlr-data-control-unstable-v1.h)
-    endif()
-
     set(GENERATED_XDG_HEADERS
         ${CMAKE_BINARY_DIR}/xdg/xdg-shell.h
-        ${XDG_DECORATION_HEADER}
-        ${WLR_DATA_CONTROL_HEADER}
     )
 
     set(GENERATED_XDG_SOURCES
