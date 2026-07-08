@@ -582,8 +582,17 @@ void wl_touch_cancel(void *data, struct wl_touch *wl_touch)
   if (data == NULL)
     return;
 
-  glps_WindowManager *wm = (glps_WindowManager *)data;
-  wm->touch_event.event_mask |= TOUCH_EVENT_CANCEL;
+  glps_WindowManager *wm    = (glps_WindowManager *)data;
+  struct touch_event *touch  = &wm->touch_event;
+  const size_t        nmemb  = sizeof(touch->points) / sizeof(struct touch_point);
+
+  touch->event_mask |= TOUCH_EVENT_CANCEL;
+
+  for (size_t i = 0; i < nmemb; ++i)
+  {
+    if (touch->points[i].valid)
+      touch->points[i].event_mask |= TOUCH_EVENT_UP;
+  }
 }
 
 void wl_touch_shape(void *data, struct wl_touch *wl_touch, int32_t id,
@@ -641,12 +650,6 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
     if (point->event_mask == 0)
       continue;
 
-    bool is_down;
-    if (point->event_mask & TOUCH_EVENT_UP)
-      is_down = false;
-    else
-      is_down = true;
-
     double major = (point->event_mask & TOUCH_EVENT_SHAPE)
                        ? wl_fixed_to_double(point->major)
                        : 0.0;
@@ -656,23 +659,40 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
     double orientation = (point->event_mask & TOUCH_EVENT_ORIENTATION)
                               ? wl_fixed_to_double(point->orientation)
                               : 0.0;
+    double px = wl_fixed_to_double(point->surface_x);
+    double py = wl_fixed_to_double(point->surface_y);
 
-    if (wm->callbacks.touch_callback)
+    bool had_down = point->event_mask & TOUCH_EVENT_DOWN;
+    bool had_up   = point->event_mask & TOUCH_EVENT_UP;
+
+    if (had_down && had_up)
     {
-      wm->callbacks.touch_callback(
-          context->touch_window_id,
-          point->id,
-          wl_fixed_to_double(point->surface_x),
-          wl_fixed_to_double(point->surface_y),
-          is_down,
-          major,
-          minor,
-          orientation,
-          wm->callbacks.touch_data);
-    }
-
-    if (point->event_mask & TOUCH_EVENT_UP)
+      if (wm->callbacks.touch_callback)
+      {
+        wm->callbacks.touch_callback(
+            context->touch_window_id, point->id, px, py,
+            true, major, minor, orientation,
+            wm->callbacks.touch_data);
+        wm->callbacks.touch_callback(
+            context->touch_window_id, point->id, px, py,
+            false, major, minor, orientation,
+            wm->callbacks.touch_data);
+      }
       point->valid = false;
+    }
+    else
+    {
+      bool is_down = had_up ? false : true;
+      if (wm->callbacks.touch_callback)
+      {
+        wm->callbacks.touch_callback(
+            context->touch_window_id, point->id, px, py,
+            is_down, major, minor, orientation,
+            wm->callbacks.touch_data);
+      }
+      if (had_up)
+        point->valid = false;
+    }
 
     point->event_mask = 0;
   }
