@@ -613,6 +613,9 @@ void wl_touch_orientation(void *data, struct wl_touch *wl_touch, int32_t id,
   if (point == NULL)
     return;
 
+    fprintf(stderr, "wl_touch_orientation FIRED: id=%d orientation=%f\n",
+        id, wl_fixed_to_double(orientation));
+
   point->event_mask  |= TOUCH_EVENT_ORIENTATION;
   point->orientation  = orientation;
 }
