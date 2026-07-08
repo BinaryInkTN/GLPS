@@ -73,12 +73,6 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
     window->frame_args = NULL;
   }
 
-  /*if (window->zxdg_toplevel_decoration != NULL)
-  {
-    zxdg_toplevel_decoration_v1_destroy(window->zxdg_toplevel_decoration);
-    window->zxdg_toplevel_decoration = NULL;
-  }*/
-
   if (window->frame_callback != NULL)
   {
     wl_callback_destroy(window->frame_callback);
@@ -382,11 +376,6 @@ void wl_keyboard_enter(void *data, struct wl_keyboard *wl_keyboard,
     return;
 
   glps_WindowManager *wm = (glps_WindowManager *)data;
-  if (wm->callbacks.keyboard_enter_callback != NULL)
-  {
-    wm->callbacks.keyboard_enter_callback(context->keyboard_window_id,
-                                          wm->callbacks.keyboard_enter_data);
-  }
 
   ssize_t window_id = __get_window_id_from_surface(wm, surface);
   if (window_id < 0)
@@ -397,6 +386,12 @@ void wl_keyboard_enter(void *data, struct wl_keyboard *wl_keyboard,
 
   context->keyboard_serial    = serial;
   context->keyboard_window_id = (size_t)window_id;
+
+  if (wm->callbacks.keyboard_enter_callback != NULL)
+  {
+    wm->callbacks.keyboard_enter_callback(context->keyboard_window_id,
+                                          wm->callbacks.keyboard_enter_data);
+  }
 
   uint32_t *key;
   wl_array_for_each(key, keys)
@@ -530,7 +525,7 @@ void wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
   if (point == NULL)
     return;
 
-  point->event_mask  |= TOUCH_EVENT_UP;
+  point->event_mask  |= TOUCH_EVENT_DOWN;
   point->surface_x    = wl_fixed_to_double(x);
   point->surface_y    = wl_fixed_to_double(y);
   wm->touch_event.time   = time;
@@ -571,8 +566,8 @@ void wl_touch_motion(void *data, struct wl_touch *wl_touch, uint32_t time,
     return;
 
   point->event_mask  |= TOUCH_EVENT_MOTION;
-  point->surface_x    = x;
-  point->surface_y    = y;
+  point->surface_x    = wl_fixed_to_double(x);
+  point->surface_y    = wl_fixed_to_double(y);
   wm->touch_event.time = time;
 }
 
@@ -625,6 +620,13 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
   struct touch_event *touch  = &wm->touch_event;
   const size_t        nmemb  = sizeof(touch->points) / sizeof(struct touch_point);
 
+  glps_WaylandContext *context = __get_wl_context(wm);
+  if (context == NULL)
+  {
+    LOG_ERROR("Couldn't fetch wayland context.");
+    return;
+  }
+
   fprintf(stderr, "touch event @ %d:\n", touch->time);
 
   for (size_t i = 0; i < nmemb; ++i)
@@ -636,7 +638,7 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
     if (wm->callbacks.touch_callback)
     {
       wm->callbacks.touch_callback(
-          touch->window_id,
+          context->touch_window_id,
           touch->points[i].id,
           wl_fixed_to_double(point->surface_x),
           wl_fixed_to_double(point->surface_y),
@@ -703,21 +705,6 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
     wl_touch_release(ctx->wl_touch);
     ctx->wl_touch = NULL;
   }
-
-  /*if (ctx->data_dvc_manager && ctx->data_dvc == NULL)
-  {
-    ctx->data_dvc = wl_data_device_manager_get_data_device(
-        ctx->data_dvc_manager, wl_seat);
-    if (ctx->data_dvc)
-    {
-      wl_data_device_add_listener(ctx->data_dvc, &data_device_listener, data);
-      LOG_INFO("Data device created from seat capabilities.");
-    }
-    else
-    {
-      LOG_ERROR("Failed to get data device from seat capabilities.");
-    }
-  }*/
 }
 
 void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name) {}
@@ -732,40 +719,6 @@ struct wl_seat_listener wl_seat_listener = {
 void data_source_handle_send(void *data, struct wl_data_source *source,
                              const char *mime_type, int fd)
 {
-  /*glps_WindowManager  *wm      = (glps_WindowManager *)data;
-  glps_WaylandContext *context = NULL;
-
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
-  }
-  if ((context = __get_wl_context(wm)) == NULL)
-  {
-    LOG_ERROR("Failed to get Wayland context from Window Manager.");
-    return;
-  }
-  if (fd < 0)
-  {
-    LOG_ERROR("Invalid file descriptor: %d", fd);
-    return;
-  }
-
-  LOG_INFO("Copying to clipboard: MIME type=%s, Data Preview=%s",
-           mime_type, wm->clipboard.buff);
-
-  if (strcmp(mime_type, wm->clipboard.mime_type) == 0)
-  {
-    if (write(fd, wm->clipboard.buff, strlen(wm->clipboard.buff)) < 0)
-      LOG_ERROR("Error writing data to clipboard pipe.");
-  }
-  else
-  {
-    LOG_WARNING("Unsupported MIME type: %s", mime_type);
-  }
-
-  if (close(fd) < 0)
-    LOG_ERROR("Error closing file descriptor.");*/
 }
 
 void data_source_handle_cancelled(void *data, struct wl_data_source *source)
@@ -836,22 +789,6 @@ struct wl_data_source_listener data_source_listener = {
 void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
                              const char *mime_type)
 {
-  /*glps_WindowManager  *wm      = (glps_WindowManager *)data;
-  glps_WaylandContext *context = NULL;
-
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
-  }
-  if ((context = __get_wl_context(wm)) == NULL)
-  {
-    LOG_ERROR("Failed to get Wayland context from Window Manager.");
-    return;
-  }
-
-  if (strcmp(mime_type, "text/plain") == 0)
-    wl_data_offer_accept(offer, context->current_serial, "text/plain");*/
 }
 
 void data_offer_handle_source_actions(void *data, struct wl_data_offer *offer,
@@ -882,123 +819,18 @@ struct wl_data_offer_listener data_offer_listener = {
 
 void data_device_handle_drop(void *data, struct wl_data_device *data_device)
 {
-  /*glps_WindowManager  *wm      = (glps_WindowManager *)data;
-  glps_WaylandContext *context = NULL;
-
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
-  }
-  if ((context = __get_wl_context(wm)) == NULL)
-  {
-    LOG_ERROR("Failed to get Wayland context from Window Manager.");
-    return;
-  }
-  if (context->current_drag_offer == NULL)
-  {
-    LOG_ERROR("Drag offer is null.");
-    return;
-  }
-
-  int fds[2];
-  pipe(fds);
-  wl_data_offer_receive(context->current_drag_offer, "text/plain", fds[1]);
-  close(fds[1]);
-
-  wl_display_roundtrip(context->wl_display);
-
-  char    buffer[4096];
-  ssize_t bytes_read = read(fds[0], buffer, sizeof(buffer));
-
-  if (wm->callbacks.drag_n_drop_callback)
-  {
-    wm->callbacks.drag_n_drop_callback(
-        context->mouse_window_id,
-        "text/plain",
-        buffer,
-        context->drop_coordinates.x,
-        context->drop_coordinates.y,
-        wm->callbacks.drag_n_drop_data);
-  }
-
-  close(fds[0]);
-  wl_data_offer_finish(context->current_drag_offer);
-  wl_data_offer_destroy(context->current_drag_offer);
-  context->current_drag_offer = NULL;*/
 }
 
 void data_device_handle_data_offer(void *data,
                                    struct wl_data_device *data_device,
                                    struct wl_data_offer *offer)
 {
-  /*glps_WindowManager *wm = (glps_WindowManager *)data;
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL during clipboard selection.");
-    return;
-  }
-  wl_data_offer_add_listener(offer, &data_offer_listener, data);*/
 }
 
 void data_device_handle_selection(void *data,
                                   struct wl_data_device *data_device,
                                   struct wl_data_offer *offer)
 {
-  /*glps_WindowManager *wm = (glps_WindowManager *)data;
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL during clipboard selection.");
-    return;
-  }
-
-  if (offer == NULL)
-  {
-    LOG_INFO("Clipboard is empty.");
-    memset(&wm->clipboard, 0, sizeof(wm->clipboard));
-    return;
-  }
-
-  int fds[2];
-  if (pipe(fds) < 0)
-  {
-    perror("Failed to create pipe for clipboard data");
-    return;
-  }
-
-  wl_data_offer_receive(offer, "text/plain", fds[1]);
-  close(fds[1]);
-
-  glps_WaylandContext *context = __get_wl_context(wm);
-  if (context == NULL)
-  {
-    LOG_ERROR("Failed to get Wayland context.");
-    close(fds[0]);
-    return;
-  }
-
-  wl_display_roundtrip(context->wl_display);
-
-  char   buf[1024];
-  size_t buff_size = sizeof(wm->clipboard.buff) - 1;
-  ssize_t n;
-  wm->clipboard.buff[0] = '\0';
-
-  while ((n = read(fds[0], buf, sizeof(buf) - 1)) > 0)
-  {
-    buf[n] = '\0';
-    if (buff_size > 0)
-    {
-      size_t to_copy = ((size_t)n < buff_size) ? (size_t)n : buff_size;
-      strncat(wm->clipboard.buff, buf, to_copy);
-      buff_size -= to_copy;
-    }
-  }
-
-  if (n < 0)
-    LOG_ERROR("Error reading clipboard data.");
-
-  wl_data_offer_destroy(offer);*/
 }
 
 void data_device_handle_enter(void *data, struct wl_data_device *data_device,
@@ -1006,55 +838,16 @@ void data_device_handle_enter(void *data, struct wl_data_device *data_device,
                               wl_fixed_t x, wl_fixed_t y,
                               struct wl_data_offer *offer)
 {
-  /*printf("Drag entered surface: %fx%f\n",
-         wl_fixed_to_double(x), wl_fixed_to_double(y));
-
-  glps_WaylandContext *ctx = __get_wl_context((glps_WindowManager *)data);
-  ctx->current_drag_offer  = offer;
-  ctx->current_serial      = serial;
-  wl_data_offer_set_actions(offer,
-                            WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
-                            WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);*/
 }
 
 void data_device_handle_motion(void *data, struct wl_data_device *data_device,
                                uint32_t time, wl_fixed_t x, wl_fixed_t y)
 {
-  /*glps_WindowManager  *wm      = (glps_WindowManager *)data;
-  glps_WaylandContext *context = __get_wl_context(wm);
-  if (context && context->current_drag_offer)
-  {
-    context->drop_coordinates.x = wl_fixed_to_int(x);
-    context->drop_coordinates.y = wl_fixed_to_int(y);
-  }*/
 }
 
 void data_device_handle_leave(void *data, struct wl_data_device *data_device)
 {
-  /*glps_WindowManager *wm = (glps_WindowManager *)data;
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
-  }
-  glps_WaylandContext *ctx = __get_wl_context(wm);
-  if (ctx == NULL)
-  {
-    LOG_ERROR("Wayland Context is NULL.");
-    return;
-  }
-  printf("Drag left our surface\n");
-  ctx->current_drag_offer = NULL;*/
 }
-
-/*struct wl_data_device_listener data_device_listener = {
-    .data_offer = data_device_handle_data_offer,
-    .selection  = data_device_handle_selection,
-    .enter      = data_device_handle_enter,
-    .motion     = data_device_handle_motion,
-    .leave      = data_device_handle_leave,
-    .drop       = data_device_handle_drop,
-};*/
 
 
 
@@ -1085,15 +878,6 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
     else
       LOG_INFO("Successfully bound xdg_wm_base.");
   }
-  /*else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0)
-  {
-    s->decoration_manager = wl_registry_bind(
-        registry, id, &zxdg_decoration_manager_v1_interface, version);
-    if (!s->decoration_manager)
-      LOG_ERROR("Failed to bind zxdg_decoration_manager_v1.");
-    else
-      LOG_INFO("Successfully bound zxdg_decoration_manager_v1.");
-  }*/
   else if (strcmp(interface, wl_seat_interface.name) == 0)
   {
     s->wl_seat = wl_registry_bind(registry, id, &wl_seat_interface, version);
@@ -1107,15 +891,6 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
       LOG_ERROR("Failed to bind wl_seat.");
     }
   }
-  /*else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
-  {
-    s->data_dvc_manager = wl_registry_bind(
-        registry, id, &wl_data_device_manager_interface, 3);
-    if (!s->data_dvc_manager)
-      LOG_ERROR("Failed to bind wl_data_device_manager_interface.");
-    else
-      LOG_INFO("Successfully bound wl_data_device_manager.");
-  }*/
   else
   {
     LOG_WARNING("Unhandled interface: %s", interface);
@@ -1274,8 +1049,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
       wl_seat_destroy(wm->wayland_ctx->wl_seat);
     if (wm->wayland_ctx->xdg_wm_base != NULL)
       xdg_wm_base_destroy(wm->wayland_ctx->xdg_wm_base);
-    /*if (wm->wayland_ctx->decoration_manager != NULL)
-      zxdg_decoration_manager_v1_destroy(wm->wayland_ctx->decoration_manager);*/
     if (wm->wayland_ctx->wl_compositor != NULL)
     {
       wl_compositor_destroy(wm->wayland_ctx->wl_compositor);
@@ -1286,11 +1059,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
       wl_registry_destroy(wm->wayland_ctx->wl_registry);
       wm->wayland_ctx->wl_registry = NULL;
     }
-    /*if (wm->wayland_ctx->data_dvc != NULL)
-    {
-      wl_data_device_destroy(wm->wayland_ctx->data_dvc);
-      wm->wayland_ctx->data_dvc = NULL;
-    }*/
     if (wm->wayland_ctx->wl_keyboard != NULL)
     {
       wl_keyboard_destroy(wm->wayland_ctx->wl_keyboard);
@@ -1321,16 +1089,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
       xkb_context_unref(wm->wayland_ctx->xkb_context);
       wm->wayland_ctx->xkb_context = NULL;
     }
-    /*if (wm->wayland_ctx->data_dvc_manager != NULL)
-    {
-      wl_data_device_manager_destroy(wm->wayland_ctx->data_dvc_manager);
-      wm->wayland_ctx->data_dvc_manager = NULL;
-    }
-    if (wm->wayland_ctx->data_src != NULL)
-    {
-      wl_data_source_destroy(wm->wayland_ctx->data_src);
-      wm->wayland_ctx->data_src = NULL;
-    }*/
 
     wl_display_disconnect(wm->wayland_ctx->wl_display);
     free(wm->wayland_ctx);
@@ -1397,16 +1155,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
-
-  /*if (wm->wayland_ctx->decoration_manager != NULL)
-  {
-    window->zxdg_toplevel_decoration =
-        zxdg_decoration_manager_v1_get_toplevel_decoration(
-            wm->wayland_ctx->decoration_manager, window->xdg_toplevel);
-    zxdg_toplevel_decoration_v1_set_mode(
-        window->zxdg_toplevel_decoration,
-        ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
-  }*/
 
   wl_surface_commit(window->wl_surface);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
@@ -1541,7 +1289,6 @@ bool glps_wl_init(glps_WindowManager *wm)
   wm->wayland_ctx->xkb_state           = NULL;
   wm->wayland_ctx->xkb_keymap          = NULL;
   wm->wayland_ctx->xkb_context         = NULL;
-  /*wm->wayland_ctx->decoration_manager  = NULL;*/
   wm->wayland_ctx->xkb_context         = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
   wm->wayland_ctx->wl_display = wl_display_connect(NULL);
@@ -1569,29 +1316,9 @@ bool glps_wl_init(glps_WindowManager *wm)
   wl_registry_add_listener(wm->wayland_ctx->wl_registry,
                            &registry_listener, wm);
 
- 
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
- 
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
-
-  /*if (wm->wayland_ctx->data_dvc_manager &&
-      wm->wayland_ctx->wl_seat         &&
-      wm->wayland_ctx->data_dvc == NULL)
-  {
-    wm->wayland_ctx->data_dvc = wl_data_device_manager_get_data_device(
-        wm->wayland_ctx->data_dvc_manager, wm->wayland_ctx->wl_seat);
-    if (wm->wayland_ctx->data_dvc)
-    {
-      wl_data_device_add_listener(wm->wayland_ctx->data_dvc,
-                                  &data_device_listener, wm);
-      LOG_INFO("Data device created via init fallback path.");
-    }
-    else
-    {
-      LOG_ERROR("Failed to get data device (init fallback).");
-    }
-  }*/
 
   if (wm->wayland_ctx->xdg_wm_base)
   {
@@ -1602,9 +1329,6 @@ bool glps_wl_init(glps_WindowManager *wm)
   {
     LOG_WARNING("xdg_wm_base protocol not supported by compositor");
   }
-
-  /*if (!wm->wayland_ctx->decoration_manager)
-    LOG_WARNING("xdg-decoration protocol not supported by compositor");*/
 
   if (!wm->wayland_ctx->wl_compositor || !wm->wayland_ctx->xdg_wm_base)
   {
@@ -1624,5 +1348,5 @@ bool glps_wl_init(glps_WindowManager *wm)
 
 void glps_wl_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor)
 {
- 
+
 }
