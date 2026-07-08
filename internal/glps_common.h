@@ -43,6 +43,7 @@
 #include <sys/mman.h>
 // Wayland protocol extensions
 #include "xdg/xdg-shell.h"
+#include "xdg/xdg-decorations.h"
 //#include "xdg/xdg-toplevel-tag.h"
 #include "xdg/wlr-data-control-unstable-v1.h"
 #endif
@@ -244,6 +245,7 @@ typedef struct {
     EGLSurface egl_surface;
     struct wl_egl_window *egl_window;
     glps_WindowProperties properties;
+    struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration;
     struct wl_callback *frame_callback;
     struct timespec fps_start_time;
     bool fps_is_init;
@@ -257,6 +259,7 @@ typedef struct {
     struct wl_compositor *wl_compositor;
     struct wl_seat *wl_seat;
     struct xdg_wm_base *xdg_wm_base;
+    struct zxdg_decoration_manager_v1 *decoration_manager;
     //struct xdg_toplevel_tag_manager_v1 *tag_manager;
     struct wl_data_device_manager *data_dvc_manager;
     struct wl_data_device *data_dvc;
