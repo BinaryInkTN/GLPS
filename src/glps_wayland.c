@@ -478,6 +478,8 @@ struct wl_keyboard_listener wl_keyboard_listener = {
     .repeat_info = wl_keyboard_repeat_info,
 };
 
+
+
 struct touch_point *get_touch_point(void *data, int32_t id)
 {
   if (data == NULL)
@@ -499,8 +501,14 @@ struct touch_point *get_touch_point(void *data, int32_t id)
   if (invalid == -1)
     return NULL;
 
-  touch->points[invalid].valid = true;
-  touch->points[invalid].id   = id;
+  touch->points[invalid].valid       = true;
+  touch->points[invalid].id          = id;
+  touch->points[invalid].event_mask  = 0;
+  touch->points[invalid].surface_x   = 0;
+  touch->points[invalid].surface_y   = 0;
+  touch->points[invalid].major       = 0;
+  touch->points[invalid].minor       = 0;
+  touch->points[invalid].orientation = 0;
   return &touch->points[invalid];
 }
 
@@ -524,8 +532,8 @@ void wl_touch_down(void *data, struct wl_touch *wl_touch, uint32_t serial,
     return;
 
   point->event_mask  |= TOUCH_EVENT_DOWN;
-  point->surface_x    = wl_fixed_to_double(x);
-  point->surface_y    = wl_fixed_to_double(y);
+  point->surface_x    = x;
+  point->surface_y    = y;
   wm->touch_event.time   = time;
   wm->touch_event.serial = serial;
 
@@ -564,8 +572,8 @@ void wl_touch_motion(void *data, struct wl_touch *wl_touch, uint32_t time,
     return;
 
   point->event_mask  |= TOUCH_EVENT_MOTION;
-  point->surface_x    = wl_fixed_to_double(x);
-  point->surface_y    = wl_fixed_to_double(y);
+  point->surface_x    = x;
+  point->surface_y    = y;
   wm->touch_event.time = time;
 }
 
@@ -625,28 +633,48 @@ void wl_touch_frame(void *data, struct wl_touch *wl_touch)
     return;
   }
 
-  fprintf(stderr, "touch event @ %d:\n", touch->time);
-
   for (size_t i = 0; i < nmemb; ++i)
   {
     struct touch_point *point = &touch->points[i];
     if (!point->valid)
       continue;
+    if (point->event_mask == 0)
+      continue;
+
+    bool is_down;
+    if (point->event_mask & TOUCH_EVENT_UP)
+      is_down = false;
+    else
+      is_down = true;
+
+    double major = (point->event_mask & TOUCH_EVENT_SHAPE)
+                       ? wl_fixed_to_double(point->major)
+                       : 0.0;
+    double minor = (point->event_mask & TOUCH_EVENT_SHAPE)
+                       ? wl_fixed_to_double(point->minor)
+                       : 0.0;
+    double orientation = (point->event_mask & TOUCH_EVENT_ORIENTATION)
+                              ? wl_fixed_to_double(point->orientation)
+                              : 0.0;
 
     if (wm->callbacks.touch_callback)
     {
       wm->callbacks.touch_callback(
           context->touch_window_id,
-          touch->points[i].id,
+          point->id,
           wl_fixed_to_double(point->surface_x),
           wl_fixed_to_double(point->surface_y),
-          (point->event_mask & (TOUCH_EVENT_DOWN | TOUCH_EVENT_UP)) ? true : false,
-          wl_fixed_to_double(point->major),
-          wl_fixed_to_double(point->minor),
-          wl_fixed_to_double(point->orientation),
+          is_down,
+          major,
+          minor,
+          orientation,
           wm->callbacks.touch_data);
     }
-    point->valid = false;
+
+    if (point->event_mask & TOUCH_EVENT_UP)
+      point->valid = false;
+
+    point->event_mask = 0;
   }
 }
 
