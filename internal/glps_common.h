@@ -43,7 +43,7 @@
 #include <sys/mman.h>
 // Wayland protocol extensions
 #include "xdg/xdg-shell.h"
-#include "xdg/xdg-decorations.h"
+//#include "xdg/xdg-decorations.h"
 //#include "xdg/xdg-toplevel-tag.h"
 //#include "xdg/wlr-data-control-unstable-v1.h"
 #endif
@@ -245,7 +245,7 @@ typedef struct {
     EGLSurface egl_surface;
     struct wl_egl_window *egl_window;
     glps_WindowProperties properties;
-    struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration;
+    //struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration;
     struct wl_callback *frame_callback;
     struct timespec fps_start_time;
     bool fps_is_init;
@@ -259,18 +259,18 @@ typedef struct {
     struct wl_compositor *wl_compositor;
     struct wl_seat *wl_seat;
     struct xdg_wm_base *xdg_wm_base;
-    struct zxdg_decoration_manager_v1 *decoration_manager;
+   // struct zxdg_decoration_manager_v1 *decoration_manager;
     //struct xdg_toplevel_tag_manager_v1 *tag_manager;
-    struct wl_data_device_manager *data_dvc_manager;
-    struct wl_data_device *data_dvc;
-    struct wl_data_source *data_src;
+    //struct wl_data_device_manager *data_dvc_manager;
+    //struct wl_data_device *data_dvc;
+    //struct wl_data_source *data_src;
     struct wl_pointer *wl_pointer;
     struct wl_keyboard *wl_keyboard;
     struct xkb_state *xkb_state;
     struct xkb_context *xkb_context;
     struct xkb_keymap *xkb_keymap;
     struct wl_touch *wl_touch;
-    struct wl_data_offer *current_drag_offer;
+    //struct wl_data_offer *current_drag_offer;
     uint32_t current_serial;
     uint32_t keyboard_serial;
     size_t keyboard_window_id;
