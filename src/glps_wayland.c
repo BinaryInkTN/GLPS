@@ -551,7 +551,7 @@ void wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
 {
   if (data == NULL)
     return;
-
+  fprintf(stderr, "wl_touch_up FIRED: id=%d\n", id);
   glps_WindowManager *wm    = (glps_WindowManager *)data;
   struct touch_point *point  = get_touch_point(wm, id);
   if (point == NULL)
