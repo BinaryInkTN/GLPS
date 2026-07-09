@@ -6,30 +6,30 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+
 option(GLPS_INCLUDE_VULKAN "Enable Vulkan support in GLPS" OFF)
 option(GLPS_FORCE_WAYLAND "Force Wayland backend" OFF)
 
 
-# --------------------------------------------------
+# ==================================================
 # Vulkan
-# --------------------------------------------------
+# ==================================================
 
 if(GLPS_INCLUDE_VULKAN)
 
     find_package(Vulkan REQUIRED)
 
-    add_compile_definitions(GLPS_USE_VULKAN)
-
 endif()
 
 
-# --------------------------------------------------
+# ==================================================
 # Windows
-# --------------------------------------------------
+# ==================================================
 
 if(WIN32)
 
     message(STATUS "Building Windows backend")
+
 
     add_library(${PROJECT_NAME}
 
@@ -60,9 +60,9 @@ if(WIN32)
     )
 
 
-# --------------------------------------------------
+# ==================================================
 # Linux
-# --------------------------------------------------
+# ==================================================
 
 elseif(UNIX AND NOT APPLE)
 
@@ -77,9 +77,10 @@ elseif(UNIX AND NOT APPLE)
     pkg_check_modules(ALSA REQUIRED alsa)
 
 
-    # --------------------------------------------------
-    # Wayland
-    # --------------------------------------------------
+
+    # ==================================================
+    # Wayland backend
+    # ==================================================
 
     if(GLPS_FORCE_WAYLAND)
 
@@ -115,6 +116,22 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
+        set(XDG_PROTOCOL_XML
+
+            ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
+        )
+
+
+        if(NOT EXISTS ${XDG_PROTOCOL_XML})
+
+            message(FATAL_ERROR
+                "Missing xdg-shell.xml: ${XDG_PROTOCOL_XML}"
+            )
+
+        endif()
+
+
+
         message(STATUS
             "Wayland scanner: ${WAYLAND_SCANNER}"
         )
@@ -125,19 +142,10 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
-        set(XDG_PROTOCOL_XML
 
-            ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
-        )
-
-
-        if(NOT EXISTS ${XDG_PROTOCOL_XML})
-
-            message(FATAL_ERROR
-                "xdg-shell.xml not found: ${XDG_PROTOCOL_XML}"
-            )
-
-        endif()
+        # -----------------------------
+        # Generated Wayland protocol
+        # -----------------------------
 
 
         set(GENERATED_XDG_DIR
@@ -158,69 +166,122 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
-        file(MAKE_DIRECTORY
-            ${GENERATED_XDG_DIR}
-        )
-
 
         add_custom_command(
 
             OUTPUT
+
                 ${GENERATED_XDG_HEADER}
 
+
             COMMAND
+
+                ${CMAKE_COMMAND}
+                -E
+                make_directory
+                ${GENERATED_XDG_DIR}
+
+
+            COMMAND
+
                 ${WAYLAND_SCANNER}
+
                 client-header
+
                 ${XDG_PROTOCOL_XML}
+
                 ${GENERATED_XDG_HEADER}
 
+
             DEPENDS
+
                 ${XDG_PROTOCOL_XML}
+
         )
+
 
 
         add_custom_command(
 
             OUTPUT
+
                 ${GENERATED_XDG_SOURCE}
+
 
             COMMAND
+
+                ${CMAKE_COMMAND}
+                -E
+                make_directory
+                ${GENERATED_XDG_DIR}
+
+
+            COMMAND
+
                 ${WAYLAND_SCANNER}
+
                 public-code
+
                 ${XDG_PROTOCOL_XML}
+
                 ${GENERATED_XDG_SOURCE}
 
+
             DEPENDS
+
                 ${XDG_PROTOCOL_XML}
+
         )
+
+
+
+        add_custom_target(
+
+            generate_wayland_protocols
+
+            DEPENDS
+
+                ${GENERATED_XDG_HEADER}
+
+                ${GENERATED_XDG_SOURCE}
+        )
+
 
 
         add_library(${PROJECT_NAME}
 
+
             src/glps_wayland.c
+
             src/glps_egl_context.c
+
             src/glps_window_manager.c
+
 
             src/utils/logger/pico_logger.c
 
             src/glps_thread.c
+
             src/glps_audio_stream.c
+
             src/glps_timer.c
 
 
-            # Generated Wayland protocol
+            # Generated Wayland code
+
             ${GENERATED_XDG_SOURCE}
-            ${GENERATED_XDG_HEADER}
 
         )
+
 
 
         add_dependencies(
 
             ${PROJECT_NAME}
 
-            ${GENERATED_XDG_SOURCE}
+            generate_wayland_protocols
         )
+
 
 
         target_compile_definitions(${PROJECT_NAME}
@@ -231,16 +292,24 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
+
         target_include_directories(${PROJECT_NAME}
 
             PRIVATE
 
                 ${WAYLAND_INCLUDE_DIRS}
+
                 ${EGL_INCLUDE_DIRS}
+
                 ${ALSA_INCLUDE_DIRS}
 
+
+                # Contains xdg-shell.h
+
                 ${GENERATED_XDG_DIR}
+
         )
+
 
 
         target_link_libraries(${PROJECT_NAME}
@@ -248,20 +317,29 @@ elseif(UNIX AND NOT APPLE)
             PRIVATE
 
                 ${WAYLAND_LIBRARIES}
+
                 ${EGL_LIBRARIES}
+
                 ${ALSA_LIBRARIES}
 
+
                 GLESv2
+
                 xkbcommon
+
                 pthread
+
                 rt
+
                 m
+
         )
 
 
-    # --------------------------------------------------
-    # X11
-    # --------------------------------------------------
+
+    # ==================================================
+    # X11 backend
+    # ==================================================
 
     else()
 
@@ -272,18 +350,27 @@ elseif(UNIX AND NOT APPLE)
         pkg_check_modules(X11 REQUIRED x11)
 
 
+
         add_library(${PROJECT_NAME}
 
+
             src/glps_x11.c
+
             src/glps_egl_context.c
+
             src/glps_window_manager.c
+
 
             src/utils/logger/pico_logger.c
 
             src/glps_thread.c
+
             src/glps_audio_stream.c
+
             src/glps_timer.c
+
         )
+
 
 
         target_compile_definitions(${PROJECT_NAME}
@@ -294,14 +381,19 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
+
         target_include_directories(${PROJECT_NAME}
 
             PRIVATE
 
                 ${X11_INCLUDE_DIRS}
+
                 ${EGL_INCLUDE_DIRS}
+
                 ${ALSA_INCLUDE_DIRS}
+
         )
+
 
 
         target_link_libraries(${PROJECT_NAME}
@@ -309,13 +401,20 @@ elseif(UNIX AND NOT APPLE)
             PRIVATE
 
                 ${X11_LIBRARIES}
+
                 ${EGL_LIBRARIES}
+
                 ${ALSA_LIBRARIES}
 
+
                 GLESv2
+
                 pthread
+
                 rt
+
                 m
+
         )
 
 
@@ -327,7 +426,9 @@ else()
 
 
     message(FATAL_ERROR
+
         "Unsupported platform"
+
     )
 
 
@@ -335,9 +436,9 @@ endif()
 
 
 
-# --------------------------------------------------
-# Common includes
-# --------------------------------------------------
+# ==================================================
+# Common include directories
+# ==================================================
 
 target_include_directories(${PROJECT_NAME}
 
@@ -351,22 +452,27 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
 
         ${PROJECT_SOURCE_DIR}/internal
+
 )
 
 
 
-# --------------------------------------------------
+# ==================================================
 # Install
-# --------------------------------------------------
+# ==================================================
 
 install(
 
     DIRECTORY
+
         include/
 
+
     DESTINATION
+
         include/GLPS
 )
+
 
 
 install(
@@ -380,7 +486,9 @@ install(
     ARCHIVE DESTINATION lib
 
     RUNTIME DESTINATION bin
+
 )
+
 
 
 install(
@@ -392,6 +500,7 @@ install(
     NAMESPACE GLPS::
 
     DESTINATION lib/cmake/GLPS
+
 )
 
 
@@ -403,6 +512,7 @@ set_target_properties(${PROJECT_NAME}
         VERSION ${PROJECT_VERSION}
 
         SOVERSION 1
+
 )
 
 
