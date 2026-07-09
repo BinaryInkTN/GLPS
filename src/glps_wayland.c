@@ -823,6 +823,20 @@ struct wl_registry_listener registry_listener = {
     .global_remove = handle_global_remove,
 };
 
+
+static void request_frame(glps_WaylandWindow *window, frame_callback_args *args)
+{
+    if (window->frame_callback)
+        return;
+
+    window->frame_callback = wl_surface_frame(window->wl_surface);
+
+    wl_callback_add_listener(
+        window->frame_callback,
+        &frame_callback_listener,
+        args
+    );
+}
 void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
 {
@@ -1142,6 +1156,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
+                           request_frame(window, frame_args);
   return wm->window_count++;
 }
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
