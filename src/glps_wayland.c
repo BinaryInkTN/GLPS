@@ -846,7 +846,6 @@ struct wl_registry_listener registry_listener = {
     .global        = handle_global,
     .global_remove = handle_global_remove,
 };
-
 void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
 {
@@ -877,10 +876,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     args->wm->callbacks.window_frame_update_callback(
         args->window_id, args->wm->callbacks.window_frame_update_data);
   }
-
-  wl_surface_commit(window->wl_surface);
 }
-
 struct wl_callback_listener frame_callback_listener = {
     .done = frame_callback_done,
 };
