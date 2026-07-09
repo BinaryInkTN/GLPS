@@ -1143,12 +1143,6 @@ wm->windows[wm->window_count] = window;
 
   request_frame(window, frame_args);
 
-
-  /* wl_surface_frame() only fires its callback on a subsequent commit that
-   * carries a buffer. Nothing up to this point has attached one -- the
-   * earlier wl_surface_commit() ran before the EGL surface existed -- so
-   * without this swap the callback registered above never fires and no
-   * window content is ever posted either. */
   if (eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface) == EGL_FALSE)
   {
     LOG_ERROR("Initial eglSwapBuffers failed for window id %zu (eglGetError: 0x%x)",
