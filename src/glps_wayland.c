@@ -105,10 +105,6 @@ void wl_update(glps_WindowManager *wm, size_t window_id)
   if (wm == NULL)
     return;
 
-  int width  = wm->windows[window_id]->properties.width;
-  int height = wm->windows[window_id]->properties.height;
-  wl_surface_damage(wm->windows[window_id]->wl_surface, 0, 0, width, height);
-  wl_surface_commit(wm->windows[window_id]->wl_surface);
 }
 
 ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
