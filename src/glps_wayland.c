@@ -1097,7 +1097,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   // Store window in array before first commit so configure handler can find it
   wm->windows[wm->window_count] = window;
   
-  wl_surface_commit(window->wl_surface);
+wl_surface_commit(window->wl_surface);
   
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {

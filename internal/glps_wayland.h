@@ -146,7 +146,7 @@ bool glps_wl_should_close(glps_WindowManager *wm);
 void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id);
 void glps_wl_cursor_change(glps_WindowManager* wm, GLPS_CURSOR_TYPE user_cursor);
 
-void glps_wl_destroy();
+void glps_wl_destroy(glps_WindowManager *wm);
 
 extern struct xdg_wm_base_listener xdg_wm_base_listener;
 
