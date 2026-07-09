@@ -856,7 +856,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
 struct wl_callback_listener frame_callback_listener = {
     .done = frame_callback_done,
 };
-
 void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                int32_t width, int32_t height,
                                struct wl_array *states)
@@ -872,7 +871,8 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
   {
     window->properties.height = height;
     window->properties.width  = width;
-    wl_egl_window_resize(window->egl_window, width, height, 0, 0);
+    if (window->egl_window != NULL)
+      wl_egl_window_resize(window->egl_window, width, height, 0, 0);
   }
 
   if (wm->callbacks.window_resize_callback)
@@ -882,7 +882,9 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          window->properties.height,
                                          wm->callbacks.window_resize_data);
   }
-  wl_update(wm, window_id);
+
+  if (window->egl_window != NULL)
+    wl_update(wm, window_id);
 }
 
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
@@ -1078,6 +1080,10 @@ static void _cleanup_wl(glps_WindowManager *wm)
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
+  /* Initial commit: no buffer attached. This is what the xdg-shell
+     protocol requires to solicit the first configure event. Weston
+     enforces this strictly; nothing else may be committed with a
+     buffer until that configure has been ack'd. */
   wl_surface_commit(window->wl_surface);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
@@ -1140,7 +1146,14 @@ static void _cleanup_wl(glps_WindowManager *wm)
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
 
-  wl_surface_commit(window->wl_surface);
+  if (wm->egl_ctx != NULL && wm->egl_ctx->dpy != EGL_NO_DISPLAY)
+  {
+    glps_egl_make_ctx_current(wm, wm->window_count);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface);
+  }
+
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
   return wm->window_count++;
