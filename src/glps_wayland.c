@@ -85,10 +85,29 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
     window->egl_surface = EGL_NO_SURFACE;
   }
 
-  wl_egl_window_destroy(window->egl_window);
-  xdg_toplevel_destroy(window->xdg_toplevel);
-  xdg_surface_destroy(window->xdg_surface);
-  wl_surface_destroy(window->wl_surface);
+  if (window->egl_window != NULL)
+  {
+    wl_egl_window_destroy(window->egl_window);
+    window->egl_window = NULL;
+  }
+
+  if (window->xdg_toplevel != NULL)
+  {
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    window->xdg_toplevel = NULL;
+  }
+
+  if (window->xdg_surface != NULL)
+  {
+    xdg_surface_destroy(window->xdg_surface);
+    window->xdg_surface = NULL;
+  }
+
+  if (window->wl_surface != NULL)
+  {
+    wl_surface_destroy(window->wl_surface);
+    window->wl_surface = NULL;
+  }
 
   free(window);
   wm->windows[window_id] = NULL;
@@ -102,12 +121,12 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
 
 void wl_update(glps_WindowManager *wm, size_t window_id)
 {
-  if (wm == NULL)
+  if (wm == NULL || wm->windows[window_id] == NULL)
     return;
 
   int width  = wm->windows[window_id]->properties.width;
   int height = wm->windows[window_id]->properties.height;
-  wl_surface_damage(wm->windows[window_id]->wl_surface, 0, 0, width, height);
+  wl_surface_damage_buffer(wm->windows[window_id]->wl_surface, 0, 0, width, height);
   wl_surface_commit(wm->windows[window_id]->wl_surface);
 }
 
@@ -858,6 +877,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
 struct wl_callback_listener frame_callback_listener = {
     .done = frame_callback_done,
 };
+
 void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                int32_t width, int32_t height,
                                struct wl_array *states)
@@ -884,26 +904,8 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          window->properties.height,
                                          wm->callbacks.window_resize_data);
   }
-  if (window->egl_window != NULL)
-    wl_update(wm, window_id);
 }
-void glps_wl_flush(glps_WindowManager *wm)
-{
-  if (wm == NULL || wm->wayland_ctx == NULL || wm->wayland_ctx->wl_display == NULL)
-    return;
 
-      wl_surface_damage_buffer(
-        wm->windows[0]->wl_surface,
-        0,
-        0,
-        wm->windows[0]->properties.width,
-        wm->windows[0]->properties.height
-    );
-
-    wl_surface_commit(wm->windows[0]->wl_surface);
-
-  wl_display_flush(wm->wayland_ctx->wl_display);
-}
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;
@@ -1039,7 +1041,9 @@ static void _cleanup_wl(glps_WindowManager *wm)
     free(wm->wayland_ctx);
     wm->wayland_ctx = NULL;
   }
-}ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
+}
+
+ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
   glps_WaylandWindow *window = malloc(sizeof(glps_WaylandWindow));
@@ -1074,15 +1078,8 @@ static void _cleanup_wl(glps_WindowManager *wm)
     return -1;
   }
 
-  if (xdg_surface_add_listener(window->xdg_surface,
-                               &xdg_surface_listener, wm) == -1)
-  {
-    LOG_ERROR("Failed to add XDG surface listener");
-    xdg_surface_destroy(window->xdg_surface);
-    wl_surface_destroy(window->wl_surface);
-    free(window);
-    return -1;
-  }
+  xdg_surface_add_listener(window->xdg_surface,
+                           &xdg_surface_listener, wm);
 
   window->xdg_toplevel = xdg_surface_get_toplevel(window->xdg_surface);
   if (!window->xdg_toplevel)
@@ -1097,19 +1094,43 @@ static void _cleanup_wl(glps_WindowManager *wm)
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
-  /* Initial commit: no buffer attached. This is what xdg-shell
-     requires to solicit the first configure event. Weston enforces
-     this strictly, so nothing else may be committed with a buffer
-     until that configure has been ack'd (done inside
-     xdg_surface_configure(), which fires during this roundtrip). */
+  // Store window in array before first commit so configure handler can find it
+  wm->windows[wm->window_count] = window;
+  
+  // FIX 1: Initial commit with NO buffer attached
+  // This is required by xdg-shell protocol to get the initial configure event
+  // Weston strictly enforces this
   wl_surface_commit(window->wl_surface);
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
-
-  if (wm->window_count == 0)
+  
+  // FIX 2: Wait for compositor to process the commit and send configure events
+  // This roundtrip ensures we receive xdg_surface.configure before proceeding
+  if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
-    glps_egl_create_ctx(wm);
+    LOG_ERROR("Roundtrip failed while waiting for initial configure");
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
+    free(window);
+    return -1;
   }
 
+  // FIX 3: Create EGL context only for the first window
+  if (wm->window_count == 0)
+  {
+    if (!glps_egl_create_ctx(wm))
+    {
+      LOG_ERROR("Failed to create EGL context");
+      xdg_toplevel_destroy(window->xdg_toplevel);
+      xdg_surface_destroy(window->xdg_surface);
+      wl_surface_destroy(window->wl_surface);
+      wm->windows[wm->window_count] = NULL;
+      free(window);
+      return -1;
+    }
+  }
+
+  // FIX 4: Create EGL window AFTER receiving configure
   window->egl_window = wl_egl_window_create(
       window->wl_surface, window->properties.width, window->properties.height);
   if (!window->egl_window)
@@ -1118,6 +1139,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
     xdg_toplevel_destroy(window->xdg_toplevel);
     xdg_surface_destroy(window->xdg_surface);
     wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
     free(window);
     return -1;
   }
@@ -1132,12 +1154,12 @@ static void _cleanup_wl(glps_WindowManager *wm)
     xdg_toplevel_destroy(window->xdg_toplevel);
     xdg_surface_destroy(window->xdg_surface);
     wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
     free(window);
     return -1;
   }
 
-  wm->windows[wm->window_count] = window;
-
+  // FIX 5: Make EGL context current for first window
   if (wm->window_count == 0)
   {
     glps_egl_make_ctx_current(wm, 0);
@@ -1163,8 +1185,14 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
+  
+  // FIX 6: Commit with damage to trigger first frame
+  wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
+  wl_surface_commit(window->wl_surface);
+  
   return wm->window_count++;
 }
+
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
                                  size_t window_id)
 {
@@ -1190,7 +1218,30 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
   xdg_toplevel_set_max_size(window->xdg_toplevel,
                             state ? INT32_MAX : window_width,
                             state ? INT32_MAX : window_height);
-}bool glps_wl_should_close(glps_WindowManager *wm)
+}
+
+void glps_wl_flush(glps_WindowManager *wm)
+{
+  if (wm == NULL || wm->wayland_ctx == NULL || wm->wayland_ctx->wl_display == NULL)
+    return;
+
+  if (wm->windows[0] != NULL && wm->windows[0]->wl_surface != NULL)
+  {
+    wl_surface_damage_buffer(
+        wm->windows[0]->wl_surface,
+        0,
+        0,
+        wm->windows[0]->properties.width,
+        wm->windows[0]->properties.height
+    );
+
+    wl_surface_commit(wm->windows[0]->wl_surface);
+  }
+
+  wl_display_flush(wm->wayland_ctx->wl_display);
+}
+
+bool glps_wl_should_close(glps_WindowManager *wm)
 {
     if (wm == NULL)
         return true;
@@ -1198,19 +1249,28 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
     if (wm->should_close)
         return true;
 
-    struct wl_display *display =
-        wm->wayland_ctx->wl_display;
+    struct wl_display *display = wm->wayland_ctx->wl_display;
 
-
+    // FIX 7: Proper event loop implementation
+    // First dispatch any pending events
     while (wl_display_prepare_read(display) != 0)
     {
-        wl_display_dispatch_pending(display);
+        if (wl_display_dispatch_pending(display) == -1)
+        {
+            LOG_ERROR("Wayland dispatch pending failed");
+            return true;
+        }
     }
 
+    // Flush outgoing requests
+    if (wl_display_flush(display) == -1)
+    {
+        LOG_ERROR("Wayland flush failed");
+        wl_display_cancel_read(display);
+        return true;
+    }
 
-    wl_display_flush(display);
-
-
+    // Wait for events
     if (wl_display_read_events(display) == -1)
     {
         LOG_ERROR("Wayland read events failed");
@@ -1218,9 +1278,12 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
         return true;
     }
 
-
-    wl_display_dispatch_pending(display);
-
+    // Dispatch received events
+    if (wl_display_dispatch_pending(display) == -1)
+    {
+        LOG_ERROR("Wayland dispatch pending failed after read");
+        return true;
+    }
 
     return false;
 }
@@ -1264,7 +1327,6 @@ bool glps_wl_init(glps_WindowManager *wm)
   wm->wayland_ctx->wl_keyboard         = NULL;
   wm->wayland_ctx->xkb_state           = NULL;
   wm->wayland_ctx->xkb_keymap          = NULL;
-  wm->wayland_ctx->xkb_context         = NULL;
   wm->wayland_ctx->xkb_context         = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
   wm->wayland_ctx->wl_display = wl_display_connect(NULL);
@@ -1292,9 +1354,30 @@ bool glps_wl_init(glps_WindowManager *wm)
   wl_registry_add_listener(wm->wayland_ctx->wl_registry,
                            &registry_listener, wm);
 
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
+  // FIX 8: Properly handle roundtrips with error checking
+  // First roundtrip to get globals
+  if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
+  {
+    LOG_ERROR("First roundtrip failed");
+    wl_registry_destroy(wm->wayland_ctx->wl_registry);
+    wl_display_disconnect(wm->wayland_ctx->wl_display);
+    free(wm->wayland_ctx);
+    free(wm->windows);
+    free(wm);
+    return false;
+  }
 
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
+  // Second roundtrip to get seat capabilities and other events
+  if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
+  {
+    LOG_ERROR("Second roundtrip failed");
+    wl_registry_destroy(wm->wayland_ctx->wl_registry);
+    wl_display_disconnect(wm->wayland_ctx->wl_display);
+    free(wm->wayland_ctx);
+    free(wm->windows);
+    free(wm);
+    return false;
+  }
 
   if (wm->wayland_ctx->xdg_wm_base)
   {
