@@ -9,16 +9,21 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 option(GLPS_INCLUDE_VULKAN "Enable Vulkan support in GLPS" OFF)
 option(GLPS_FORCE_WAYLAND "Force Wayland backend" OFF)
 
+
 if(GLPS_INCLUDE_VULKAN)
     find_package(Vulkan REQUIRED)
     add_compile_definitions(GLPS_USE_VULKAN)
 endif()
 
+
+#
+# Windows
+#
 if(WIN32)
 
-    message(STATUS "Building for Windows")
+    message(STATUS "Building Windows backend")
 
-    add_library(${PROJECT_NAME} 
+    add_library(${PROJECT_NAME}
         src/glps_wgl_context.c
         src/glps_win32.c
         src/glps_window_manager.c
@@ -31,225 +36,356 @@ if(WIN32)
         _CRT_SECURE_NO_WARNINGS
     )
 
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -Wall
-        -Wextra
-    )
-
     target_link_libraries(${PROJECT_NAME} PRIVATE
         opengl32
         gdi32
         user32
     )
 
+
+#
+# Linux
+#
 elseif(UNIX AND NOT APPLE)
 
     message(STATUS "Configuring Linux backend")
 
+
     find_package(PkgConfig REQUIRED)
 
-    pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-egl)
-    pkg_check_modules(EGL REQUIRED egl)
-    pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 
-    find_program(WAYLAND_SCANNER_EXECUTABLE wayland-scanner)
-    if(NOT WAYLAND_SCANNER_EXECUTABLE)
-        message(FATAL_ERROR "wayland-scanner not found")
-    endif()
-
-    execute_process(
-        COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
-        OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
+    pkg_check_modules(WAYLAND REQUIRED
+        wayland-client
+        wayland-egl
     )
 
-    if(NOT WAYLAND_PROTOCOLS_DIR)
-        message(FATAL_ERROR "Could not determine wayland-protocols directory")
+
+    pkg_check_modules(EGL REQUIRED egl)
+
+    pkg_check_modules(ALSA REQUIRED alsa)
+
+
+    #
+    # Wayland scanner from Yocto or system
+    #
+    if(NOT WAYLAND_SCANNER)
+
+        find_program(
+            WAYLAND_SCANNER
+            wayland-scanner
+            REQUIRED
+        )
+
     endif()
 
-    message(STATUS "Wayland protocols directory: ${WAYLAND_PROTOCOLS_DIR}")
 
-    set(XDG_PROTOCOL_DIR ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell)
-    set(XDG_PROTOCOL_XML ${XDG_PROTOCOL_DIR}/xdg-shell.xml)
+    #
+    # Wayland protocols path
+    #
+    if(NOT WAYLAND_PROTOCOLS_DIR)
+
+        execute_process(
+            COMMAND
+                ${PKG_CONFIG_EXECUTABLE}
+                --variable=pkgdatadir
+                wayland-protocols
+
+            OUTPUT_VARIABLE WAYLAND_PROTOCOLS_DIR
+
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+    endif()
+
+
+    message(STATUS
+        "Wayland scanner: ${WAYLAND_SCANNER}"
+    )
+
+    message(STATUS
+        "Wayland protocols: ${WAYLAND_PROTOCOLS_DIR}"
+    )
+
+
+    set(XDG_PROTOCOL_XML
+        ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
+    )
+
 
     if(NOT EXISTS ${XDG_PROTOCOL_XML})
-        message(FATAL_ERROR "xdg-shell.xml not found at ${XDG_PROTOCOL_XML}")
+
+        message(FATAL_ERROR
+            "Missing xdg-shell.xml: ${XDG_PROTOCOL_XML}"
+        )
+
     endif()
 
-    # Create xdg directory in GLPS internal folder
-    set(GLPS_INTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/internal)
-    set(XDG_HEADER_DIR ${GLPS_INTERNAL_DIR}/xdg)
-    file(MAKE_DIRECTORY ${XDG_HEADER_DIR})
 
-    set(GENERATED_XDG_HEADER ${XDG_HEADER_DIR}/xdg-shell.h)
-    set(GENERATED_XDG_SOURCE ${XDG_HEADER_DIR}/xdg-shell-protocol.c)
 
-    # Generate during configuration
-    execute_process(
-        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${XDG_PROTOCOL_XML} ${GENERATED_XDG_HEADER}
-        RESULT_VARIABLE XDG_HEADER_RESULT
-        OUTPUT_QUIET
-        ERROR_QUIET
+    #
+    # Generate protocol files
+    #
+    # Result:
+    #
+    # build/generated/xdg/
+    #       xdg-shell.h
+    #       xdg-shell-protocol.c
+    #
+    #
+
+    set(GENERATED_XDG_DIR
+        ${CMAKE_BINARY_DIR}/generated/xdg
     )
 
-    if(NOT XDG_HEADER_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to generate xdg-shell.h")
-    endif()
 
-    execute_process(
-        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} public-code ${XDG_PROTOCOL_XML} ${GENERATED_XDG_SOURCE}
-        RESULT_VARIABLE XDG_SOURCE_RESULT
-        OUTPUT_QUIET
-        ERROR_QUIET
+    file(MAKE_DIRECTORY
+        ${GENERATED_XDG_DIR}
     )
 
-    if(NOT XDG_SOURCE_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to generate xdg-shell-protocol.c")
-    endif()
 
-    message(STATUS "Generated xdg-shell headers in ${XDG_HEADER_DIR}")
+    set(GENERATED_XDG_HEADER
+        ${GENERATED_XDG_DIR}/xdg-shell.h
+    )
 
-    set(CURRENT_SESSION_TYPE "auto")
 
-    if(DEFINED ENV{XDG_SESSION_TYPE})
-        set(CURRENT_SESSION_TYPE $ENV{XDG_SESSION_TYPE})
-    endif()
+    set(GENERATED_XDG_SOURCE
+        ${GENERATED_XDG_DIR}/xdg-shell-protocol.c
+    )
 
-    set(USE_WAYLAND OFF)
 
-    if(GLPS_FORCE_WAYLAND OR CURRENT_SESSION_TYPE STREQUAL "wayland")
-        set(USE_WAYLAND ON)
-    endif()
+    add_custom_command(
+        OUTPUT
+            ${GENERATED_XDG_HEADER}
 
-    if(USE_WAYLAND)
+        COMMAND
+            ${WAYLAND_SCANNER}
+            client-header
+            ${XDG_PROTOCOL_XML}
+            ${GENERATED_XDG_HEADER}
+
+        DEPENDS
+            ${XDG_PROTOCOL_XML}
+    )
+
+
+    add_custom_command(
+        OUTPUT
+            ${GENERATED_XDG_SOURCE}
+
+        COMMAND
+            ${WAYLAND_SCANNER}
+            public-code
+            ${XDG_PROTOCOL_XML}
+            ${GENERATED_XDG_SOURCE}
+
+        DEPENDS
+            ${XDG_PROTOCOL_XML}
+    )
+
+
+    add_custom_target(
+        generate_wayland_protocols
+
+        DEPENDS
+            ${GENERATED_XDG_HEADER}
+            ${GENERATED_XDG_SOURCE}
+    )
+
+
+    #
+    # Backend selection
+    #
+
+    if(GLPS_FORCE_WAYLAND)
 
         message(STATUS "Building Wayland backend")
 
-        add_library(${PROJECT_NAME} 
+
+        add_library(${PROJECT_NAME}
+
             src/glps_wayland.c
             src/glps_egl_context.c
             src/glps_window_manager.c
+
             src/utils/logger/pico_logger.c
+
             src/glps_thread.c
             src/glps_audio_stream.c
             src/glps_timer.c
+
             ${GENERATED_XDG_SOURCE}
         )
 
-        target_compile_definitions(${PROJECT_NAME} PRIVATE
-            GLPS_USE_WAYLAND
+
+        add_dependencies(
+            ${PROJECT_NAME}
+            generate_wayland_protocols
         )
 
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            -Wall
-            -Wextra
-            -Wno-unused-variable
-            -Wno-unused-parameter
+
+        target_compile_definitions(${PROJECT_NAME}
+            PRIVATE
+                GLPS_USE_WAYLAND
         )
 
-        target_include_directories(${PROJECT_NAME} PRIVATE
-            ${WAYLAND_INCLUDE_DIRS}
-            ${EGL_INCLUDE_DIRS}
-            ${GLPS_INTERNAL_DIR}
+
+        target_include_directories(${PROJECT_NAME}
+            PRIVATE
+
+                ${WAYLAND_INCLUDE_DIRS}
+                ${EGL_INCLUDE_DIRS}
+                ${ALSA_INCLUDE_DIRS}
+
+                # Allows:
+                # #include "xdg/xdg-shell.h"
+                ${CMAKE_BINARY_DIR}/generated
         )
 
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            ${WAYLAND_LIBRARIES}
-            ${EGL_LIBRARIES}
-            GLESv2
-            xkbcommon
-            pthread
-            asound
-            rt
-            m
+
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+
+                ${WAYLAND_LIBRARIES}
+                ${EGL_LIBRARIES}
+                ${ALSA_LIBRARIES}
+
+                GLESv2
+                xkbcommon
+                pthread
+                rt
+                m
         )
 
-        set_source_files_properties(${GENERATED_XDG_SOURCE} PROPERTIES GENERATED TRUE)
 
     else()
 
         message(STATUS "Building X11 backend")
 
-        find_package(X11 REQUIRED)
-        pkg_check_modules(EGL REQUIRED egl)
 
-        add_library(${PROJECT_NAME} 
+        pkg_check_modules(X11 REQUIRED x11)
+
+
+        add_library(${PROJECT_NAME}
+
             src/glps_x11.c
             src/glps_egl_context.c
             src/glps_window_manager.c
+
             src/utils/logger/pico_logger.c
+
             src/glps_thread.c
             src/glps_audio_stream.c
             src/glps_timer.c
         )
 
-        target_compile_definitions(${PROJECT_NAME} PRIVATE
-            GLPS_USE_X11
+
+        target_compile_definitions(${PROJECT_NAME}
+            PRIVATE
+                GLPS_USE_X11
         )
 
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            -Wall
-            -Wextra
-            -Wno-unused-variable
-            -Wno-unused-parameter
+
+        target_include_directories(${PROJECT_NAME}
+            PRIVATE
+
+                ${X11_INCLUDE_DIRS}
+                ${EGL_INCLUDE_DIRS}
+                ${ALSA_INCLUDE_DIRS}
         )
 
-        target_include_directories(${PROJECT_NAME} PRIVATE
-            ${X11_INCLUDE_DIRS}
-            ${EGL_INCLUDE_DIRS}
+
+        target_link_libraries(${PROJECT_NAME}
+            PRIVATE
+
+                ${X11_LIBRARIES}
+                ${EGL_LIBRARIES}
+                ${ALSA_LIBRARIES}
+
+                GLESv2
+                pthread
+                rt
+                m
         )
 
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            ${X11_LIBRARIES}
-            ${EGL_LIBRARIES}
-            GLESv2
-            pthread
-            asound
-            rt
-            m
-        )
 
     endif()
 
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-        /usr/include/glib-2.0
-        /usr/lib/glib-2.0/include
-        /usr/include/pixman-1
-        /usr/include/libdrm
-        /usr/include/alsa
-    )
 
 else()
-    message(FATAL_ERROR "Unsupported platform")
+
+    message(FATAL_ERROR
+        "Unsupported platform"
+    )
+
 endif()
 
+
+
+#
+# Common includes
+#
+
 target_include_directories(${PROJECT_NAME}
+
     PUBLIC
+
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+
         $<INSTALL_INTERFACE:include/GLPS>
+
+
     PRIVATE
+
         ${PROJECT_SOURCE_DIR}/internal
 )
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/GLPS)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/internal/ DESTINATION include/GLPS)
 
-install(TARGETS ${PROJECT_NAME}
+
+#
+# Install
+#
+
+install(
+    DIRECTORY
+        include/
+
+    DESTINATION
+        include/GLPS
+)
+
+
+install(
+    TARGETS ${PROJECT_NAME}
+
     EXPORT GLPSConfig
+
     LIBRARY DESTINATION lib
+
     ARCHIVE DESTINATION lib
+
     RUNTIME DESTINATION bin
 )
 
-install(EXPORT GLPSConfig
+
+install(
+    EXPORT GLPSConfig
+
     FILE GLPSConfig.cmake
+
     NAMESPACE GLPS::
+
     DESTINATION lib/cmake/GLPS
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION 1
+
+set_target_properties(${PROJECT_NAME}
+
+    PROPERTIES
+
+        VERSION ${PROJECT_VERSION}
+
+        SOVERSION 1
 )
+
 
 enable_testing()
