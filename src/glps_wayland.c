@@ -1149,14 +1149,11 @@ static void _cleanup_wl(glps_WindowManager *wm)
     free(window);
     return -1;
   }
-  window->frame_callback = wl_surface_frame(window->wl_surface);
   frame_args->wm         = wm;
   frame_args->window_id  = wm->window_count;
   window->frame_args     = (void *)frame_args;
 
-  wl_callback_add_listener(window->frame_callback,
-                           &frame_callback_listener, frame_args);
-                           request_frame(window, frame_args);
+  request_frame(window, frame_args);
   return wm->window_count++;
 }
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
