@@ -16,14 +16,13 @@ option(GLPS_FORCE_WAYLAND "Force Wayland backend" OFF)
 # ==================================================
 
 if(GLPS_INCLUDE_VULKAN)
-
     find_package(Vulkan REQUIRED)
-
 endif()
 
 
+
 # ==================================================
-# Windows
+# Platform
 # ==================================================
 
 if(WIN32)
@@ -31,7 +30,7 @@ if(WIN32)
     message(STATUS "Building Windows backend")
 
 
-    add_library(${PROJECT_NAME}
+    add_library(GLPS
 
         src/glps_wgl_context.c
         src/glps_win32.c
@@ -42,7 +41,7 @@ if(WIN32)
     )
 
 
-    target_compile_definitions(${PROJECT_NAME}
+    target_compile_definitions(GLPS
         PRIVATE
 
             GLPS_USE_WIN32
@@ -50,8 +49,7 @@ if(WIN32)
     )
 
 
-    target_link_libraries(${PROJECT_NAME}
-
+    target_link_libraries(GLPS
         PRIVATE
 
             opengl32
@@ -60,9 +58,6 @@ if(WIN32)
     )
 
 
-# ==================================================
-# Linux
-# ==================================================
 
 elseif(UNIX AND NOT APPLE)
 
@@ -79,7 +74,7 @@ elseif(UNIX AND NOT APPLE)
 
 
     # ==================================================
-    # Wayland backend
+    # Wayland
     # ==================================================
 
     if(GLPS_FORCE_WAYLAND)
@@ -89,7 +84,6 @@ elseif(UNIX AND NOT APPLE)
 
 
         pkg_check_modules(WAYLAND REQUIRED
-
             wayland-client
             wayland-egl
             wayland-protocols
@@ -117,7 +111,6 @@ elseif(UNIX AND NOT APPLE)
 
 
         set(XDG_PROTOCOL_XML
-
             ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
         )
 
@@ -132,36 +125,21 @@ elseif(UNIX AND NOT APPLE)
 
 
 
-        message(STATUS
-            "Wayland scanner: ${WAYLAND_SCANNER}"
-        )
-
-
-        message(STATUS
-            "Wayland protocols: ${WAYLAND_PROTOCOLS_DIR}"
-        )
-
-
-
-        # -----------------------------
-        # Generated Wayland protocol
-        # -----------------------------
-
+        # -------------------------------
+        # Generate xdg-shell protocol
+        # -------------------------------
 
         set(GENERATED_XDG_DIR
-
-            ${CMAKE_BINARY_DIR}/generated/xdg
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/xdg
         )
 
 
         set(GENERATED_XDG_HEADER
-
             ${GENERATED_XDG_DIR}/xdg-shell.h
         )
 
 
         set(GENERATED_XDG_SOURCE
-
             ${GENERATED_XDG_DIR}/xdg-shell-protocol.c
         )
 
@@ -170,31 +148,21 @@ elseif(UNIX AND NOT APPLE)
         add_custom_command(
 
             OUTPUT
-
                 ${GENERATED_XDG_HEADER}
 
-
             COMMAND
-
                 ${CMAKE_COMMAND}
                 -E
                 make_directory
                 ${GENERATED_XDG_DIR}
 
-
             COMMAND
-
                 ${WAYLAND_SCANNER}
-
                 client-header
-
                 ${XDG_PROTOCOL_XML}
-
                 ${GENERATED_XDG_HEADER}
 
-
             DEPENDS
-
                 ${XDG_PROTOCOL_XML}
 
         )
@@ -204,31 +172,21 @@ elseif(UNIX AND NOT APPLE)
         add_custom_command(
 
             OUTPUT
-
                 ${GENERATED_XDG_SOURCE}
 
-
             COMMAND
-
                 ${CMAKE_COMMAND}
                 -E
                 make_directory
                 ${GENERATED_XDG_DIR}
 
-
             COMMAND
-
                 ${WAYLAND_SCANNER}
-
                 public-code
-
                 ${XDG_PROTOCOL_XML}
-
                 ${GENERATED_XDG_SOURCE}
 
-
             DEPENDS
-
                 ${XDG_PROTOCOL_XML}
 
         )
@@ -248,43 +206,32 @@ elseif(UNIX AND NOT APPLE)
 
 
 
-        add_library(${PROJECT_NAME}
-
+        add_library(GLPS
 
             src/glps_wayland.c
-
             src/glps_egl_context.c
-
             src/glps_window_manager.c
-
 
             src/utils/logger/pico_logger.c
 
             src/glps_thread.c
-
             src/glps_audio_stream.c
-
             src/glps_timer.c
 
 
-            # Generated Wayland code
-
             ${GENERATED_XDG_SOURCE}
+            ${GENERATED_XDG_HEADER}
 
         )
 
 
-
-        add_dependencies(
-
-            ${PROJECT_NAME}
-
+        add_dependencies(GLPS
             generate_wayland_protocols
         )
 
 
 
-        target_compile_definitions(${PROJECT_NAME}
+        target_compile_definitions(GLPS
 
             PRIVATE
 
@@ -293,9 +240,20 @@ elseif(UNIX AND NOT APPLE)
 
 
 
-        target_include_directories(${PROJECT_NAME}
+        target_include_directories(GLPS
+
+            PUBLIC
+
+                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+
+                $<BUILD_INTERFACE:${GENERATED_XDG_DIR}>
+
+                $<INSTALL_INTERFACE:include/GLPS>
+
 
             PRIVATE
+
+                ${PROJECT_SOURCE_DIR}/internal
 
                 ${WAYLAND_INCLUDE_DIRS}
 
@@ -303,16 +261,11 @@ elseif(UNIX AND NOT APPLE)
 
                 ${ALSA_INCLUDE_DIRS}
 
-
-                # Contains xdg-shell.h
-
-                ${GENERATED_XDG_DIR}
-
         )
 
 
 
-        target_link_libraries(${PROJECT_NAME}
+        target_link_libraries(GLPS
 
             PRIVATE
 
@@ -321,7 +274,6 @@ elseif(UNIX AND NOT APPLE)
                 ${EGL_LIBRARIES}
 
                 ${ALSA_LIBRARIES}
-
 
                 GLESv2
 
@@ -332,13 +284,12 @@ elseif(UNIX AND NOT APPLE)
                 rt
 
                 m
-
         )
 
 
 
     # ==================================================
-    # X11 backend
+    # X11
     # ==================================================
 
     else()
@@ -351,29 +302,22 @@ elseif(UNIX AND NOT APPLE)
 
 
 
-        add_library(${PROJECT_NAME}
-
+        add_library(GLPS
 
             src/glps_x11.c
-
             src/glps_egl_context.c
-
             src/glps_window_manager.c
-
 
             src/utils/logger/pico_logger.c
 
             src/glps_thread.c
-
             src/glps_audio_stream.c
-
             src/glps_timer.c
-
         )
 
 
 
-        target_compile_definitions(${PROJECT_NAME}
+        target_compile_definitions(GLPS
 
             PRIVATE
 
@@ -381,22 +325,29 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
+        target_include_directories(GLPS
 
-        target_include_directories(${PROJECT_NAME}
+            PUBLIC
+
+                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+
+                $<INSTALL_INTERFACE:include/GLPS>
+
 
             PRIVATE
+
+                ${PROJECT_SOURCE_DIR}/internal
 
                 ${X11_INCLUDE_DIRS}
 
                 ${EGL_INCLUDE_DIRS}
 
                 ${ALSA_INCLUDE_DIRS}
-
         )
 
 
 
-        target_link_libraries(${PROJECT_NAME}
+        target_link_libraries(GLPS
 
             PRIVATE
 
@@ -406,7 +357,6 @@ elseif(UNIX AND NOT APPLE)
 
                 ${ALSA_LIBRARIES}
 
-
                 GLESv2
 
                 pthread
@@ -414,7 +364,6 @@ elseif(UNIX AND NOT APPLE)
                 rt
 
                 m
-
         )
 
 
@@ -424,36 +373,9 @@ elseif(UNIX AND NOT APPLE)
 
 else()
 
-
-    message(FATAL_ERROR
-
-        "Unsupported platform"
-
-    )
-
+    message(FATAL_ERROR "Unsupported platform")
 
 endif()
-
-
-
-# ==================================================
-# Common include directories
-# ==================================================
-
-target_include_directories(${PROJECT_NAME}
-
-    PUBLIC
-
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-
-        $<INSTALL_INTERFACE:include/GLPS>
-
-
-    PRIVATE
-
-        ${PROJECT_SOURCE_DIR}/internal
-
-)
 
 
 
@@ -463,21 +385,15 @@ target_include_directories(${PROJECT_NAME}
 
 install(
 
-    DIRECTORY
+    DIRECTORY include/
 
-        include/
-
-
-    DESTINATION
-
-        include/GLPS
+    DESTINATION include/GLPS
 )
-
 
 
 install(
 
-    TARGETS ${PROJECT_NAME}
+    TARGETS GLPS
 
     EXPORT GLPSConfig
 
@@ -486,9 +402,7 @@ install(
     ARCHIVE DESTINATION lib
 
     RUNTIME DESTINATION bin
-
 )
-
 
 
 install(
@@ -500,19 +414,16 @@ install(
     NAMESPACE GLPS::
 
     DESTINATION lib/cmake/GLPS
-
 )
 
 
-
-set_target_properties(${PROJECT_NAME}
+set_target_properties(GLPS
 
     PROPERTIES
 
         VERSION ${PROJECT_VERSION}
 
         SOVERSION 1
-
 )
 
 
