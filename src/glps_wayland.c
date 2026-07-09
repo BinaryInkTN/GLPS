@@ -79,6 +79,12 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
     window->frame_callback = NULL;
   }
 
+  if (window->egl_surface != EGL_NO_SURFACE)
+  {
+    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+    window->egl_surface = EGL_NO_SURFACE;
+  }
+
   wl_egl_window_destroy(window->egl_window);
   xdg_toplevel_destroy(window->xdg_toplevel);
   xdg_surface_destroy(window->xdg_surface);
@@ -125,8 +131,6 @@ ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
 
   return -1;
 }
-
-
 
 struct wl_callback_listener frame_callback_listener;
 
@@ -221,6 +225,20 @@ void wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
   context->pointer_event.event_mask           |= POINTER_EVENT_AXIS_DISCRETE;
   context->pointer_event.axes[axis].valid      = true;
   context->pointer_event.axes[axis].discrete   = discrete;
+}
+
+void wl_pointer_axis_value120(void *data, struct wl_pointer *wl_pointer,
+                               uint32_t axis, int32_t value120)
+{
+  glps_WindowManager *context = (glps_WindowManager *)data;
+  context->pointer_event.event_mask           |= POINTER_EVENT_AXIS_DISCRETE;
+  context->pointer_event.axes[axis].valid      = true;
+  context->pointer_event.axes[axis].discrete   = value120 / 120;
+}
+
+void wl_pointer_axis_relative_direction(void *data, struct wl_pointer *wl_pointer,
+                                         uint32_t axis, uint32_t direction)
+{
 }
 
 void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
@@ -328,18 +346,18 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 }
 
 struct wl_pointer_listener wl_pointer_listener = {
-    .enter         = wl_pointer_enter,
-    .leave         = wl_pointer_leave,
-    .motion        = wl_pointer_motion,
-    .button        = wl_pointer_button,
-    .axis          = wl_pointer_axis,
-    .frame         = wl_pointer_frame,
-    .axis_source   = wl_pointer_axis_source,
-    .axis_stop     = wl_pointer_axis_stop,
-    .axis_discrete = wl_pointer_axis_discrete,
+    .enter                   = wl_pointer_enter,
+    .leave                   = wl_pointer_leave,
+    .motion                  = wl_pointer_motion,
+    .button                  = wl_pointer_button,
+    .axis                    = wl_pointer_axis,
+    .frame                   = wl_pointer_frame,
+    .axis_source             = wl_pointer_axis_source,
+    .axis_stop               = wl_pointer_axis_stop,
+    .axis_discrete           = wl_pointer_axis_discrete,
+    .axis_value120           = wl_pointer_axis_value120,
+    .axis_relative_direction = wl_pointer_axis_relative_direction,
 };
-
-
 
 void wl_keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
                         uint32_t format, int32_t fd, uint32_t size)
@@ -392,17 +410,6 @@ void wl_keyboard_enter(void *data, struct wl_keyboard *wl_keyboard,
     wm->callbacks.keyboard_enter_callback(context->keyboard_window_id,
                                           wm->callbacks.keyboard_enter_data);
   }
-
-  uint32_t *key;
-  wl_array_for_each(key, keys)
-  {
-    char buf[128];
-    xkb_keysym_t sym = xkb_state_key_get_one_sym(context->xkb_state, *key + 8);
-    xkb_keysym_get_name(sym, buf, sizeof(buf));
-    fprintf(stderr, "sym: %-12s (%d), ", buf, sym);
-    xkb_state_key_get_utf8(context->xkb_state, *key + 8, buf, sizeof(buf));
-    fprintf(stderr, "utf8: '%s'\n", buf);
-  }
 }
 
 void wl_keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
@@ -428,8 +435,6 @@ void wl_keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
       xkb_state_key_get_utf8(context->xkb_state, keycode, utf8, sizeof(utf8));
   if (utf8_len <= 0 || utf8[0] == '\0')
     utf8[0] = '\0';
-
-  printf("%u \n", keycode);
 
   glps_WindowManager *wm = (glps_WindowManager *)data;
   if (wm->callbacks.keyboard_callback != NULL)
@@ -477,8 +482,6 @@ struct wl_keyboard_listener wl_keyboard_listener = {
     .modifiers   = wl_keyboard_modifiers,
     .repeat_info = wl_keyboard_repeat_info,
 };
-
-
 
 struct touch_point *get_touch_point(void *data, int32_t id)
 {
@@ -708,8 +711,6 @@ struct wl_touch_listener wl_touch_listener = {
     .orientation = wl_touch_orientation,
 };
 
-
-
 void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
                            uint32_t capabilities)
 {
@@ -760,8 +761,6 @@ struct wl_seat_listener wl_seat_listener = {
     .name         = wl_seat_name,
 };
 
-
-
 void data_source_handle_send(void *data, struct wl_data_source *source,
                              const char *mime_type, int fd)
 {
@@ -775,10 +774,6 @@ void data_source_handle_cancelled(void *data, struct wl_data_source *source)
 void data_source_handle_target(void *data, struct wl_data_source *source,
                                const char *mime_type)
 {
-  if (mime_type != NULL)
-    printf("Destination would accept MIME type if dropped: %s\n", mime_type);
-  else
-    printf("Destination would reject if dropped\n");
 }
 
 enum wl_data_device_manager_dnd_action last_dnd_action =
@@ -788,37 +783,15 @@ void data_source_handle_action(void *data, struct wl_data_source *source,
                                uint32_t dnd_action)
 {
   last_dnd_action = dnd_action;
-  switch (dnd_action)
-  {
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
-    printf("Destination would perform a move action if dropped\n");
-    break;
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
-    printf("Destination would perform a copy action if dropped\n");
-    break;
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
-    printf("Destination would reject the drag if dropped\n");
-    break;
-  }
 }
 
 void data_source_handle_dnd_drop_performed(void *data,
                                            struct wl_data_source *source)
 {
-  printf("Drop performed\n");
 }
 
 void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
 {
-  switch (last_dnd_action)
-  {
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
-    printf("Destination has accepted the drop with a move action\n");
-    break;
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
-    printf("Destination has accepted the drop with a copy action\n");
-    break;
-  }
 }
 
 struct wl_data_source_listener data_source_listener = {
@@ -830,8 +803,6 @@ struct wl_data_source_listener data_source_listener = {
     .dnd_finished       = data_source_handle_dnd_finished,
 };
 
-
-
 void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
                              const char *mime_type)
 {
@@ -840,21 +811,11 @@ void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
 void data_offer_handle_source_actions(void *data, struct wl_data_offer *offer,
                                       uint32_t actions)
 {
-  if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE)
-    printf("Drag supports the move action\n");
-  if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
-    printf("Drag supports the copy action\n");
 }
 
 void data_offer_handle_action(void *data, struct wl_data_offer *offer,
                               uint32_t dnd_action)
 {
-  switch (dnd_action)
-  {
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: break;
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: break;
-  case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE: break;
-  }
 }
 
 struct wl_data_offer_listener data_offer_listener = {
@@ -943,6 +904,15 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
       LOG_ERROR("Failed to bind wl_seat.");
     }
   }
+  else if (strcmp(interface, "wl_data_device_manager") == 0)
+  {
+    s->wl_data_device_manager = wl_registry_bind(registry, id,
+                                                  &wl_data_device_manager_interface, 3);
+    if (!s->wl_data_device_manager)
+      LOG_ERROR("Failed to bind wl_data_device_manager.");
+    else
+      LOG_INFO("Successfully bound wl_data_device_manager.");
+  }
   else
   {
     LOG_WARNING("Unhandled interface: %s", interface);
@@ -956,8 +926,6 @@ struct wl_registry_listener registry_listener = {
     .global        = handle_global,
     .global_remove = handle_global_remove,
 };
-
-
 
 void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
@@ -1091,8 +1059,6 @@ struct xdg_surface_listener xdg_surface_listener = {
     .configure = xdg_surface_configure,
 };
 
-
-
 static void _cleanup_wl(glps_WindowManager *wm)
 {
   for (size_t i = 0; i < wm->window_count; ++i)
@@ -1105,6 +1071,16 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   if (wm->wayland_ctx != NULL)
   {
+    if (wm->wayland_ctx->wl_data_device != NULL)
+    {
+      wl_data_device_destroy(wm->wayland_ctx->wl_data_device);
+      wm->wayland_ctx->wl_data_device = NULL;
+    }
+    if (wm->wayland_ctx->wl_data_device_manager != NULL)
+    {
+      wl_data_device_manager_destroy(wm->wayland_ctx->wl_data_device_manager);
+      wm->wayland_ctx->wl_data_device_manager = NULL;
+    }
     if (wm->wayland_ctx->wl_seat != NULL)
       wl_seat_destroy(wm->wayland_ctx->wl_seat);
     if (wm->wayland_ctx->xdg_wm_base != NULL)
@@ -1149,18 +1125,16 @@ static void _cleanup_wl(glps_WindowManager *wm)
       xkb_context_unref(wm->wayland_ctx->xkb_context);
       wm->wayland_ctx->xkb_context = NULL;
     }
-if (wm->wayland_ctx->wl_shm != NULL)
-{
-    wl_shm_destroy(wm->wayland_ctx->wl_shm);
-    wm->wayland_ctx->wl_shm = NULL;
-}
+    if (wm->wayland_ctx->wl_shm != NULL)
+    {
+      wl_shm_destroy(wm->wayland_ctx->wl_shm);
+      wm->wayland_ctx->wl_shm = NULL;
+    }
     wl_display_disconnect(wm->wayland_ctx->wl_display);
     free(wm->wayland_ctx);
     wm->wayland_ctx = NULL;
   }
 }
-
-
 
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
@@ -1223,6 +1197,19 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   wl_surface_commit(window->wl_surface);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
+  if (wm->window_count == 0)
+  {
+    if (!glps_egl_create_ctx(wm))
+    {
+      LOG_ERROR("Failed to create EGL context");
+      xdg_toplevel_destroy(window->xdg_toplevel);
+      xdg_surface_destroy(window->xdg_surface);
+      wl_surface_destroy(window->wl_surface);
+      free(window);
+      return -1;
+    }
+  }
+
   window->egl_window = wl_egl_window_create(
       window->wl_surface, window->properties.width, window->properties.height);
   if (!window->egl_window)
@@ -1240,7 +1227,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                              (NativeWindowType)window->egl_window, NULL);
   if (window->egl_surface == EGL_NO_SURFACE)
   {
-    LOG_ERROR("Failed to create EGL surface");
+    LOG_ERROR("Failed to create EGL surface (eglGetError: 0x%x)", eglGetError());
     wl_egl_window_destroy(window->egl_window);
     xdg_toplevel_destroy(window->xdg_toplevel);
     xdg_surface_destroy(window->xdg_surface);
@@ -1253,11 +1240,22 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   if (wm->window_count == 0)
   {
-    glps_egl_create_ctx(wm);
     glps_egl_make_ctx_current(wm, 0);
   }
 
   frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
+  if (frame_args == NULL)
+  {
+    LOG_ERROR("Failed to allocate frame_callback_args");
+    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+    wl_egl_window_destroy(window->egl_window);
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
+    free(window);
+    return -1;
+  }
   window->frame_callback = wl_surface_frame(window->wl_surface);
   frame_args->wm         = wm;
   frame_args->window_id  = wm->window_count;
@@ -1306,7 +1304,12 @@ bool glps_wl_should_close(glps_WindowManager *wm)
 
   int ret = wl_display_dispatch(wm->wayland_ctx->wl_display);
   if (ret == -1)
+  {
+    int err = wl_display_get_error(wm->wayland_ctx->wl_display);
+    if (err != 0)
+      LOG_ERROR("Wayland display error: %d", err);
     return true;
+  }
 
   return false;
 }
@@ -1323,8 +1326,6 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 {
   __window_destroy(wm, window_id);
 }
-
-
 
 bool glps_wl_init(glps_WindowManager *wm)
 {
@@ -1408,9 +1409,6 @@ bool glps_wl_init(glps_WindowManager *wm)
   return true;
 }
 
-
-
 void glps_wl_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor)
 {
-
 }
