@@ -969,7 +969,11 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
   if (window_id < 0)
     return;
 
-  wm->windows[(size_t)window_id]->serial = serial;
+  glps_WaylandWindow *window = wm->windows[(size_t)window_id];
+  window->serial = serial;
+  window->configured = true;
+
+  wl_surface_commit(window->wl_surface);
 }
 
 struct xdg_surface_listener xdg_surface_listener = {
@@ -1095,9 +1099,11 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
   wm->windows[wm->window_count] = window;
-  
+
+  xdg_toplevel_set_size(window->xdg_toplevel, width, height);
+
   wl_surface_commit(window->wl_surface);
-    
+
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("Roundtrip failed while waiting for initial configure");
@@ -1160,6 +1166,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     free(window);
     return -1;
   }
+
   window->frame_callback = wl_surface_frame(window->wl_surface);
   frame_args->wm         = wm;
   frame_args->window_id  = wm->window_count;
@@ -1167,10 +1174,10 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
-  
+
   wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
   wl_surface_commit(window->wl_surface);
-  
+
   return wm->window_count++;
 }
 
@@ -1201,72 +1208,46 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
                             state ? INT32_MAX : window_height);
 }
 
-void glps_wl_flush(glps_WindowManager *wm)
-{
-  if (wm == NULL || wm->wayland_ctx == NULL || wm->wayland_ctx->wl_display == NULL)
-    return;
-
-  if (wm->windows[0] != NULL && wm->windows[0]->wl_surface != NULL)
-  {
-    wl_surface_damage_buffer(
-        wm->windows[0]->wl_surface,
-        0,
-        0,
-        wm->windows[0]->properties.width,
-        wm->windows[0]->properties.height
-    );
-
-    wl_surface_commit(wm->windows[0]->wl_surface);
-  }
-
-  wl_display_flush(wm->wayland_ctx->wl_display);
-}
-
 bool glps_wl_should_close(glps_WindowManager *wm)
 {
-    if (wm == NULL)
-        return true;
+  if (wm == NULL)
+    return true;
 
-    if (wm->should_close)
-        return true;
+  if (wm->should_close)
+    return true;
 
-    struct wl_display *display = wm->wayland_ctx->wl_display;
+  struct wl_display *display = wm->wayland_ctx->wl_display;
 
-    // FIX 7: Proper event loop implementation
-    // First dispatch any pending events
-    while (wl_display_prepare_read(display) != 0)
-    {
-        if (wl_display_dispatch_pending(display) == -1)
-        {
-            LOG_ERROR("Wayland dispatch pending failed");
-            return true;
-        }
-    }
-
-    // Flush outgoing requests
-    if (wl_display_flush(display) == -1)
-    {
-        LOG_ERROR("Wayland flush failed");
-        wl_display_cancel_read(display);
-        return true;
-    }
-
-    // Wait for events
-    if (wl_display_read_events(display) == -1)
-    {
-        LOG_ERROR("Wayland read events failed");
-        wl_display_cancel_read(display);
-        return true;
-    }
-
-    // Dispatch received events
+  while (wl_display_prepare_read(display) != 0)
+  {
     if (wl_display_dispatch_pending(display) == -1)
     {
-        LOG_ERROR("Wayland dispatch pending failed after read");
-        return true;
+      LOG_ERROR("Wayland dispatch pending failed");
+      return true;
     }
+  }
 
-    return false;
+  if (wl_display_flush(display) == -1)
+  {
+    LOG_ERROR("Wayland flush failed");
+    wl_display_cancel_read(display);
+    return true;
+  }
+
+  if (wl_display_read_events(display) == -1)
+  {
+    LOG_ERROR("Wayland read events failed");
+    wl_display_cancel_read(display);
+    return true;
+  }
+
+  if (wl_display_dispatch_pending(display) == -1)
+  {
+    LOG_ERROR("Wayland dispatch pending failed after read");
+    return true;
+  }
+
+  return false;
 }
 
 void glps_wl_destroy(glps_WindowManager *wm)
@@ -1335,7 +1316,6 @@ bool glps_wl_init(glps_WindowManager *wm)
   wl_registry_add_listener(wm->wayland_ctx->wl_registry,
                            &registry_listener, wm);
 
-
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("First roundtrip failed");
@@ -1347,7 +1327,6 @@ bool glps_wl_init(glps_WindowManager *wm)
     return false;
   }
 
-  // Second roundtrip to get seat capabilities and other events
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("Second roundtrip failed");
