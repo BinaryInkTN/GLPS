@@ -836,6 +836,9 @@ static void request_frame(glps_WaylandWindow *window, frame_callback_args *args)
         &frame_callback_listener,
         args
     );
+
+      LOG_ERROR("Frame callback done for window id: %zu", args->window_id);
+
 }
 void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
@@ -843,7 +846,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   frame_callback_args *args   = (frame_callback_args *)data;
   glps_WaylandWindow  *window =
       (glps_WaylandWindow *)args->wm->windows[args->window_id];
-  LOG_ERROR("Frame callback done for window id: %zu", args->window_id);
   if (window == NULL)
     return;
 
