@@ -155,7 +155,7 @@ void glps_wm_swap_buffers(glps_WindowManager *wm, size_t window_id);
  * @param swap_interval Number of vertical refreshes between swaps.
  */
 void glps_wm_swap_interval(glps_WindowManager *wm, unsigned int swap_interval);
-
+void glps_wm_flush(glps_WindowManager *wm);
 /**
  * @brief Updates a window (polls events, refreshes).
  *

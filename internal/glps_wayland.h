@@ -4,7 +4,7 @@
 #ifdef GLPS_USE_WAYLAND
 
 #include "glps_common.h"
-
+void glps_wl_flush(glps_WindowManager *wm);
 // Wayland core functions
 void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base,
                       uint32_t serial);
