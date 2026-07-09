@@ -839,6 +839,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   if (window->wl_surface)
   {
     window->frame_callback = wl_surface_frame(window->wl_surface);
+    LOG_ERROR("frame_callback_done: window->frame_callback = %p", window->frame_callback);
     if (window->frame_callback)
     {
       wl_callback_add_listener(window->frame_callback,
