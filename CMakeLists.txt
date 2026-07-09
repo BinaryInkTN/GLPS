@@ -210,6 +210,7 @@ elseif(UNIX AND NOT APPLE)
                 ${ALSA_INCLUDE_DIRS}
 
                 ${CMAKE_BINARY_DIR}/generated
+                ${GENERATED_XDG_DIR}
         )
 
 
@@ -304,6 +305,7 @@ target_include_directories(${PROJECT_NAME}
 
         ${PROJECT_SOURCE_DIR}/internal
         ${CMAKE_BINARY_DIR}/generated
+        ${GENERATED_XDG_DIR}
 )
 
 
