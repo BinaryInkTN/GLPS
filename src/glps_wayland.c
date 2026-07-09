@@ -851,6 +851,8 @@ void frame_callback_done(void *data, struct wl_callback *callback,
     args->wm->callbacks.window_frame_update_callback(
         args->window_id, args->wm->callbacks.window_frame_update_data);
   }
+
+  wl_surface_commit(window->wl_surface);
 }
 
 struct wl_callback_listener frame_callback_listener = {
