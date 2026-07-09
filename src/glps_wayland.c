@@ -1115,22 +1115,11 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     return -1;
   }
 
-  // FIX 3: Create EGL context only for the first window
   if (wm->window_count == 0)
   {
-    if (!glps_egl_create_ctx(wm))
-    {
-      LOG_ERROR("Failed to create EGL context");
-      xdg_toplevel_destroy(window->xdg_toplevel);
-      xdg_surface_destroy(window->xdg_surface);
-      wl_surface_destroy(window->wl_surface);
-      wm->windows[wm->window_count] = NULL;
-      free(window);
-      return -1;
-    }
+    glps_egl_create_ctx(wm);
   }
 
-  // FIX 4: Create EGL window AFTER receiving configure
   window->egl_window = wl_egl_window_create(
       window->wl_surface, window->properties.width, window->properties.height);
   if (!window->egl_window)
@@ -1159,7 +1148,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     return -1;
   }
 
-  // FIX 5: Make EGL context current for first window
   if (wm->window_count == 0)
   {
     glps_egl_make_ctx_current(wm, 0);
@@ -1186,7 +1174,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
   
-  // FIX 6: Commit with damage to trigger first frame
   wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
   wl_surface_commit(window->wl_surface);
   
