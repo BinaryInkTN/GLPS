@@ -909,7 +909,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   if (strcmp(interface, "wl_compositor") == 0)
   {
     s->wl_compositor = wl_registry_bind(registry, id,
-                                        &wl_compositor_interface, 1);
+                                        &wl_compositor_interface, version);
     if (!s->wl_compositor)
       LOG_ERROR("Failed to bind wl_compositor.");
     else
@@ -918,7 +918,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   else if (strcmp(interface, "xdg_wm_base") == 0)
   {
     s->xdg_wm_base = wl_registry_bind(registry, id,
-                                       &xdg_wm_base_interface, 1);
+                                       &xdg_wm_base_interface, version);
     if (!s->xdg_wm_base)
       LOG_ERROR("Failed to bind xdg_wm_base.");
     else
