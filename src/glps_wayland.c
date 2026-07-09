@@ -124,10 +124,15 @@ void wl_update(glps_WindowManager *wm, size_t window_id)
   if (wm == NULL || wm->windows[window_id] == NULL)
     return;
 
-  int width  = wm->windows[window_id]->properties.width;
-  int height = wm->windows[window_id]->properties.height;
-  wl_surface_damage_buffer(wm->windows[window_id]->wl_surface, 0, 0, width, height);
-  wl_surface_commit(wm->windows[window_id]->wl_surface);
+  glps_WaylandWindow *window = wm->windows[window_id];
+  
+  if (!window->configured)
+    return;
+
+  int width  = window->properties.width;
+  int height = window->properties.height;
+  wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
+  wl_surface_commit(window->wl_surface);
 }
 
 ssize_t __get_window_id_from_xdg_toplevel(glps_WindowManager *wm,
@@ -855,7 +860,9 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   if (callback)
     wl_callback_destroy(callback);
 
-  if (window->wl_surface)
+  window->fps_is_init = true;
+
+  if (window->wl_surface && window->configured)
   {
     window->frame_callback = wl_surface_frame(window->wl_surface);
     if (window->frame_callback)
@@ -890,7 +897,6 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
   glps_WaylandWindow *window = wm->windows[window_id];
 
   if (width == 0 && height == 0) {
-    // Use the size we set during creation
     width = window->properties.width;
     height = window->properties.height;
   }
@@ -911,6 +917,7 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          wm->callbacks.window_resize_data);
   }
 }
+
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;
@@ -976,6 +983,7 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 
   glps_WaylandWindow *window = wm->windows[(size_t)window_id];
   window->serial = serial;
+  window->configured = true;
 
   wl_surface_commit(window->wl_surface);
 }
@@ -1050,6 +1058,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
     wm->wayland_ctx = NULL;
   }
 }
+
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
@@ -1122,6 +1131,26 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   xdg_toplevel_set_max_size(window->xdg_toplevel, 0, 0);
   xdg_toplevel_set_min_size(window->xdg_toplevel, 0, 0);
 
+  frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
+  if (frame_args == NULL)
+  {
+    LOG_ERROR("Failed to allocate frame_callback_args");
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
+    free(window);
+    return -1;
+  }
+
+  window->frame_callback = wl_surface_frame(window->wl_surface);
+  frame_args->wm = wm;
+  frame_args->window_id = wm->window_count;
+  window->frame_args = (void *)frame_args;
+
+  wl_callback_add_listener(window->frame_callback,
+                           &frame_callback_listener, frame_args);
+
   if (wm->window_count == 0)
   {
     glps_egl_create_ctx(wm);
@@ -1159,28 +1188,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   {
     glps_egl_make_ctx_current(wm, 0);
   }
-
-  frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
-  if (frame_args == NULL)
-  {
-    LOG_ERROR("Failed to allocate frame_callback_args");
-    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
-    wl_egl_window_destroy(window->egl_window);
-    xdg_toplevel_destroy(window->xdg_toplevel);
-    xdg_surface_destroy(window->xdg_surface);
-    wl_surface_destroy(window->wl_surface);
-    wm->windows[wm->window_count] = NULL;
-    free(window);
-    return -1;
-  }
-
-  window->frame_callback = wl_surface_frame(window->wl_surface);
-  frame_args->wm         = wm;
-  frame_args->window_id  = wm->window_count;
-  window->frame_args     = (void *)frame_args;
-
-  wl_callback_add_listener(window->frame_callback,
-                           &frame_callback_listener, frame_args);
 
   wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
   wl_surface_commit(window->wl_surface);
