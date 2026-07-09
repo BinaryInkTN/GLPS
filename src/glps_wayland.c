@@ -843,7 +843,7 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   frame_callback_args *args   = (frame_callback_args *)data;
   glps_WaylandWindow  *window =
       (glps_WaylandWindow *)args->wm->windows[args->window_id];
-
+  LOG_DEBUG("Frame callback done for window id: %zu", args->window_id);
   if (window == NULL)
     return;
 
