@@ -1094,11 +1094,10 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
-  // Store window in array before first commit so configure handler can find it
   wm->windows[wm->window_count] = window;
   
-wl_surface_commit(window->wl_surface);
-  
+  wl_surface_commit(window->wl_surface);
+    
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("Roundtrip failed while waiting for initial configure");
@@ -1336,8 +1335,7 @@ bool glps_wl_init(glps_WindowManager *wm)
   wl_registry_add_listener(wm->wayland_ctx->wl_registry,
                            &registry_listener, wm);
 
-  // FIX 8: Properly handle roundtrips with error checking
-  // First roundtrip to get globals
+
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("First roundtrip failed");

@@ -159,17 +159,7 @@ void glps_wm_set_keyboard_leave_callback(
   wm->callbacks.keyboard_leave_data = data;
 }
 
-void glps_wm_flush(glps_WindowManager *wm)
-{
-  if (wm == NULL)
-  {
-    LOG_ERROR("Window Manager is NULL.");
-    return;
-  }
-  #ifdef GLPS_USE_WAYLAND
-  glps_wl_flush(wm);
-  #endif
-}
+
 
 void glps_wm_set_touch_callback(
     glps_WindowManager *wm,

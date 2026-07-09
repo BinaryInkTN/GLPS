@@ -15,22 +15,18 @@
  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
- #include <GLPS/glps_thread.h>
+ #include "../include/glps_window_manager.h"
  #include <stdio.h>
 
-void* start(void *arg)
-{
-  printf("test \n");
-}
 
  int main()
  {
-  gthread_t thread;
-  
-  glps_thread_create(&thread, NULL, start, 0);
+  glps_WindowManager *wm = glps_wm_init();
+  glps_wm_window_create(wm, "Test Window", 100, 100, 800, 600);
+  while(!wm->should_close)
+  {
 
-  glps_thread_join(thread, NULL);
-
+  }
   return 0;
 
  }
