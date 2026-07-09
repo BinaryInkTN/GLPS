@@ -850,16 +850,6 @@ void frame_callback_done(void *data, struct wl_callback *callback,
   if (callback)
     wl_callback_destroy(callback);
 
-  if (window->wl_surface)
-  {
-    window->frame_callback = wl_surface_frame(window->wl_surface);
-    if (window->frame_callback)
-    {
-      wl_callback_add_listener(window->frame_callback,
-                               &frame_callback_listener, args);
-    }
-  }
-
   if (args->wm->callbacks.window_frame_update_callback)
   {
     args->wm->callbacks.window_frame_update_callback(
@@ -1150,17 +1140,6 @@ wm->windows[wm->window_count] = window;
   window->frame_args     = (void *)frame_args;
 
   request_frame(window, frame_args);
-
-  /* xdg-shell requires a buffer to be attached and committed *after* the
-   * initial configure is ack'd before the compositor will map the surface.
-   * eglCreateWindowSurface only sets up the buffer machinery -- nothing
-   * has attached a buffer yet, so without this swap the toplevel is
-   * created and configured but never actually shown. */
-  if (eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface) == EGL_FALSE)
-  {
-    LOG_ERROR("Initial eglSwapBuffers failed for window id %zu (eglGetError: 0x%x)",
-              wm->window_count, eglGetError());
-  }
 
   return wm->window_count++;
 }
