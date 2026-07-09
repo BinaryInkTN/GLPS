@@ -22,6 +22,20 @@ glps_WaylandContext *__get_wl_context(glps_WindowManager *wm)
   return wm->wayland_ctx;
 }
 
+
+static bool __is_valid_window_id(glps_WindowManager *wm, size_t window_id)
+{
+  if (wm == NULL || wm->windows == NULL)
+    return false;
+  if (window_id >= (size_t)MAX_WINDOWS)
+    return false;
+  if (window_id >= wm->window_count)
+    return false;
+  if (wm->windows[window_id] == NULL)
+    return false;
+  return true;
+}
+
 ssize_t __get_window_id_from_surface(glps_WindowManager *wm,
                                      struct wl_surface *surface)
 {
@@ -64,9 +78,17 @@ ssize_t __get_window_id_from_xdg_surface(glps_WindowManager *wm,
   return -1;
 }
 
+
 void __window_destroy(glps_WindowManager *wm, size_t window_id)
 {
+  if (!__is_valid_window_id(wm, window_id))
+  {
+    LOG_ERROR("__window_destroy: invalid window id %zu", window_id);
+    return;
+  }
+
   glps_WaylandWindow *window = wm->windows[window_id];
+
   if (window->frame_args != NULL)
   {
     free(window->frame_args);
@@ -81,19 +103,45 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
 
   if (window->egl_surface != EGL_NO_SURFACE)
   {
-    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+    if (wm->egl_ctx != NULL)
+      eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
     window->egl_surface = EGL_NO_SURFACE;
   }
 
-  wl_egl_window_destroy(window->egl_window);
-  xdg_toplevel_destroy(window->xdg_toplevel);
-  xdg_surface_destroy(window->xdg_surface);
-  wl_surface_destroy(window->wl_surface);
+  if (window->egl_window != NULL)
+  {
+    wl_egl_window_destroy(window->egl_window);
+    window->egl_window = NULL;
+  }
+
+  if (window->xdg_toplevel != NULL)
+  {
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    window->xdg_toplevel = NULL;
+  }
+
+  if (window->xdg_surface != NULL)
+  {
+    xdg_surface_destroy(window->xdg_surface);
+    window->xdg_surface = NULL;
+  }
+
+  if (window->wl_surface != NULL)
+  {
+    wl_surface_destroy(window->wl_surface);
+    window->wl_surface = NULL;
+  }
 
   free(window);
   wm->windows[window_id] = NULL;
 
-  if (window_id == 0)
+ 
+  while (wm->window_count > 0 && wm->windows[wm->window_count - 1] == NULL)
+  {
+    wm->window_count--;
+  }
+
+  if (wm->window_count == 0)
   {
     LOG_INFO("All windows destroyed. Exiting program.");
     wm->should_close = true;
@@ -102,8 +150,11 @@ void __window_destroy(glps_WindowManager *wm, size_t window_id)
 
 void wl_update(glps_WindowManager *wm, size_t window_id)
 {
-  if (wm == NULL)
+  if (!__is_valid_window_id(wm, window_id))
+  {
+    LOG_ERROR("wl_update: invalid window id %zu", window_id);
     return;
+  }
 
   int width  = wm->windows[window_id]->properties.width;
   int height = wm->windows[window_id]->properties.height;
@@ -139,6 +190,9 @@ void wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                       wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   ssize_t window_id = __get_window_id_from_surface(context, surface);
   if (window_id < 0)
   {
@@ -164,6 +218,9 @@ void wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
                       uint32_t serial, struct wl_surface *surface)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   context->pointer_event.serial     = serial;
   context->pointer_event.event_mask |= POINTER_EVENT_LEAVE;
 }
@@ -173,6 +230,9 @@ void wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                        wl_fixed_t surface_y)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   context->pointer_event.event_mask |= POINTER_EVENT_MOTION;
   context->pointer_event.time       = time;
   context->pointer_event.surface_x  = surface_x;
@@ -184,6 +244,9 @@ void wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                        uint32_t state)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   context->pointer_event.event_mask |= POINTER_EVENT_BUTTON;
   context->pointer_event.time   = time;
   context->pointer_event.serial = serial;
@@ -191,10 +254,22 @@ void wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
   context->pointer_event.state  = state;
 }
 
+
+#define GLPS_POINTER_AXES_COUNT 2
+
 void wl_pointer_axis(void *data, struct wl_pointer *wl_pointer, uint32_t time,
                      uint32_t axis, wl_fixed_t value)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
+  if (axis >= GLPS_POINTER_AXES_COUNT)
+  {
+    LOG_WARNING("wl_pointer_axis: axis %u out of range, ignoring", axis);
+    return;
+  }
+
   context->pointer_event.event_mask        |= POINTER_EVENT_AXIS;
   context->pointer_event.time               = time;
   context->pointer_event.axes[axis].valid   = true;
@@ -205,6 +280,9 @@ void wl_pointer_axis_source(void *data, struct wl_pointer *wl_pointer,
                             uint32_t axis_source)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   context->pointer_event.event_mask  |= POINTER_EVENT_AXIS_SOURCE;
   context->pointer_event.axis_source  = axis_source;
 }
@@ -213,6 +291,15 @@ void wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
                           uint32_t time, uint32_t axis)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
+  if (axis >= GLPS_POINTER_AXES_COUNT)
+  {
+    LOG_WARNING("wl_pointer_axis_stop: axis %u out of range, ignoring", axis);
+    return;
+  }
+
   context->pointer_event.time              = time;
   context->pointer_event.event_mask       |= POINTER_EVENT_AXIS_STOP;
   context->pointer_event.axes[axis].valid  = true;
@@ -222,6 +309,15 @@ void wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
                               uint32_t axis, int32_t discrete)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
+  if (axis >= GLPS_POINTER_AXES_COUNT)
+  {
+    LOG_WARNING("wl_pointer_axis_discrete: axis %u out of range, ignoring", axis);
+    return;
+  }
+
   context->pointer_event.event_mask           |= POINTER_EVENT_AXIS_DISCRETE;
   context->pointer_event.axes[axis].valid      = true;
   context->pointer_event.axes[axis].discrete   = discrete;
@@ -231,6 +327,15 @@ void wl_pointer_axis_value120(void *data, struct wl_pointer *wl_pointer,
                                uint32_t axis, int32_t value120)
 {
   glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
+  if (axis >= GLPS_POINTER_AXES_COUNT)
+  {
+    LOG_WARNING("wl_pointer_axis_value120: axis %u out of range, ignoring", axis);
+    return;
+  }
+
   context->pointer_event.event_mask           |= POINTER_EVENT_AXIS_DISCRETE;
   context->pointer_event.axes[axis].valid      = true;
   context->pointer_event.axes[axis].discrete   = value120 / 120;
@@ -239,11 +344,18 @@ void wl_pointer_axis_value120(void *data, struct wl_pointer *wl_pointer,
 void wl_pointer_axis_relative_direction(void *data, struct wl_pointer *wl_pointer,
                                          uint32_t axis, uint32_t direction)
 {
+  (void)data;
+  (void)wl_pointer;
+  (void)axis;
+  (void)direction;
 }
 
 void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 {
-  glps_WindowManager   *context         = (glps_WindowManager *)data;
+  glps_WindowManager *context = (glps_WindowManager *)data;
+  if (context == NULL)
+    return;
+
   struct pointer_event *event           = &context->pointer_event;
   glps_WaylandContext  *wayland_context = __get_wl_context(context);
 
@@ -303,29 +415,35 @@ void wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 
   if (event->event_mask & axis_events)
   {
-    for (size_t i = 0; i < 2; ++i)
+   
+    static const GLPS_SCROLL_AXES axis_name[GLPS_POINTER_AXES_COUNT] = {
+        [WL_POINTER_AXIS_VERTICAL_SCROLL]   = GLPS_SCROLL_V_AXIS,
+        [WL_POINTER_AXIS_HORIZONTAL_SCROLL] = GLPS_SCROLL_H_AXIS,
+    };
+    static const GLPS_SCROLL_SOURCE axis_source[4] = {
+        [WL_POINTER_AXIS_SOURCE_WHEEL]       = GLPS_SCROLL_SOURCE_WHEEL,
+        [WL_POINTER_AXIS_SOURCE_FINGER]      = GLPS_SCROLL_SOURCE_FINGER,
+        [WL_POINTER_AXIS_SOURCE_CONTINUOUS]  = GLPS_SCROLL_SOURCE_CONTINUOUS,
+        [WL_POINTER_AXIS_SOURCE_WHEEL_TILT]  = GLPS_SCROLL_SOURCE_WHEEL_TILT,
+    };
+    const size_t axis_source_count = sizeof(axis_source) / sizeof(axis_source[0]);
+
+    for (size_t i = 0; i < GLPS_POINTER_AXES_COUNT; ++i)
     {
       if (!event->axes[i].valid)
         continue;
 
       if (context->callbacks.mouse_scroll_callback)
       {
-        GLPS_SCROLL_AXES axis_name[2] = {
-            [WL_POINTER_AXIS_VERTICAL_SCROLL]   = GLPS_SCROLL_V_AXIS,
-            [WL_POINTER_AXIS_HORIZONTAL_SCROLL] = GLPS_SCROLL_H_AXIS,
-        };
+        GLPS_SCROLL_AXES axe = axis_name[i];
 
-        GLPS_SCROLL_SOURCE axis_source[4] = {
-            [WL_POINTER_AXIS_SOURCE_WHEEL]       = GLPS_SCROLL_SOURCE_WHEEL,
-            [WL_POINTER_AXIS_SOURCE_FINGER]      = GLPS_SCROLL_SOURCE_FINGER,
-            [WL_POINTER_AXIS_SOURCE_CONTINUOUS]  = GLPS_SCROLL_SOURCE_CONTINUOUS,
-            [WL_POINTER_AXIS_SOURCE_WHEEL_TILT]  = GLPS_SCROLL_SOURCE_WHEEL_TILT,
-        };
+        GLPS_SCROLL_SOURCE source = GLPS_SCROLL_SOURCE_OTHER;
+        if ((event->event_mask & POINTER_EVENT_AXIS_SOURCE) &&
+            event->axis_source < axis_source_count)
+        {
+          source = axis_source[event->axis_source];
+        }
 
-        GLPS_SCROLL_AXES   axe      = axis_name[i];
-        GLPS_SCROLL_SOURCE source   = event->event_mask & POINTER_EVENT_AXIS_SOURCE
-                                          ? axis_source[event->axis_source]
-                                          : GLPS_SCROLL_SOURCE_OTHER;
         double value    = event->event_mask & POINTER_EVENT_AXIS
                               ? wl_fixed_to_double(event->axes[i].value)
                               : 0.0;
@@ -364,12 +482,25 @@ void wl_keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
 {
   glps_WaylandContext *context = __get_wl_context(data);
   if (context == NULL)
+  {
+    close(fd);
     return;
+  }
 
-  assert(format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1);
+  if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
+  {
+    LOG_ERROR("wl_keyboard_keymap: unsupported keymap format %u", format);
+    close(fd);
+    return;
+  }
 
   char *map_shm = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
-  assert(map_shm != MAP_FAILED);
+  if (map_shm == MAP_FAILED)
+  {
+    LOG_ERROR("wl_keyboard_keymap: mmap failed (errno=%d)", errno);
+    close(fd);
+    return;
+  }
 
   struct xkb_keymap *xkb_keymap = xkb_keymap_new_from_string(
       context->xkb_context, map_shm, XKB_KEYMAP_FORMAT_TEXT_V1,
@@ -378,9 +509,25 @@ void wl_keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
   munmap(map_shm, size);
   close(fd);
 
+  if (xkb_keymap == NULL)
+  {
+    LOG_ERROR("wl_keyboard_keymap: failed to compile keymap");
+    return;
+  }
+
   struct xkb_state *xkb_state = xkb_state_new(xkb_keymap);
-  xkb_keymap_unref(context->xkb_keymap);
-  xkb_state_unref(context->xkb_state);
+  if (xkb_state == NULL)
+  {
+    LOG_ERROR("wl_keyboard_keymap: failed to create xkb state");
+    xkb_keymap_unref(xkb_keymap);
+    return;
+  }
+
+  if (context->xkb_keymap != NULL)
+    xkb_keymap_unref(context->xkb_keymap);
+  if (context->xkb_state != NULL)
+    xkb_state_unref(context->xkb_state);
+
   context->xkb_keymap = xkb_keymap;
   context->xkb_state  = xkb_state;
 }
@@ -420,6 +567,12 @@ void wl_keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
   if (context == NULL)
     return;
 
+  if (context->xkb_state == NULL)
+  {
+    LOG_WARNING("wl_keyboard_key: no xkb state yet, dropping key event");
+    return;
+  }
+
   char     utf8[128] = "";
   char     name[128] = "";
   uint32_t keycode   = key + 8;
@@ -452,6 +605,9 @@ void wl_keyboard_leave(void *data, struct wl_keyboard *wl_keyboard,
                        uint32_t serial, struct wl_surface *surface)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;
+  if (wm == NULL || wm->wayland_ctx == NULL)
+    return;
+
   if (wm->callbacks.keyboard_leave_callback != NULL)
   {
     wm->callbacks.keyboard_leave_callback(wm->wayland_ctx->keyboard_window_id,
@@ -465,14 +621,21 @@ void wl_keyboard_modifiers(void *data, struct wl_keyboard *wl_keyboard,
                            uint32_t group)
 {
   glps_WaylandContext *context = __get_wl_context(data);
-  if (context == NULL)
+  if (context == NULL || context->xkb_state == NULL)
     return;
+
   xkb_state_update_mask(context->xkb_state, mods_depressed, mods_latched,
                         mods_locked, 0, 0, group);
 }
 
 void wl_keyboard_repeat_info(void *data, struct wl_keyboard *wl_keyboard,
-                             int32_t rate, int32_t delay) {}
+                             int32_t rate, int32_t delay)
+{
+  (void)data;
+  (void)wl_keyboard;
+  (void)rate;
+  (void)delay;
+}
 
 struct wl_keyboard_listener wl_keyboard_listener = {
     .keymap      = wl_keyboard_keymap,
@@ -491,18 +654,22 @@ struct touch_point *get_touch_point(void *data, int32_t id)
   glps_WindowManager *wm    = (glps_WindowManager *)data;
   struct touch_event *touch  = &wm->touch_event;
   const size_t        nmemb  = sizeof(touch->points) / sizeof(struct touch_point);
-  int                 invalid = -1;
+  ssize_t             invalid = -1;
 
   for (size_t i = 0; i < nmemb; ++i)
   {
     if (touch->points[i].valid && touch->points[i].id == id)
       return &touch->points[i];
     if (invalid == -1 && !touch->points[i].valid)
-      invalid = i;
+      invalid = (ssize_t)i;
   }
 
   if (invalid == -1)
+  {
+    LOG_WARNING("get_touch_point: no free touch point slots (max %zu), "
+                "dropping touch id %d", nmemb, id);
     return NULL;
+  }
 
   touch->points[invalid].valid       = true;
   touch->points[invalid].id          = id;
@@ -715,13 +882,21 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
                            uint32_t capabilities)
 {
   glps_WindowManager  *context = (glps_WindowManager *)data;
-  glps_WaylandContext *ctx     = context->wayland_ctx;
+  if (context == NULL)
+    return;
+
+  glps_WaylandContext *ctx = __get_wl_context(context);
+  if (ctx == NULL)
+    return;
 
   bool have_pointer = capabilities & WL_SEAT_CAPABILITY_POINTER;
   if (have_pointer && ctx->wl_pointer == NULL)
   {
     ctx->wl_pointer = wl_seat_get_pointer(wl_seat);
-    wl_pointer_add_listener(ctx->wl_pointer, &wl_pointer_listener, data);
+    if (ctx->wl_pointer != NULL)
+      wl_pointer_add_listener(ctx->wl_pointer, &wl_pointer_listener, data);
+    else
+      LOG_ERROR("wl_seat_capabilities: failed to get wl_pointer");
   }
   else if (!have_pointer && ctx->wl_pointer != NULL)
   {
@@ -733,7 +908,10 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
   if (have_keyboard && ctx->wl_keyboard == NULL)
   {
     ctx->wl_keyboard = wl_seat_get_keyboard(wl_seat);
-    wl_keyboard_add_listener(ctx->wl_keyboard, &wl_keyboard_listener, data);
+    if (ctx->wl_keyboard != NULL)
+      wl_keyboard_add_listener(ctx->wl_keyboard, &wl_keyboard_listener, data);
+    else
+      LOG_ERROR("wl_seat_capabilities: failed to get wl_keyboard");
   }
   else if (!have_keyboard && ctx->wl_keyboard != NULL)
   {
@@ -745,7 +923,10 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
   if (have_touch && ctx->wl_touch == NULL)
   {
     ctx->wl_touch = wl_seat_get_touch(wl_seat);
-    wl_touch_add_listener(ctx->wl_touch, &wl_touch_listener, data);
+    if (ctx->wl_touch != NULL)
+      wl_touch_add_listener(ctx->wl_touch, &wl_touch_listener, data);
+    else
+      LOG_ERROR("wl_seat_capabilities: failed to get wl_touch");
   }
   else if (!have_touch && ctx->wl_touch != NULL)
   {
@@ -754,7 +935,12 @@ void wl_seat_capabilities(void *data, struct wl_seat *wl_seat,
   }
 }
 
-void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name) {}
+void wl_seat_name(void *data, struct wl_seat *wl_seat, const char *name)
+{
+  (void)data;
+  (void)wl_seat;
+  (void)name;
+}
 
 struct wl_seat_listener wl_seat_listener = {
     .capabilities = wl_seat_capabilities,
@@ -765,7 +951,10 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
                    const char *interface, uint32_t version)
 {
   glps_WindowManager  *context = (glps_WindowManager *)data;
-  glps_WaylandContext *s       = (glps_WaylandContext *)context->wayland_ctx;
+  if (context == NULL || context->wayland_ctx == NULL || interface == NULL)
+    return;
+
+  glps_WaylandContext *s = context->wayland_ctx;
 
   LOG_INFO("Attempting to bind interface: %s (id=%u, version=%u)",
            interface, id, version);
@@ -816,41 +1005,71 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
 }
 
 void handle_global_remove(void *data, struct wl_registry *registry,
-                          uint32_t name) {}
+                          uint32_t name)
+{
+  (void)data;
+  (void)registry;
+  (void)name;
+}
 
 struct wl_registry_listener registry_listener = {
     .global        = handle_global,
     .global_remove = handle_global_remove,
 };
 
-
 static void request_frame(glps_WaylandWindow *window, frame_callback_args *args)
 {
-    if (window->frame_callback)
-        return;
+  if (window == NULL || args == NULL)
+    return;
 
-    window->frame_callback = wl_surface_frame(window->wl_surface);
+  if (window->frame_callback)
+    return;
 
-    wl_callback_add_listener(
-        window->frame_callback,
-        &frame_callback_listener,
-        args
-    );
+  window->frame_callback = wl_surface_frame(window->wl_surface);
+  if (window->frame_callback == NULL)
+  {
+    LOG_ERROR("request_frame: wl_surface_frame failed for window id: %zu",
+              args->window_id);
+    return;
+  }
 
-      LOG_ERROR("Frame callback set for window id: %zu", args->window_id);
+  wl_callback_add_listener(
+      window->frame_callback,
+      &frame_callback_listener,
+      args
+  );
 
+  LOG_INFO("Frame callback set for window id: %zu", args->window_id);
 }
+
 void frame_callback_done(void *data, struct wl_callback *callback,
                          uint32_t time)
 {
-  frame_callback_args *args   = (frame_callback_args *)data;
-  glps_WaylandWindow  *window =
-      (glps_WaylandWindow *)args->wm->windows[args->window_id];
-  if (window == NULL)
+  (void)time;
+
+  frame_callback_args *args = (frame_callback_args *)data;
+  if (args == NULL || args->wm == NULL)
+  {
+    if (callback)
+      wl_callback_destroy(callback);
     return;
+  }
+
+  if (!__is_valid_window_id(args->wm, args->window_id))
+  {
+    if (callback)
+      wl_callback_destroy(callback);
+    return;
+  }
+
+  glps_WaylandWindow *window = args->wm->windows[args->window_id];
 
   if (callback)
     wl_callback_destroy(callback);
+
+ 
+  if (window->frame_callback == callback)
+    window->frame_callback = NULL;
 
   if (args->wm->callbacks.window_frame_update_callback)
   {
@@ -862,13 +1081,22 @@ void frame_callback_done(void *data, struct wl_callback *callback,
 struct wl_callback_listener frame_callback_listener = {
     .done = frame_callback_done,
 };
+
 void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                int32_t width, int32_t height,
                                struct wl_array *states)
 {
-  glps_WindowManager *wm        = (glps_WindowManager *)data;
-  ssize_t             window_id = __get_window_id_from_xdg_toplevel(wm, toplevel);
+  (void)states;
+
+  glps_WindowManager *wm = (glps_WindowManager *)data;
+  if (wm == NULL)
+    return;
+
+  ssize_t window_id = __get_window_id_from_xdg_toplevel(wm, toplevel);
   if (window_id < 0)
+    return;
+
+  if (!__is_valid_window_id(wm, (size_t)window_id))
     return;
 
   glps_WaylandWindow *window = wm->windows[window_id];
@@ -889,7 +1117,7 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          wm->callbacks.window_resize_data);
   }
   if (window->egl_window != NULL)
-    wl_update(wm, window_id);
+    wl_update(wm, (size_t)window_id);
 }
 
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
@@ -918,11 +1146,18 @@ void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
 void handle_toplevel_configure_bounds(void *data, struct xdg_toplevel *toplevel,
                                       int32_t width, int32_t height)
 {
+  (void)data;
+  (void)toplevel;
+  (void)width;
+  (void)height;
 }
 
 void handle_toplevel_wm_capabilities(void *data, struct xdg_toplevel *toplevel,
                                      struct wl_array *capabilities)
 {
+  (void)data;
+  (void)toplevel;
+  (void)capabilities;
 }
 
 struct xdg_toplevel_listener toplevel_listener = {
@@ -955,6 +1190,9 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
   if (window_id < 0)
     return;
 
+  if (!__is_valid_window_id(wm, (size_t)window_id))
+    return;
+
   wm->windows[(size_t)window_id]->serial = serial;
 }
 
@@ -964,20 +1202,33 @@ struct xdg_surface_listener xdg_surface_listener = {
 
 static void _cleanup_wl(glps_WindowManager *wm)
 {
-  for (size_t i = 0; i < wm->window_count; ++i)
+  if (wm == NULL)
+    return;
+
+  if (wm->windows != NULL)
   {
-    if (wm->windows[i])
-      __window_destroy(wm, i);
+    for (size_t i = 0; i < wm->window_count; ++i)
+    {
+      if (wm->windows[i])
+        __window_destroy(wm, i);
+    }
+    free(wm->windows);
+    wm->windows = NULL;
   }
-  free(wm->windows);
-  wm->windows = NULL;
+  wm->window_count = 0;
 
   if (wm->wayland_ctx != NULL)
   {
     if (wm->wayland_ctx->wl_seat != NULL)
+    {
       wl_seat_destroy(wm->wayland_ctx->wl_seat);
+      wm->wayland_ctx->wl_seat = NULL;
+    }
     if (wm->wayland_ctx->xdg_wm_base != NULL)
+    {
       xdg_wm_base_destroy(wm->wayland_ctx->xdg_wm_base);
+      wm->wayland_ctx->xdg_wm_base = NULL;
+    }
     if (wm->wayland_ctx->wl_compositor != NULL)
     {
       wl_compositor_destroy(wm->wayland_ctx->wl_compositor);
@@ -1023,13 +1274,36 @@ static void _cleanup_wl(glps_WindowManager *wm)
       wl_shm_destroy(wm->wayland_ctx->wl_shm);
       wm->wayland_ctx->wl_shm = NULL;
     }
-    wl_display_disconnect(wm->wayland_ctx->wl_display);
+    if (wm->wayland_ctx->wl_display != NULL)
+    {
+      wl_display_disconnect(wm->wayland_ctx->wl_display);
+      wm->wayland_ctx->wl_display = NULL;
+    }
     free(wm->wayland_ctx);
     wm->wayland_ctx = NULL;
   }
-}ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
+}
+
+ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
+  (void)x;
+  (void)y;
+
+  if (wm == NULL || wm->windows == NULL || wm->wayland_ctx == NULL || title == NULL)
+  {
+    LOG_ERROR("glps_wl_window_create: invalid arguments or uninitialized "
+              "window manager");
+    return -1;
+  }
+
+  if (wm->window_count >= (size_t)MAX_WINDOWS)
+  {
+    LOG_ERROR("glps_wl_window_create: maximum number of windows (%d) reached",
+              MAX_WINDOWS);
+    return -1;
+  }
+
   glps_WaylandWindow *window = malloc(sizeof(glps_WaylandWindow));
   if (window == NULL)
   {
@@ -1037,6 +1311,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
     return -1;
   }
   memset(window, 0, sizeof(glps_WaylandWindow));
+  window->egl_surface = EGL_NO_SURFACE;
 
   window->wl_surface =
       wl_compositor_create_surface(wm->wayland_ctx->wl_compositor);
@@ -1051,6 +1326,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
   window->properties.height = height;
   strncpy(window->properties.title, title,
           sizeof(window->properties.title) - 1);
+  window->properties.title[sizeof(window->properties.title) - 1] = '\0';
 
   window->xdg_surface = xdg_wm_base_get_xdg_surface(
       wm->wayland_ctx->xdg_wm_base, window->wl_surface);
@@ -1086,13 +1362,31 @@ static void _cleanup_wl(glps_WindowManager *wm)
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
   wl_surface_commit(window->wl_surface);
-  LOG_ERROR("Committing surface for window id %zu", wm->window_count);
+  LOG_INFO("Committing surface for window id %zu", wm->window_count);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
-  LOG_ERROR("Surface committed for window id %zu", wm->window_count);
+  LOG_INFO("Surface committed for window id %zu", wm->window_count);
 
   if (wm->window_count == 0)
   {
-    glps_egl_create_ctx(wm);
+    if (!glps_egl_create_ctx(wm))
+    {
+      LOG_ERROR("Failed to create EGL context");
+      xdg_toplevel_destroy(window->xdg_toplevel);
+      xdg_surface_destroy(window->xdg_surface);
+      wl_surface_destroy(window->wl_surface);
+      free(window);
+      return -1;
+    }
+  }
+
+  if (wm->egl_ctx == NULL)
+  {
+    LOG_ERROR("glps_wl_window_create: no EGL context available");
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    free(window);
+    return -1;
   }
 
   window->egl_window = wl_egl_window_create(
@@ -1120,9 +1414,11 @@ static void _cleanup_wl(glps_WindowManager *wm)
     free(window);
     return -1;
   }
-wm->windows[wm->window_count] = window;
 
-  glps_egl_make_ctx_current(wm, wm->window_count);
+  size_t new_window_id   = wm->window_count;
+  wm->windows[new_window_id] = window;
+
+  glps_egl_make_ctx_current(wm, new_window_id);
 
   frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
   if (frame_args == NULL)
@@ -1133,12 +1429,12 @@ wm->windows[wm->window_count] = window;
     xdg_toplevel_destroy(window->xdg_toplevel);
     xdg_surface_destroy(window->xdg_surface);
     wl_surface_destroy(window->wl_surface);
-    wm->windows[wm->window_count] = NULL;
+    wm->windows[new_window_id] = NULL;
     free(window);
     return -1;
   }
   frame_args->wm         = wm;
-  frame_args->window_id  = wm->window_count;
+  frame_args->window_id  = new_window_id;
   window->frame_args     = (void *)frame_args;
 
   request_frame(window, frame_args);
@@ -1146,28 +1442,23 @@ wm->windows[wm->window_count] = window;
   if (eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface) == EGL_FALSE)
   {
     LOG_ERROR("Initial eglSwapBuffers failed for window id %zu (eglGetError: 0x%x)",
-              wm->window_count, eglGetError());
+              new_window_id, eglGetError());
   }
 
- 
-  return wm->window_count++;
+  wm->window_count = new_window_id + 1;
+  return (ssize_t)new_window_id;
 }
+
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
                                  size_t window_id)
 {
-  glps_WaylandContext *ctx = __get_wl_context(wm);
-  if (!ctx || window_id >= wm->window_count)
+  if (!__is_valid_window_id(wm, window_id))
   {
-    LOG_ERROR("Couldn't change resize hint on window with id %ld", window_id);
+    LOG_ERROR("Couldn't change resize hint on window with id %zu", window_id);
     return;
   }
 
   glps_WaylandWindow *window = wm->windows[window_id];
-  if (!window)
-  {
-    LOG_ERROR("Wayland Window is NULL.");
-    return;
-  }
 
   int window_width  = window->properties.width;
   int window_height = window->properties.height;
@@ -1181,6 +1472,9 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
 
 bool glps_wl_should_close(glps_WindowManager *wm)
 {
+  if (wm == NULL || wm->wayland_ctx == NULL || wm->wayland_ctx->wl_display == NULL)
+    return true;
+
   if (wm->should_close)
     return true;
 
@@ -1211,40 +1505,53 @@ void glps_wl_window_destroy(glps_WindowManager *wm, size_t window_id)
 
 bool glps_wl_init(glps_WindowManager *wm)
 {
+  if (wm == NULL)
+    return false;
+
   wm->windows = malloc(sizeof(glps_WaylandWindow *) * MAX_WINDOWS);
   if (!wm->windows)
   {
     LOG_ERROR("Failed to allocate memory for windows array");
-    free(wm);
     return false;
   }
+  memset(wm->windows, 0, sizeof(glps_WaylandWindow *) * MAX_WINDOWS);
 
   wm->wayland_ctx = malloc(sizeof(glps_WaylandContext));
   if (!wm->wayland_ctx)
   {
     LOG_ERROR("Failed to allocate memory for Wayland context");
     free(wm->windows);
-    free(wm);
+    wm->windows = NULL;
     return false;
   }
   *wm->wayland_ctx = (glps_WaylandContext){0};
 
-  wm->window_count                     = 0;
-  wm->wayland_ctx->wl_touch            = NULL;
-  wm->wayland_ctx->wl_pointer          = NULL;
-  wm->wayland_ctx->wl_keyboard         = NULL;
-  wm->wayland_ctx->xkb_state           = NULL;
-  wm->wayland_ctx->xkb_keymap          = NULL;
-  wm->wayland_ctx->xkb_context         = NULL;
-  wm->wayland_ctx->xkb_context         = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  wm->window_count             = 0;
+  wm->wayland_ctx->wl_touch    = NULL;
+  wm->wayland_ctx->wl_pointer  = NULL;
+  wm->wayland_ctx->wl_keyboard = NULL;
+  wm->wayland_ctx->xkb_state   = NULL;
+  wm->wayland_ctx->xkb_keymap  = NULL;
+  wm->wayland_ctx->xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (wm->wayland_ctx->xkb_context == NULL)
+  {
+    LOG_ERROR("Failed to create xkb context");
+    free(wm->wayland_ctx);
+    wm->wayland_ctx = NULL;
+    free(wm->windows);
+    wm->windows = NULL;
+    return false;
+  }
 
   wm->wayland_ctx->wl_display = wl_display_connect(NULL);
   if (!wm->wayland_ctx->wl_display)
   {
     LOG_ERROR("Failed to connect to Wayland display");
+    xkb_context_unref(wm->wayland_ctx->xkb_context);
     free(wm->wayland_ctx);
+    wm->wayland_ctx = NULL;
     free(wm->windows);
-    free(wm);
+    wm->windows = NULL;
     return false;
   }
 
@@ -1254,17 +1561,29 @@ bool glps_wl_init(glps_WindowManager *wm)
   {
     LOG_ERROR("Failed to get Wayland registry");
     wl_display_disconnect(wm->wayland_ctx->wl_display);
+    xkb_context_unref(wm->wayland_ctx->xkb_context);
     free(wm->wayland_ctx);
+    wm->wayland_ctx = NULL;
     free(wm->windows);
-    free(wm);
+    wm->windows = NULL;
     return false;
   }
 
-  wl_registry_add_listener(wm->wayland_ctx->wl_registry,
-                           &registry_listener, wm);
+  if (wl_registry_add_listener(wm->wayland_ctx->wl_registry,
+                               &registry_listener, wm) != 0)
+  {
+    LOG_ERROR("Failed to add registry listener");
+    wl_registry_destroy(wm->wayland_ctx->wl_registry);
+    wl_display_disconnect(wm->wayland_ctx->wl_display);
+    xkb_context_unref(wm->wayland_ctx->xkb_context);
+    free(wm->wayland_ctx);
+    wm->wayland_ctx = NULL;
+    free(wm->windows);
+    wm->windows = NULL;
+    return false;
+  }
 
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
-
 
   if (wm->wayland_ctx->xdg_wm_base)
   {
@@ -1279,11 +1598,23 @@ bool glps_wl_init(glps_WindowManager *wm)
   if (!wm->wayland_ctx->wl_compositor || !wm->wayland_ctx->xdg_wm_base)
   {
     LOG_ERROR("Failed to retrieve Wayland compositor or xdg_wm_base");
+
+    if (wm->wayland_ctx->wl_seat != NULL)
+      wl_seat_destroy(wm->wayland_ctx->wl_seat);
+    if (wm->wayland_ctx->wl_shm != NULL)
+      wl_shm_destroy(wm->wayland_ctx->wl_shm);
+    if (wm->wayland_ctx->xdg_wm_base != NULL)
+      xdg_wm_base_destroy(wm->wayland_ctx->xdg_wm_base);
+    if (wm->wayland_ctx->wl_compositor != NULL)
+      wl_compositor_destroy(wm->wayland_ctx->wl_compositor);
+
     wl_registry_destroy(wm->wayland_ctx->wl_registry);
     wl_display_disconnect(wm->wayland_ctx->wl_display);
+    xkb_context_unref(wm->wayland_ctx->xkb_context);
     free(wm->wayland_ctx);
+    wm->wayland_ctx = NULL;
     free(wm->windows);
-    free(wm);
+    wm->windows = NULL;
     return false;
   }
 
@@ -1292,4 +1623,6 @@ bool glps_wl_init(glps_WindowManager *wm)
 
 void glps_wl_cursor_change(glps_WindowManager *wm, GLPS_CURSOR_TYPE user_cursor)
 {
+  (void)wm;
+  (void)user_cursor;
 }
