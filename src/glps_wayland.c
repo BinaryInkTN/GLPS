@@ -957,7 +957,6 @@ struct xdg_toplevel_listener toplevel_listener = {
     .configure_bounds = handle_toplevel_configure_bounds,
     .wm_capabilities  = handle_toplevel_wm_capabilities,
 };
-
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
                            uint32_t serial)
 {
@@ -984,10 +983,7 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
   glps_WaylandWindow *window = wm->windows[(size_t)window_id];
   window->serial = serial;
   window->configured = true;
-
-  wl_surface_commit(window->wl_surface);
 }
-
 struct xdg_surface_listener xdg_surface_listener = {
     .configure = xdg_surface_configure,
 };
