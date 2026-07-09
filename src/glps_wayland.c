@@ -863,8 +863,38 @@ void frame_callback_done(void *data, struct wl_callback *callback,
 
   if (window->wl_surface && window->configured)
   {
+
+void frame_callback_done(void *data, struct wl_callback *callback,
+                         uint32_t time)
+{
+  frame_callback_args *args   = (frame_callback_args *)data;
+  glps_WaylandWindow  *window =
+      (glps_WaylandWindow *)args->wm->windows[args->window_id];
+
+  if (window == NULL)
+    return;
+
+  if (callback)
+    wl_callback_destroy(callback);
+
+  window->fps_is_init = true;
+
+  if (window->wl_surface && window->configured)
+  {
     window->frame_callback = wl_surface_frame(window->wl_surface);
     if (window->frame_callback)
+    {
+      wl_callback_add_listener(window->frame_callback,
+                               &frame_callback_listener, args);
+    }
+  }
+
+  if (args->wm->callbacks.window_frame_update_callback)
+  {
+    args->wm->callbacks.window_frame_update_callback(
+        args->window_id, args->wm->callbacks.window_frame_update_data);
+  }
+}    if (window->frame_callback)
     {
       wl_callback_add_listener(window->frame_callback,
                                &frame_callback_listener, args);
