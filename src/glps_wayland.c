@@ -892,6 +892,16 @@ void glps_wl_flush(glps_WindowManager *wm)
   if (wm == NULL || wm->wayland_ctx == NULL || wm->wayland_ctx->wl_display == NULL)
     return;
 
+      wl_surface_damage_buffer(
+        window->wl_surface,
+        0,
+        0,
+        window->properties.width,
+        window->properties.height
+    );
+
+    wl_surface_commit(window->wl_surface);
+
   wl_display_flush(wm->wayland_ctx->wl_display);
 }
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
