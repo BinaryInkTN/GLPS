@@ -137,6 +137,11 @@ elseif(UNIX AND NOT APPLE)
         ${CMAKE_BINARY_DIR}/generated/xdg
     )
 
+    # Clean old generated protocols before generating new ones
+    add_custom_target(clean_wayland_protocols
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${GENERATED_XDG_DIR}
+        COMMENT "Cleaning old Wayland protocol files"
+    )
 
     file(MAKE_DIRECTORY
         ${GENERATED_XDG_DIR}
@@ -190,6 +195,9 @@ elseif(UNIX AND NOT APPLE)
             ${GENERATED_XDG_HEADER}
             ${GENERATED_XDG_SOURCE}
     )
+
+    # Make generate depend on clean
+    add_dependencies(generate_wayland_protocols clean_wayland_protocols)
 
 
     #
