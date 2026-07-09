@@ -1045,7 +1045,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
     wm->wayland_ctx = NULL;
   }
 }
-
 ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
@@ -1099,7 +1098,8 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   wm->windows[wm->window_count] = window;
 
-  xdg_toplevel_set_size(window->xdg_toplevel, width, height);
+  xdg_toplevel_set_max_size(window->xdg_toplevel, width, height);
+  xdg_toplevel_set_min_size(window->xdg_toplevel, width, height);
 
   wl_surface_commit(window->wl_surface);
 
@@ -1113,6 +1113,9 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     free(window);
     return -1;
   }
+
+  xdg_toplevel_set_max_size(window->xdg_toplevel, 0, 0);
+  xdg_toplevel_set_min_size(window->xdg_toplevel, 0, 0);
 
   if (wm->window_count == 0)
   {

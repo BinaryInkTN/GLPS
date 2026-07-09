@@ -239,21 +239,19 @@ typedef struct {
 } glps_DropCoordinates;
 
 typedef struct glps_WaylandWindow {
-    struct wl_surface *wl_surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
-    struct wl_egl_window *egl_window;
+    struct wl_surface *wl_surface;
     EGLSurface egl_surface;
+    struct wl_egl_window *egl_window;
+    glps_WindowProperties properties;
     struct wl_callback *frame_callback;
+    struct timespec fps_start_time;
+    bool fps_is_init;
     void *frame_args;
     uint32_t serial;
-    bool configured;
-    struct {
-        int width;
-        int height;
-        char title[256];
-    } properties;
 } glps_WaylandWindow;
+
 typedef struct {
     struct wl_display *wl_display;
     struct wl_registry *wl_registry;
