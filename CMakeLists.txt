@@ -16,9 +16,6 @@ if(GLPS_INCLUDE_VULKAN)
 endif()
 
 
-#
-# Windows
-#
 if(WIN32)
 
     message(STATUS "Building Windows backend")
@@ -43,9 +40,6 @@ if(WIN32)
     )
 
 
-#
-# Linux
-#
 elseif(UNIX AND NOT APPLE)
 
     message(STATUS "Configuring Linux backend")
@@ -65,9 +59,6 @@ elseif(UNIX AND NOT APPLE)
     pkg_check_modules(ALSA REQUIRED alsa)
 
 
-    #
-    # Wayland scanner from Yocto or system
-    #
     if(NOT WAYLAND_SCANNER)
 
         find_program(
@@ -79,9 +70,6 @@ elseif(UNIX AND NOT APPLE)
     endif()
 
 
-    #
-    # Wayland protocols path
-    #
     if(NOT WAYLAND_PROTOCOLS_DIR)
 
         execute_process(
@@ -121,25 +109,11 @@ elseif(UNIX AND NOT APPLE)
     endif()
 
 
-    #
-    # Generate protocol files
-    #
-    # Result:
-    #
-    # build/generated/xdg/
-    #       xdg-shell.h
-    #       xdg-shell-protocol.c
-    #
-    #
-
     set(GENERATED_XDG_DIR
         ${CMAKE_BINARY_DIR}/generated/xdg
     )
 
-    # Clean old generated protocols at configure time
     file(REMOVE_RECURSE ${GENERATED_XDG_DIR})
-    
-    # Create the directory after cleaning
     file(MAKE_DIRECTORY ${GENERATED_XDG_DIR})
 
 
@@ -167,8 +141,6 @@ elseif(UNIX AND NOT APPLE)
 
         DEPENDS
             ${XDG_PROTOCOL_XML}
-        
-        COMMENT "Generating Wayland client header"
     )
 
 
@@ -186,8 +158,6 @@ elseif(UNIX AND NOT APPLE)
 
         DEPENDS
             ${XDG_PROTOCOL_XML}
-        
-        COMMENT "Generating Wayland protocol source"
     )
 
 
@@ -199,13 +169,6 @@ elseif(UNIX AND NOT APPLE)
             ${GENERATED_XDG_SOURCE}
     )
 
-    # Make generate depend on clean
-    add_dependencies(generate_wayland_protocols clean_wayland_protocols)
-
-
-    #
-    # Backend selection
-    #
 
     if(GLPS_FORCE_WAYLAND)
 
@@ -247,8 +210,6 @@ elseif(UNIX AND NOT APPLE)
                 ${EGL_INCLUDE_DIRS}
                 ${ALSA_INCLUDE_DIRS}
 
-                # Allows:
-                # #include "xdg/xdg-shell.h"
                 ${CMAKE_BINARY_DIR}/generated
         )
 
@@ -331,11 +292,6 @@ else()
 endif()
 
 
-
-#
-# Common includes
-#
-
 target_include_directories(${PROJECT_NAME}
 
     PUBLIC
@@ -350,11 +306,6 @@ target_include_directories(${PROJECT_NAME}
         ${PROJECT_SOURCE_DIR}/internal
 )
 
-
-
-#
-# Install
-#
 
 install(
     DIRECTORY
