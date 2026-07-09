@@ -1131,26 +1131,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   xdg_toplevel_set_max_size(window->xdg_toplevel, 0, 0);
   xdg_toplevel_set_min_size(window->xdg_toplevel, 0, 0);
 
-  frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
-  if (frame_args == NULL)
-  {
-    LOG_ERROR("Failed to allocate frame_callback_args");
-    xdg_toplevel_destroy(window->xdg_toplevel);
-    xdg_surface_destroy(window->xdg_surface);
-    wl_surface_destroy(window->wl_surface);
-    wm->windows[wm->window_count] = NULL;
-    free(window);
-    return -1;
-  }
-
-  window->frame_callback = wl_surface_frame(window->wl_surface);
-  frame_args->wm = wm;
-  frame_args->window_id = wm->window_count;
-  window->frame_args = (void *)frame_args;
-
-  wl_callback_add_listener(window->frame_callback,
-                           &frame_callback_listener, frame_args);
-
   if (wm->window_count == 0)
   {
     glps_egl_create_ctx(wm);
@@ -1188,6 +1168,28 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   {
     glps_egl_make_ctx_current(wm, 0);
   }
+
+  frame_callback_args *frame_args = malloc(sizeof(frame_callback_args));
+  if (frame_args == NULL)
+  {
+    LOG_ERROR("Failed to allocate frame_callback_args");
+    eglDestroySurface(wm->egl_ctx->dpy, window->egl_surface);
+    wl_egl_window_destroy(window->egl_window);
+    xdg_toplevel_destroy(window->xdg_toplevel);
+    xdg_surface_destroy(window->xdg_surface);
+    wl_surface_destroy(window->wl_surface);
+    wm->windows[wm->window_count] = NULL;
+    free(window);
+    return -1;
+  }
+
+  window->frame_callback = wl_surface_frame(window->wl_surface);
+  frame_args->wm         = wm;
+  frame_args->window_id  = wm->window_count;
+  window->frame_args     = (void *)frame_args;
+
+  wl_callback_add_listener(window->frame_callback,
+                           &frame_callback_listener, frame_args);
 
   wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
   wl_surface_commit(window->wl_surface);
