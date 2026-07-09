@@ -971,7 +971,6 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 
   glps_WaylandWindow *window = wm->windows[(size_t)window_id];
   window->serial = serial;
-  window->configured = true;
 
   wl_surface_commit(window->wl_surface);
 }
