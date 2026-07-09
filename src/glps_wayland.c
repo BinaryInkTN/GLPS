@@ -882,17 +882,23 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                int32_t width, int32_t height,
                                struct wl_array *states)
 {
-  glps_WindowManager *wm        = (glps_WindowManager *)data;
-  ssize_t             window_id = __get_window_id_from_xdg_toplevel(wm, toplevel);
+  glps_WindowManager *wm = (glps_WindowManager *)data;
+  ssize_t window_id = __get_window_id_from_xdg_toplevel(wm, toplevel);
   if (window_id < 0)
     return;
 
   glps_WaylandWindow *window = wm->windows[window_id];
 
+  if (width == 0 && height == 0) {
+    // Use the size we set during creation
+    width = window->properties.width;
+    height = window->properties.height;
+  }
+
   if (width != 0 && height != 0)
   {
     window->properties.height = height;
-    window->properties.width  = width;
+    window->properties.width = width;
     if (window->egl_window != NULL)
       wl_egl_window_resize(window->egl_window, width, height, 0, 0);
   }
@@ -905,7 +911,6 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          wm->callbacks.window_resize_data);
   }
 }
-
 void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
 {
   glps_WindowManager *wm = (glps_WindowManager *)data;
