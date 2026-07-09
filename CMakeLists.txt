@@ -18,7 +18,7 @@ if(WIN32)
 
     message(STATUS "Building for Windows")
 
-    add_library(${PROJECT_NAME} SHARED
+    add_library(${PROJECT_NAME} 
         src/glps_wgl_context.c
         src/glps_win32.c
         src/glps_window_manager.c
@@ -125,7 +125,7 @@ elseif(UNIX AND NOT APPLE)
 
         message(STATUS "Building Wayland backend")
 
-        add_library(${PROJECT_NAME} SHARED
+        add_library(${PROJECT_NAME} 
             src/glps_wayland.c
             src/glps_egl_context.c
             src/glps_window_manager.c
@@ -173,7 +173,7 @@ elseif(UNIX AND NOT APPLE)
         find_package(X11 REQUIRED)
         pkg_check_modules(EGL REQUIRED egl)
 
-        add_library(${PROJECT_NAME} SHARED
+        add_library(${PROJECT_NAME} 
             src/glps_x11.c
             src/glps_egl_context.c
             src/glps_window_manager.c
