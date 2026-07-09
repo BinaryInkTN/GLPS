@@ -1080,13 +1080,10 @@ static void _cleanup_wl(glps_WindowManager *wm)
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
-  /* Initial commit: no buffer attached. This is what xdg-shell
-     requires to solicit the first configure event. Weston enforces
-     this strictly, so nothing else may be committed with a buffer
-     until that configure has been ack'd (done inside
-     xdg_surface_configure(), which fires during this roundtrip). */
   wl_surface_commit(window->wl_surface);
+  LOG_ERROR("Committing surface for window id %zu", wm->window_count);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
+  LOG_ERROR("Surface committed for window id %zu", wm->window_count);
 
   if (wm->window_count == 0)
   {
