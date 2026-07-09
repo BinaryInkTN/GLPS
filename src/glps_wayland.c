@@ -837,7 +837,7 @@ static void request_frame(glps_WaylandWindow *window, frame_callback_args *args)
         args
     );
 
-      LOG_ERROR("Frame callback done for window id: %zu", args->window_id);
+      LOG_ERROR("Frame callback set for window id: %zu", args->window_id);
 
 }
 void frame_callback_done(void *data, struct wl_callback *callback,
@@ -1143,6 +1143,19 @@ wm->windows[wm->window_count] = window;
 
   request_frame(window, frame_args);
 
+
+  /* wl_surface_frame() only fires its callback on a subsequent commit that
+   * carries a buffer. Nothing up to this point has attached one -- the
+   * earlier wl_surface_commit() ran before the EGL surface existed -- so
+   * without this swap the callback registered above never fires and no
+   * window content is ever posted either. */
+  if (eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface) == EGL_FALSE)
+  {
+    LOG_ERROR("Initial eglSwapBuffers failed for window id %zu (eglGetError: 0x%x)",
+              wm->window_count, eglGetError());
+  }
+
+ 
   return wm->window_count++;
 }
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
