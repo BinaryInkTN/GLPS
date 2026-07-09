@@ -1124,7 +1124,8 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
     return -1;
   }
 
-
+  xdg_toplevel_set_max_size(window->xdg_toplevel, 0, 0);
+  xdg_toplevel_set_min_size(window->xdg_toplevel, 0, 0);
 
   if (wm->window_count == 0)
   {
@@ -1187,7 +1188,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                            &frame_callback_listener, frame_args);
 
   wl_surface_damage_buffer(window->wl_surface, 0, 0, width, height);
-  wl_surface_commit(window->wl_surface);
+  //wl_surface_commit(window->wl_surface);
 
   return wm->window_count++;
 }
