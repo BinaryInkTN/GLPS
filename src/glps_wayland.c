@@ -893,14 +893,14 @@ void glps_wl_flush(glps_WindowManager *wm)
     return;
 
       wl_surface_damage_buffer(
-        window->wl_surface,
+        windows[window_id]->wl_surface,
         0,
         0,
-        window->properties.width,
-        window->properties.height
+        windows[window_id]->properties.width,
+        windows[window_id]->properties.height
     );
 
-    wl_surface_commit(window->wl_surface);
+    wl_surface_commit(windows[window_id]->wl_surface);
 
   wl_display_flush(wm->wayland_ctx->wl_display);
 }
