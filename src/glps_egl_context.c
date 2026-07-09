@@ -105,6 +105,13 @@ void glps_egl_destroy(glps_WindowManager *wm) {
 }
 
 void glps_egl_swap_buffers(glps_WindowManager *wm, size_t window_id) {
-  eglSwapBuffers(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface);
+   LOG_INFO("Calling eglSwapBuffers");
+
+    EGLBoolean ok = eglSwapBuffers(
+        wm->egl_ctx->dpy,
+        wm->windows[window_id]->egl_surface);
+
+    LOG_INFO("eglSwapBuffers=%d error=0x%x",
+             ok, eglGetError());
 }
 
