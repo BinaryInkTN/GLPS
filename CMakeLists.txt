@@ -10,37 +10,62 @@ option(GLPS_INCLUDE_VULKAN "Enable Vulkan support in GLPS" OFF)
 option(GLPS_FORCE_WAYLAND "Force Wayland backend" OFF)
 
 
+# --------------------------------------------------
+# Vulkan
+# --------------------------------------------------
+
 if(GLPS_INCLUDE_VULKAN)
+
     find_package(Vulkan REQUIRED)
+
     add_compile_definitions(GLPS_USE_VULKAN)
+
 endif()
 
+
+# --------------------------------------------------
+# Windows
+# --------------------------------------------------
 
 if(WIN32)
 
     message(STATUS "Building Windows backend")
 
     add_library(${PROJECT_NAME}
+
         src/glps_wgl_context.c
         src/glps_win32.c
         src/glps_window_manager.c
+
         src/utils/logger/pico_logger.c
         src/glps_timer.c
     )
 
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        GLPS_USE_WIN32
-        _CRT_SECURE_NO_WARNINGS
+
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+
+            GLPS_USE_WIN32
+            _CRT_SECURE_NO_WARNINGS
     )
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        opengl32
-        gdi32
-        user32
+
+    target_link_libraries(${PROJECT_NAME}
+
+        PRIVATE
+
+            opengl32
+            gdi32
+            user32
     )
 
+
+# --------------------------------------------------
+# Linux
+# --------------------------------------------------
 
 elseif(UNIX AND NOT APPLE)
+
 
     message(STATUS "Configuring Linux backend")
 
@@ -48,18 +73,27 @@ elseif(UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
 
 
-    pkg_check_modules(WAYLAND REQUIRED
-        wayland-client
-        wayland-egl
-    )
-
-
     pkg_check_modules(EGL REQUIRED egl)
-
     pkg_check_modules(ALSA REQUIRED alsa)
 
 
-    if(NOT WAYLAND_SCANNER)
+    # --------------------------------------------------
+    # Wayland
+    # --------------------------------------------------
+
+    if(GLPS_FORCE_WAYLAND)
+
+
+        message(STATUS "Building Wayland backend")
+
+
+        pkg_check_modules(WAYLAND REQUIRED
+
+            wayland-client
+            wayland-egl
+            wayland-protocols
+        )
+
 
         find_program(
             WAYLAND_SCANNER
@@ -67,12 +101,9 @@ elseif(UNIX AND NOT APPLE)
             REQUIRED
         )
 
-    endif()
-
-
-    if(NOT WAYLAND_PROTOCOLS_DIR)
 
         execute_process(
+
             COMMAND
                 ${PKG_CONFIG_EXECUTABLE}
                 --variable=pkgdatadir
@@ -83,95 +114,85 @@ elseif(UNIX AND NOT APPLE)
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 
-    endif()
 
-
-    message(STATUS
-        "Wayland scanner: ${WAYLAND_SCANNER}"
-    )
-
-    message(STATUS
-        "Wayland protocols: ${WAYLAND_PROTOCOLS_DIR}"
-    )
-
-
-    set(XDG_PROTOCOL_XML
-        ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
-    )
-
-
-    if(NOT EXISTS ${XDG_PROTOCOL_XML})
-
-        message(FATAL_ERROR
-            "Missing xdg-shell.xml: ${XDG_PROTOCOL_XML}"
+        message(STATUS
+            "Wayland scanner: ${WAYLAND_SCANNER}"
         )
 
-    endif()
+
+        message(STATUS
+            "Wayland protocols: ${WAYLAND_PROTOCOLS_DIR}"
+        )
 
 
-    set(GENERATED_XDG_DIR
-        ${CMAKE_BINARY_DIR}/generated/xdg
-    )
+        set(XDG_PROTOCOL_XML
 
-    file(MAKE_DIRECTORY ${GENERATED_XDG_DIR})
-
-
-    set(GENERATED_XDG_HEADER
-        ${GENERATED_XDG_DIR}/xdg-shell.h
-    )
+            ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
+        )
 
 
-    set(GENERATED_XDG_SOURCE
-        ${GENERATED_XDG_DIR}/xdg-shell-protocol.c
-    )
+        if(NOT EXISTS ${XDG_PROTOCOL_XML})
+
+            message(FATAL_ERROR
+                "xdg-shell.xml not found: ${XDG_PROTOCOL_XML}"
+            )
+
+        endif()
 
 
-    add_custom_command(
-        OUTPUT
-            ${GENERATED_XDG_HEADER}
+        set(GENERATED_XDG_DIR
 
-        COMMAND
-            ${CMAKE_COMMAND} -E make_directory ${GENERATED_XDG_DIR}
-        COMMAND
-            ${WAYLAND_SCANNER}
-            client-header
-            ${XDG_PROTOCOL_XML}
-            ${GENERATED_XDG_HEADER}
-
-        DEPENDS
-            ${XDG_PROTOCOL_XML}
-    )
+            ${CMAKE_BINARY_DIR}/generated/xdg
+        )
 
 
-    add_custom_command(
-        OUTPUT
-            ${GENERATED_XDG_SOURCE}
+        set(GENERATED_XDG_HEADER
 
-        COMMAND
-            ${CMAKE_COMMAND} -E make_directory ${GENERATED_XDG_DIR}
-        COMMAND
-            ${WAYLAND_SCANNER}
-            public-code
-            ${XDG_PROTOCOL_XML}
-            ${GENERATED_XDG_SOURCE}
-
-        DEPENDS
-            ${XDG_PROTOCOL_XML}
-    )
+            ${GENERATED_XDG_DIR}/xdg-shell.h
+        )
 
 
-    add_custom_target(
-        generate_wayland_protocols
+        set(GENERATED_XDG_SOURCE
 
-        DEPENDS
-            ${GENERATED_XDG_HEADER}
-            ${GENERATED_XDG_SOURCE}
-    )
+            ${GENERATED_XDG_DIR}/xdg-shell-protocol.c
+        )
 
 
-    if(GLPS_FORCE_WAYLAND)
+        file(MAKE_DIRECTORY
+            ${GENERATED_XDG_DIR}
+        )
 
-        message(STATUS "Building Wayland backend")
+
+        add_custom_command(
+
+            OUTPUT
+                ${GENERATED_XDG_HEADER}
+
+            COMMAND
+                ${WAYLAND_SCANNER}
+                client-header
+                ${XDG_PROTOCOL_XML}
+                ${GENERATED_XDG_HEADER}
+
+            DEPENDS
+                ${XDG_PROTOCOL_XML}
+        )
+
+
+        add_custom_command(
+
+            OUTPUT
+                ${GENERATED_XDG_SOURCE}
+
+            COMMAND
+                ${WAYLAND_SCANNER}
+                public-code
+                ${XDG_PROTOCOL_XML}
+                ${GENERATED_XDG_SOURCE}
+
+            DEPENDS
+                ${XDG_PROTOCOL_XML}
+        )
 
 
         add_library(${PROJECT_NAME}
@@ -186,35 +207,44 @@ elseif(UNIX AND NOT APPLE)
             src/glps_audio_stream.c
             src/glps_timer.c
 
+
+            # Generated Wayland protocol
             ${GENERATED_XDG_SOURCE}
+            ${GENERATED_XDG_HEADER}
+
         )
 
 
         add_dependencies(
+
             ${PROJECT_NAME}
-            generate_wayland_protocols
+
+            ${GENERATED_XDG_SOURCE}
         )
 
 
         target_compile_definitions(${PROJECT_NAME}
+
             PRIVATE
+
                 GLPS_USE_WAYLAND
         )
 
 
         target_include_directories(${PROJECT_NAME}
+
             PRIVATE
 
                 ${WAYLAND_INCLUDE_DIRS}
                 ${EGL_INCLUDE_DIRS}
                 ${ALSA_INCLUDE_DIRS}
 
-                ${CMAKE_BINARY_DIR}/generated
                 ${GENERATED_XDG_DIR}
         )
 
 
         target_link_libraries(${PROJECT_NAME}
+
             PRIVATE
 
                 ${WAYLAND_LIBRARIES}
@@ -229,7 +259,12 @@ elseif(UNIX AND NOT APPLE)
         )
 
 
+    # --------------------------------------------------
+    # X11
+    # --------------------------------------------------
+
     else()
+
 
         message(STATUS "Building X11 backend")
 
@@ -252,12 +287,15 @@ elseif(UNIX AND NOT APPLE)
 
 
         target_compile_definitions(${PROJECT_NAME}
+
             PRIVATE
+
                 GLPS_USE_X11
         )
 
 
         target_include_directories(${PROJECT_NAME}
+
             PRIVATE
 
                 ${X11_INCLUDE_DIRS}
@@ -267,6 +305,7 @@ elseif(UNIX AND NOT APPLE)
 
 
         target_link_libraries(${PROJECT_NAME}
+
             PRIVATE
 
                 ${X11_LIBRARIES}
@@ -283,14 +322,22 @@ elseif(UNIX AND NOT APPLE)
     endif()
 
 
+
 else()
+
 
     message(FATAL_ERROR
         "Unsupported platform"
     )
 
+
 endif()
 
+
+
+# --------------------------------------------------
+# Common includes
+# --------------------------------------------------
 
 target_include_directories(${PROJECT_NAME}
 
@@ -304,12 +351,16 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
 
         ${PROJECT_SOURCE_DIR}/internal
-        ${CMAKE_BINARY_DIR}/generated
-        ${GENERATED_XDG_DIR}
 )
 
 
+
+# --------------------------------------------------
+# Install
+# --------------------------------------------------
+
 install(
+
     DIRECTORY
         include/
 
@@ -319,6 +370,7 @@ install(
 
 
 install(
+
     TARGETS ${PROJECT_NAME}
 
     EXPORT GLPSConfig
@@ -332,6 +384,7 @@ install(
 
 
 install(
+
     EXPORT GLPSConfig
 
     FILE GLPSConfig.cmake
@@ -340,6 +393,7 @@ install(
 
     DESTINATION lib/cmake/GLPS
 )
+
 
 
 set_target_properties(${PROJECT_NAME}
