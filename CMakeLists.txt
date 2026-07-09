@@ -121,7 +121,6 @@ elseif(UNIX AND NOT APPLE)
     endif()
 
 
-
     #
     # Generate protocol files
     #
@@ -137,15 +136,11 @@ elseif(UNIX AND NOT APPLE)
         ${CMAKE_BINARY_DIR}/generated/xdg
     )
 
-    # Clean old generated protocols before generating new ones
-    add_custom_target(clean_wayland_protocols
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${GENERATED_XDG_DIR}
-        COMMENT "Cleaning old Wayland protocol files"
-    )
-
-    file(MAKE_DIRECTORY
-        ${GENERATED_XDG_DIR}
-    )
+    # Clean old generated protocols at configure time
+    file(REMOVE_RECURSE ${GENERATED_XDG_DIR})
+    
+    # Create the directory after cleaning
+    file(MAKE_DIRECTORY ${GENERATED_XDG_DIR})
 
 
     set(GENERATED_XDG_HEADER
@@ -163,6 +158,8 @@ elseif(UNIX AND NOT APPLE)
             ${GENERATED_XDG_HEADER}
 
         COMMAND
+            ${CMAKE_COMMAND} -E make_directory ${GENERATED_XDG_DIR}
+        COMMAND
             ${WAYLAND_SCANNER}
             client-header
             ${XDG_PROTOCOL_XML}
@@ -170,6 +167,8 @@ elseif(UNIX AND NOT APPLE)
 
         DEPENDS
             ${XDG_PROTOCOL_XML}
+        
+        COMMENT "Generating Wayland client header"
     )
 
 
@@ -178,6 +177,8 @@ elseif(UNIX AND NOT APPLE)
             ${GENERATED_XDG_SOURCE}
 
         COMMAND
+            ${CMAKE_COMMAND} -E make_directory ${GENERATED_XDG_DIR}
+        COMMAND
             ${WAYLAND_SCANNER}
             public-code
             ${XDG_PROTOCOL_XML}
@@ -185,6 +186,8 @@ elseif(UNIX AND NOT APPLE)
 
         DEPENDS
             ${XDG_PROTOCOL_XML}
+        
+        COMMENT "Generating Wayland protocol source"
     )
 
 
