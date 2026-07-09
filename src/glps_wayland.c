@@ -1020,9 +1020,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
     free(wm->wayland_ctx);
     wm->wayland_ctx = NULL;
   }
-}
-
-ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
+}ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
                               int x, int y, int width, int height)
 {
   glps_WaylandWindow *window = malloc(sizeof(glps_WaylandWindow));
@@ -1147,7 +1145,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   return wm->window_count++;
 }
-
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
                                  size_t window_id)
 {
