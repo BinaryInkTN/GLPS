@@ -1143,9 +1143,7 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
-  LOG_ERROR("Added frame callback listener for window id %zu", wm->window_count);
-                           return wm->window_count++;
-
+  return wm->window_count++;
 }
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
                                  size_t window_id)

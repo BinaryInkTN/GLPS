@@ -105,6 +105,7 @@ void glps_egl_destroy(glps_WindowManager *wm) {
 }
 
 void glps_egl_swap_buffers(glps_WindowManager *wm, size_t window_id) {
+  LOG_INFO("Swapping buffers for window id %zu", window_id);
     if (!eglSwapBuffers(wm->egl_ctx->dpy, wm->windows[window_id]->egl_surface)) {
         LOG_ERROR("eglSwapBuffers failed: 0x%x", eglGetError());
     }
