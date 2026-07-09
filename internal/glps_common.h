@@ -250,8 +250,8 @@ typedef struct glps_WaylandWindow {
     bool fps_is_init;
     void *frame_args;
     uint32_t serial;
+    bool configured;
 } glps_WaylandWindow;
-
 typedef struct {
     struct wl_display *wl_display;
     struct wl_registry *wl_registry;
