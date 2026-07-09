@@ -1178,23 +1178,39 @@ void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
   xdg_toplevel_set_max_size(window->xdg_toplevel,
                             state ? INT32_MAX : window_width,
                             state ? INT32_MAX : window_height);
-}
-
-bool glps_wl_should_close(glps_WindowManager *wm)
+}bool glps_wl_should_close(glps_WindowManager *wm)
 {
-  if (wm->should_close)
-    return true;
+    if (wm == NULL)
+        return true;
 
-  int ret = wl_display_dispatch(wm->wayland_ctx->wl_display);
-  if (ret == -1)
-  {
-    int err = wl_display_get_error(wm->wayland_ctx->wl_display);
-    if (err != 0)
-      LOG_ERROR("Wayland display error: %d", err);
-    return true;
-  }
+    if (wm->should_close)
+        return true;
 
-  return false;
+    struct wl_display *display =
+        wm->wayland_ctx->wl_display;
+
+
+    while (wl_display_prepare_read(display) != 0)
+    {
+        wl_display_dispatch_pending(display);
+    }
+
+
+    wl_display_flush(display);
+
+
+    if (wl_display_read_events(display) == -1)
+    {
+        LOG_ERROR("Wayland read events failed");
+        wl_display_cancel_read(display);
+        return true;
+    }
+
+
+    wl_display_dispatch_pending(display);
+
+
+    return false;
 }
 
 void glps_wl_destroy(glps_WindowManager *wm)
