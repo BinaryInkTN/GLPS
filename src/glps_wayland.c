@@ -761,101 +761,6 @@ struct wl_seat_listener wl_seat_listener = {
     .name         = wl_seat_name,
 };
 
-void data_source_handle_send(void *data, struct wl_data_source *source,
-                             const char *mime_type, int fd)
-{
-}
-
-void data_source_handle_cancelled(void *data, struct wl_data_source *source)
-{
-  wl_data_source_destroy(source);
-}
-
-void data_source_handle_target(void *data, struct wl_data_source *source,
-                               const char *mime_type)
-{
-}
-
-enum wl_data_device_manager_dnd_action last_dnd_action =
-    WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
-
-void data_source_handle_action(void *data, struct wl_data_source *source,
-                               uint32_t dnd_action)
-{
-  last_dnd_action = dnd_action;
-}
-
-void data_source_handle_dnd_drop_performed(void *data,
-                                           struct wl_data_source *source)
-{
-}
-
-void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
-{
-}
-
-struct wl_data_source_listener data_source_listener = {
-    .send               = data_source_handle_send,
-    .cancelled          = data_source_handle_cancelled,
-    .target             = data_source_handle_target,
-    .action             = data_source_handle_action,
-    .dnd_drop_performed = data_source_handle_dnd_drop_performed,
-    .dnd_finished       = data_source_handle_dnd_finished,
-};
-
-void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
-                             const char *mime_type)
-{
-}
-
-void data_offer_handle_source_actions(void *data, struct wl_data_offer *offer,
-                                      uint32_t actions)
-{
-}
-
-void data_offer_handle_action(void *data, struct wl_data_offer *offer,
-                              uint32_t dnd_action)
-{
-}
-
-struct wl_data_offer_listener data_offer_listener = {
-    .offer          = data_offer_handle_offer,
-    .source_actions = data_offer_handle_source_actions,
-    .action         = data_offer_handle_action,
-};
-
-void data_device_handle_drop(void *data, struct wl_data_device *data_device)
-{
-}
-
-void data_device_handle_data_offer(void *data,
-                                   struct wl_data_device *data_device,
-                                   struct wl_data_offer *offer)
-{
-}
-
-void data_device_handle_selection(void *data,
-                                  struct wl_data_device *data_device,
-                                  struct wl_data_offer *offer)
-{
-}
-
-void data_device_handle_enter(void *data, struct wl_data_device *data_device,
-                              uint32_t serial, struct wl_surface *surface,
-                              wl_fixed_t x, wl_fixed_t y,
-                              struct wl_data_offer *offer)
-{
-}
-
-void data_device_handle_motion(void *data, struct wl_data_device *data_device,
-                               uint32_t time, wl_fixed_t x, wl_fixed_t y)
-{
-}
-
-void data_device_handle_leave(void *data, struct wl_data_device *data_device)
-{
-}
-
 void handle_global(void *data, struct wl_registry *registry, uint32_t id,
                    const char *interface, uint32_t version)
 {
@@ -903,15 +808,6 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
     {
       LOG_ERROR("Failed to bind wl_seat.");
     }
-  }
-  else if (strcmp(interface, "wl_data_device_manager") == 0)
-  {
-    s->wl_data_device_manager = wl_registry_bind(registry, id,
-                                                  &wl_data_device_manager_interface, 3);
-    if (!s->wl_data_device_manager)
-      LOG_ERROR("Failed to bind wl_data_device_manager.");
-    else
-      LOG_INFO("Successfully bound wl_data_device_manager.");
   }
   else
   {
@@ -1071,16 +967,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   if (wm->wayland_ctx != NULL)
   {
-    if (wm->wayland_ctx->wl_data_device != NULL)
-    {
-      wl_data_device_destroy(wm->wayland_ctx->wl_data_device);
-      wm->wayland_ctx->wl_data_device = NULL;
-    }
-    if (wm->wayland_ctx->wl_data_device_manager != NULL)
-    {
-      wl_data_device_manager_destroy(wm->wayland_ctx->wl_data_device_manager);
-      wm->wayland_ctx->wl_data_device_manager = NULL;
-    }
     if (wm->wayland_ctx->wl_seat != NULL)
       wl_seat_destroy(wm->wayland_ctx->wl_seat);
     if (wm->wayland_ctx->xdg_wm_base != NULL)
@@ -1199,15 +1085,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   if (wm->window_count == 0)
   {
-    if (!glps_egl_create_ctx(wm))
-    {
-      LOG_ERROR("Failed to create EGL context");
-      xdg_toplevel_destroy(window->xdg_toplevel);
-      xdg_surface_destroy(window->xdg_surface);
-      wl_surface_destroy(window->wl_surface);
-      free(window);
-      return -1;
-    }
+    glps_egl_create_ctx(wm);
   }
 
   window->egl_window = wl_egl_window_create(
