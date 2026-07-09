@@ -1368,15 +1368,7 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   if (wm->window_count == 0)
   {
-    if (!glps_egl_create_ctx(wm))
-    {
-      LOG_ERROR("Failed to create EGL context");
-      xdg_toplevel_destroy(window->xdg_toplevel);
-      xdg_surface_destroy(window->xdg_surface);
-      wl_surface_destroy(window->wl_surface);
-      free(window);
-      return -1;
-    }
+    glps_egl_create_ctx(wm);
   }
 
   if (wm->egl_ctx == NULL)
