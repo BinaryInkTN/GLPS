@@ -259,6 +259,8 @@ typedef struct {
     struct wl_compositor *wl_compositor;
     struct wl_seat *wl_seat;
     struct xdg_wm_base *xdg_wm_base;
+        struct wl_shm *wl_shm;
+
    // struct zxdg_decoration_manager_v1 *decoration_manager;
     //struct xdg_toplevel_tag_manager_v1 *tag_manager;
     //struct wl_data_device_manager *data_dvc_manager;

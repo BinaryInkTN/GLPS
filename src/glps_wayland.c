@@ -895,8 +895,6 @@ void data_device_handle_leave(void *data, struct wl_data_device *data_device)
 {
 }
 
-
-
 void handle_global(void *data, struct wl_registry *registry, uint32_t id,
                    const char *interface, uint32_t version)
 {
@@ -909,7 +907,7 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   if (strcmp(interface, "wl_compositor") == 0)
   {
     s->wl_compositor = wl_registry_bind(registry, id,
-                                        &wl_compositor_interface, version);
+                                        &wl_compositor_interface, 4);
     if (!s->wl_compositor)
       LOG_ERROR("Failed to bind wl_compositor.");
     else
@@ -918,15 +916,23 @@ void handle_global(void *data, struct wl_registry *registry, uint32_t id,
   else if (strcmp(interface, "xdg_wm_base") == 0)
   {
     s->xdg_wm_base = wl_registry_bind(registry, id,
-                                       &xdg_wm_base_interface, version);
+                                       &xdg_wm_base_interface, 1);
     if (!s->xdg_wm_base)
       LOG_ERROR("Failed to bind xdg_wm_base.");
     else
       LOG_INFO("Successfully bound xdg_wm_base.");
   }
+  else if (strcmp(interface, "wl_shm") == 0)
+  {
+    s->wl_shm = wl_registry_bind(registry, id, &wl_shm_interface, 1);
+    if (!s->wl_shm)
+      LOG_ERROR("Failed to bind wl_shm.");
+    else
+      LOG_INFO("Successfully bound wl_shm.");
+  }
   else if (strcmp(interface, wl_seat_interface.name) == 0)
   {
-    s->wl_seat = wl_registry_bind(registry, id, &wl_seat_interface, version);
+    s->wl_seat = wl_registry_bind(registry, id, &wl_seat_interface, 5);
     if (s->wl_seat)
     {
       wl_seat_add_listener(s->wl_seat, &wl_seat_listener, data);
@@ -987,8 +993,6 @@ struct wl_callback_listener frame_callback_listener = {
     .done = frame_callback_done,
 };
 
-
-
 void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                int32_t width, int32_t height,
                                struct wl_array *states)
@@ -1004,10 +1008,8 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
   {
     window->properties.height = height;
     window->properties.width  = width;
-      wl_egl_window_resize(window->egl_window, width, height, 0, 0);
-
+    wl_egl_window_resize(window->egl_window, width, height, 0, 0);
   }
-
 
   if (wm->callbacks.window_resize_callback)
   {
@@ -1042,9 +1044,21 @@ void handle_toplevel_close(void *data, struct xdg_toplevel *toplevel)
   }
 }
 
+void handle_toplevel_configure_bounds(void *data, struct xdg_toplevel *toplevel,
+                                      int32_t width, int32_t height)
+{
+}
+
+void handle_toplevel_wm_capabilities(void *data, struct xdg_toplevel *toplevel,
+                                     struct wl_array *capabilities)
+{
+}
+
 struct xdg_toplevel_listener toplevel_listener = {
-    .configure = handle_toplevel_configure,
-    .close     = handle_toplevel_close,
+    .configure        = handle_toplevel_configure,
+    .close            = handle_toplevel_close,
+    .configure_bounds = handle_toplevel_configure_bounds,
+    .wm_capabilities  = handle_toplevel_wm_capabilities,
 };
 
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
@@ -1135,7 +1149,11 @@ static void _cleanup_wl(glps_WindowManager *wm)
       xkb_context_unref(wm->wayland_ctx->xkb_context);
       wm->wayland_ctx->xkb_context = NULL;
     }
-
+if (wm->wayland_ctx->wl_shm != NULL)
+{
+    wl_shm_destroy(wm->wayland_ctx->wl_shm);
+    wm->wayland_ctx->wl_shm = NULL;
+}
     wl_display_disconnect(wm->wayland_ctx->wl_display);
     free(wm->wayland_ctx);
     wm->wayland_ctx = NULL;
