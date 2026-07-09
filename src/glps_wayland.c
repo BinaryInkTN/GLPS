@@ -882,7 +882,6 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
                                          window->properties.height,
                                          wm->callbacks.window_resize_data);
   }
-
   if (window->egl_window != NULL)
     wl_update(wm, window_id);
 }
@@ -1080,10 +1079,11 @@ static void _cleanup_wl(glps_WindowManager *wm)
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
 
-  /* Initial commit: no buffer attached. This is what the xdg-shell
-     protocol requires to solicit the first configure event. Weston
-     enforces this strictly; nothing else may be committed with a
-     buffer until that configure has been ack'd. */
+  /* Initial commit: no buffer attached. This is what xdg-shell
+     requires to solicit the first configure event. Weston enforces
+     this strictly, so nothing else may be committed with a buffer
+     until that configure has been ack'd (done inside
+     xdg_surface_configure(), which fires during this roundtrip). */
   wl_surface_commit(window->wl_surface);
   wl_display_roundtrip(wm->wayland_ctx->wl_display);
 
@@ -1145,17 +1145,6 @@ static void _cleanup_wl(glps_WindowManager *wm)
 
   wl_callback_add_listener(window->frame_callback,
                            &frame_callback_listener, frame_args);
-
-  if (wm->egl_ctx != NULL && wm->egl_ctx->dpy != EGL_NO_DISPLAY)
-  {
-    glps_egl_make_ctx_current(wm, wm->window_count);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface);
-  }
-
-  wl_display_roundtrip(wm->wayland_ctx->wl_display);
-
   return wm->window_count++;
 }
 void glps_wl_window_is_resizable(glps_WindowManager *wm, bool state,
