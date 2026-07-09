@@ -113,7 +113,6 @@ elseif(UNIX AND NOT APPLE)
         ${CMAKE_BINARY_DIR}/generated/xdg
     )
 
-    file(REMOVE_RECURSE ${GENERATED_XDG_DIR})
     file(MAKE_DIRECTORY ${GENERATED_XDG_DIR})
 
 
@@ -304,6 +303,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
 
         ${PROJECT_SOURCE_DIR}/internal
+        ${CMAKE_BINARY_DIR}/generated
 )
 
 

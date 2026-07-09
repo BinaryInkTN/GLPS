@@ -42,7 +42,7 @@
 #include <xkbcommon/xkbcommon.h>
 #include <sys/mman.h>
 // Wayland protocol extensions
-#include "xdg/xdg-shell.h"
+#include "xdg-shell.h"
 //#include "xdg/xdg-decorations.h"
 //#include "xdg/xdg-toplevel-tag.h"
 //#include "xdg/wlr-data-control-unstable-v1.h"

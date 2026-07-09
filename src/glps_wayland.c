@@ -1097,13 +1097,8 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
   // Store window in array before first commit so configure handler can find it
   wm->windows[wm->window_count] = window;
   
-  // FIX 1: Initial commit with NO buffer attached
-  // This is required by xdg-shell protocol to get the initial configure event
-  // Weston strictly enforces this
   wl_surface_commit(window->wl_surface);
   
-  // FIX 2: Wait for compositor to process the commit and send configure events
-  // This roundtrip ensures we receive xdg_surface.configure before proceeding
   if (wl_display_roundtrip(wm->wayland_ctx->wl_display) == -1)
   {
     LOG_ERROR("Roundtrip failed while waiting for initial configure");
