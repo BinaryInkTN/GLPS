@@ -75,7 +75,7 @@ void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
             (surface_type & EGL_WINDOW_BIT) &&
             red_size >= 8 && green_size >= 8 && blue_size >= 8) {
             selected = i;
-            LOG_DEBUG("Found hardware accelerated config: red=%d, green=%d, blue=%d, depth=%d, stencil=%d",
+            LOG_INFO("Found hardware accelerated config: red=%d, green=%d, blue=%d, depth=%d, stencil=%d",
                       red_size, green_size, blue_size, depth_size, stencil_size);
             break;
         }
