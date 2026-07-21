@@ -1431,11 +1431,6 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   request_frame(window, frame_args);
 
-  if (eglSwapBuffers(wm->egl_ctx->dpy, window->egl_surface) == EGL_FALSE)
-  {
-    LOG_ERROR("Initial eglSwapBuffers failed for window id %zu (eglGetError: 0x%x)",
-              new_window_id, eglGetError());
-  }
 
   wm->window_count = new_window_id + 1;
   return (ssize_t)new_window_id;
