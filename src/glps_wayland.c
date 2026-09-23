@@ -2,6 +2,9 @@
 #include <glps_wayland.h>
 #include "utils/logger/pico_logger.h"
 
+static void __wl_window_set_opaque(glps_WindowManager *wm,
+                                   glps_WaylandWindow *window);
+
 void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base,
                       uint32_t serial)
 {
@@ -1107,6 +1110,9 @@ void handle_toplevel_configure(void *data, struct xdg_toplevel *toplevel,
     window->properties.width  = width;
     if (window->egl_window != NULL)
       wl_egl_window_resize(window->egl_window, width, height, 0, 0);
+    /* Opaque region tracks the new size (xdg_surface_configure refreshes
+     * it again after ack; this covers the resize itself). */
+    __wl_window_set_opaque(wm, window);
   }
 
   if (wm->callbacks.window_resize_callback)
@@ -1167,6 +1173,37 @@ struct xdg_toplevel_listener toplevel_listener = {
     .wm_capabilities  = handle_toplevel_wm_capabilities,
 };
 
+/* Mark the whole window opaque so the compositor never blends our
+ * alpha-carrying EGL surface with the content behind it. Translucency
+ * inside the app still works (blending happens in GL); this only tells
+ * the compositor the final presented pixels are fully covering. The
+ * region takes effect on the next wl_surface.commit. Safe to call any
+ * time the window size may have changed. */
+static void __wl_window_set_opaque(glps_WindowManager *wm,
+                                   glps_WaylandWindow *window)
+{
+  if (wm == NULL || window == NULL)
+    return;
+  if (window->wl_surface == NULL || window->xdg_surface == NULL)
+    return;
+  if (wm->wayland_ctx == NULL || wm->wayland_ctx->wl_compositor == NULL)
+    return;
+  int32_t w = window->properties.width;
+  int32_t h = window->properties.height;
+  if (w <= 0 || h <= 0)
+    return;
+  struct wl_region *region =
+      wl_compositor_create_region(wm->wayland_ctx->wl_compositor);
+  if (!region)
+  {
+    LOG_ERROR("Failed to create opaque region.");
+    return;
+  }
+  wl_region_add(region, 0, 0, w, h);
+  wl_surface_set_opaque_region(window->wl_surface, region);
+  wl_region_destroy(region);
+}
+
 void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
                            uint32_t serial)
 {
@@ -1194,6 +1231,11 @@ void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
     return;
 
   wm->windows[(size_t)window_id]->serial = serial;
+
+  /* Keep the opaque region in sync on every configure (initial size,
+   * resizes, state changes): without it the compositor blends our
+   * alpha-carrying EGL surface with whatever is behind the window. */
+  __wl_window_set_opaque(wm, wm->windows[(size_t)window_id]);
 }
 
 struct xdg_surface_listener xdg_surface_listener = {
@@ -1360,6 +1402,11 @@ ssize_t glps_wl_window_create(glps_WindowManager *wm, const char *title,
 
   xdg_toplevel_set_title(window->xdg_toplevel, title);
   xdg_toplevel_add_listener(window->xdg_toplevel, &toplevel_listener, wm);
+
+  /* First commit happens below before any configure event arrives, so set
+   * the initial opaque region here; later sizes are handled in
+   * xdg_surface_configure. */
+  __wl_window_set_opaque(wm, window);
 
   wl_surface_commit(window->wl_surface);
   LOG_INFO("Committing surface for window id %zu", wm->window_count);
