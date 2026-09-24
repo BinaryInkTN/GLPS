@@ -17,6 +17,10 @@ void glps_egl_init(glps_WindowManager *wm, EGLNativeDisplayType display) {
                              8,
                              EGL_ALPHA_SIZE,
                              8,
+                             /* Depth buffer: the 3D viewer depth-tests against
+                              * the default framebuffer when MSAA is off. */
+                             EGL_DEPTH_SIZE,
+                             24,
                              EGL_RENDERABLE_TYPE,
                             EGL_OPENGL_ES3_BIT,
                             EGL_NONE};
